@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Dashboard</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="leave.css?v=23">
+  <link rel="stylesheet" href="dashboard.css?v=15">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+</head>
+<body class="app dashboard">
+
+  <!-- SECURITY GUARD -->
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) {
+      window.location.href = "index.html";
+    }
+  </script>
+
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="side-brand">
+      <img src="AIRCON.png" alt="Logo">
+      <span>AIRCON G.O.D</span>
+    </div>
+
+    <nav aria-label="Main menu"><!-- filled in by sidebar.js --></nav>
+
+    <!-- Logout Button -->
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="content">
+    <div class="db-head">
+      <div>
+        <h1>Dashboard</h1>
+        <p id="today"></p>
+      </div>
+      <!-- Quick actions (business view only) -->
+      <div class="db-qa" id="quickActions">
+        <a class="main" href="aftersales.html"><i class="fas fa-file-signature"></i> New quotation</a>
+        <a href="scanner.html"><i class="fas fa-barcode"></i> Scan item</a>
+        <a href="dailysched.html"><i class="fas fa-calendar-plus"></i> Add job</a>
+      </div>
+    </div>
+
+    <!-- WELCOME BANNER -->
+    <section class="db-hero">
+      <div>
+        <h2 id="greet">Welcome back</h2>
+        <p id="heroLine"></p>
+      </div>
+      <div class="db-hero-sum" id="heroSum"></div>
+    </section>
+
+    <!-- BUSINESS BOXES: only Owner, Admin Staff, Human Resources and Developer see these -->
+    <div id="bizBoxes">
+
+      <!-- 4 SUMMARY TILES -->
+      <section class="db-kpis">
+        <a class="db-kpi" href="customers.html" style="--accent:#1d4ed8;--accent-bg:#e8efff" title="Installation requests that still need follow-up">
+          <div class="db-kpi-top"><span class="db-kpi-ico"><i class="fas fa-user-plus"></i></span><span class="db-delta flat" id="reqDelta">—</span></div>
+          <b id="newCustomerRequests">0</b><small>New customer requests</small>
+        </a>
+        <a class="db-kpi" href="inventory.html" style="--accent:#b42318;--accent-bg:#fdeceb" title="Brands with 5 units or fewer left (or at their Reorder Level)">
+          <div class="db-kpi-top"><span class="db-kpi-ico"><i class="fas fa-exclamation-triangle"></i></span><span class="db-delta flat" id="lowDelta">—</span></div>
+          <b id="lowCount">0</b><small>Low-stock items</small>
+        </a>
+        <a class="db-kpi" id="salesKpi" href="sales.html" style="--accent:#d5a52a;--accent-bg:#fff6dc" title="This month's job orders, minus this month's expenses">
+          <div class="db-kpi-top"><span class="db-kpi-ico"><i class="fas fa-peso-sign"></i></span><span class="db-delta flat" id="salesDelta">—</span></div>
+          <b id="monthSales">₱0</b><small id="monthSalesLabel">Sales this month</small>
+          <!-- This month: sales − expenses = net (dashboard.js) -->
+          <div class="db-kpi-break" id="salesBreak" hidden></div>
+        </a>
+        <a class="db-kpi" href="dailysched.html" style="--accent:#15803d;--accent-bg:#e8f7ee" title="Jobs on today's Daily Schedule that aren't done or cancelled">
+          <div class="db-kpi-top"><span class="db-kpi-ico"><i class="fas fa-calendar-check"></i></span><span class="db-delta flat" id="jobsDelta">—</span></div>
+          <b id="todayCount">0</b><small>Jobs today</small>
+        </a>
+      </section>
+
+      <!-- Ocular surveys sent by installers, for HR / Owner to turn into a quotation (ocular.js); one line when none are waiting -->
+      <div id="ocularPanel" hidden></div>
+
+      <!-- SALES CHART + TOP BRANDS -->
+      <section class="db-row" id="salesRow">
+        <div class="db-card m-sales" id="salesCard">
+          <div class="db-card-h">
+            <h3><i class="fas fa-chart-bar"></i> Monthly sales</h3>
+            <div class="db-seg" aria-label="Time range">
+              <button type="button" class="on" data-range="6">6 months</button>
+              <button type="button" data-range="12">12 months</button>
+            </div>
+          </div>
+          <div class="db-chart-hero"><b id="chartTotal">₱0</b><span id="chartSub"></span></div>
+          <div class="db-chart" id="chart"></div>
+        </div>
+        <div class="db-card m-brands">
+          <div class="db-card-h"><h3><i class="fas fa-trophy"></i> Top brands this month</h3><a href="pricelist.html">Price list →</a></div>
+          <div class="db-brands" id="brands"></div>
+        </div>
+      </section>
+
+      <!-- TODAY'S SCHEDULE + REORDER SOON -->
+      <section class="db-row">
+        <div class="db-card m-today">
+          <div class="db-card-h"><h3><i class="fas fa-route"></i> Today's schedule</h3><a href="dailysched.html">Open Daily Schedule →</a></div>
+          <div class="db-tl" id="todayList"></div>
+        </div>
+        <div class="db-card m-reorder">
+          <div class="db-card-h"><h3><i class="fas fa-boxes"></i> Reorder soon</h3><a href="inventory.html">Inventory →</a></div>
+          <div class="db-list" id="lowList"></div>
+        </div>
+      </section>
+
+      <!-- RECENT ACTIVITY + WARRANTY ENDING SOON -->
+      <section class="db-row">
+        <div class="db-card m-activity">
+          <div class="db-card-h"><h3><i class="fas fa-stream"></i> Recent activity</h3></div>
+          <div class="db-list" id="activity"></div>
+        </div>
+        <div class="db-card m-warranty">
+          <div class="db-card-h"><h3><i class="fas fa-shield-alt"></i> Warranty ending soon</h3><a href="customers.html">Customers →</a></div>
+          <div class="db-list" id="warrantyList"></div>
+        </div>
+      </section>
+
+    </div><!-- /bizBoxes -->
+
+    <!-- STAFF'S OWN PANEL: their info and position, request day off / leave, and their requests -->
+    <div id="myPanel" hidden></div>
+
+    <script src="payslip.js?v=7"></script>
+    <script src="incentive-teams.js?v=2"></script>
+    <script src="attendance.js?v=22"></script>
+    <script src="timeclock-lib.js?v=2"></script>
+    <script src="daterange.js?v=3"></script>
+    <script src="leave.js?v=25"></script>
+    <script>
+      // Owner, Admin Staff, Human Resources, Developer: the business boxes.
+      // Everyone else (Installer, Driver, Editor, …): their own info and day off / leave requests.
+      // Admin Staff get both: the business boxes, then their own info, day off / leave and warnings below.
+      (function () {
+        const role = String(sessionStorage.getItem("aircon_role") || "").trim().toLowerCase();
+        // Sales money (Monthly sales chart, "Sales this month" tile, sales in the banner): Owner, HR, Admin
+        // (and Developer): roles.js seesDashboardSales.
+        if (!Roles.me().seesDashboardSales) {
+          document.getElementById("salesKpi").hidden = true;
+          document.getElementById("salesCard").hidden = true;
+          document.getElementById("salesRow").classList.add("no-sales");
+          document.querySelector(".db-kpis").classList.add("three");
+          document.getElementById("heroSum").hidden = true;
+        } else if (!(Roles.me().owner || Roles.me().dev)) {
+          // The "Sales this month" tile (sales, expenses, net): only Owner / Head Supervisor (and Developer)
+          document.getElementById("salesKpi").hidden = true;
+          document.querySelector(".db-kpis").classList.add("three");
+        }
+        // (roles.js) business boxes: owner, HR and office positions; office positions also get their own panel
+        const r = Roles.me();
+        const mine = document.getElementById("myPanel");
+        // Owner / HR / Manager: business boxes, plus their own panel (My time in = their lates) when their
+        // login is on the Staff list. Every employee sees their own lates.
+        if (r.manager && !r.office && !Leave.me()) return;
+        // Admin / Office, HR / Manager, Owner, Supervisors, Developer: their payslip, leave and warnings are on My Profile
+        const onProfile = r.profileFull;
+        // "Office access" on their Staff record (roles.js): the office boxes (new customer requests, low stock,
+        // jobs today, today's schedule, reorder soon, recent activity, warranty ending soon), no sales / brands /
+        // crew pay and no quick actions; then their own employee panel below
+        if (r.fieldOffice && !r.accounting) {
+          document.getElementById("salesRow").hidden = true;
+          const att = document.querySelector(".db-att"); if (att) att.hidden = true;
+          document.getElementById("quickActions").hidden = true;
+          document.getElementById("heroSum").hidden = true;
+          if (onProfile) return;
+          mine.classList.add("emp-only");
+          mine.style.marginTop = "16px";
+          mine.hidden = false;
+          mine.dataset.noInfo = "1";   // My information is on the My Profile page
+          Leave.mountEmployee(mine);
+          return;
+        }
+        if (onProfile) return;
+        // Accounting gets the business boxes (with sales) too, then their own info / leave below, like office positions
+        if (!r.manager && !r.accounting) {
+          document.getElementById("bizBoxes").hidden = true;
+          document.getElementById("quickActions").hidden = true;
+          document.getElementById("heroSum").hidden = true;
+          mine.classList.add("emp-only");   // employees' own layout (leave.js employeeLayout)
+        } else mine.style.marginTop = "16px";
+        mine.hidden = false;
+        mine.dataset.noInfo = "1";   // My information is on the My Profile page
+        Leave.mountEmployee(mine);
+      })();
+    </script>
+
+  </main>
+  
+  <script>
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = "index.html";
+    }
+  </script>
+
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+  <script src="pricelist.js?v=4"></script>
+  <script src="pricepicker.js?v=4"></script>
+  <script src="warranty.js"></script>
+  <script src="dashboard.js?v=13"></script>
+  <script src="copper.js?v=4"></script>
+  <script src="ocular.js?v=12"></script>
+  <script>Ocular.mountDashboard(document.getElementById("ocularPanel"));</script>
+</body>
+</html>

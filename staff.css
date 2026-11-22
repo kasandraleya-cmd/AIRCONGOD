@@ -1,0 +1,369 @@
+/* =========================================
+   STAFF PAGE (staff.html only)
+   Loads after style.css and inventory.css (reuses its
+   table, buttons and popup); every rule here starts with st-.
+   ========================================= */
+
+/* ---------- Header ---------- */
+.st-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.st-head h1 {
+  display: block;
+  margin: 0 0 4px;
+  font-size: 26px;
+}
+
+.st-head p {
+  margin: 0;
+  color: var(--mut);
+}
+
+.st-updated {
+  align-self: center;
+  color: var(--mut);
+  font-size: 12.5px;
+}
+
+/* Teal main button, same color as the rest of the app */
+.inv-btn.teal {
+  border-color: var(--pri);
+  background: var(--pri);
+  color: #fff;
+}
+
+/* ---------- Search + filters ---------- */
+.st-tools {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.st-tools label {
+  margin-bottom: 6px;
+  color: #4a5c63;
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.st-tools .st-search {
+  flex: 1 1 260px;
+  max-width: 360px;
+}
+
+.st-tools .st-filter {
+  flex: 0 1 190px;
+}
+
+.st-tools input,
+.st-tools select {
+  height: 42px;
+}
+
+.st-tools-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* ---------- Needs your action (HR): leave requests, cash advances, warnings ---------- */
+.st-act { margin-bottom: 16px; }
+.st-act h2 { margin: 0 0 8px; color: #3d5258; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; }
+.st-act-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.st-act-card { position: relative; display: flex; align-items: center; gap: 14px; padding: 14px 16px; overflow: hidden;
+  border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.st-act-card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; background: #d5dde0; }
+.st-act-card.due::before { background: #d5a52a; }
+.st-act-card.due { border-color: #e6cc78; background: #fffcf2; }
+.st-act-card:hover { border-color: #b8c6cf; }
+.st-act-card.due:hover { border-color: #d5a52a; }
+.st-act-card > i { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; background: #eef3f4; color: #071d49; font-size: 17px; }
+.st-act-card.due > i { background: #071d49; color: #f3c74c; }
+.st-act-card div { flex: 1; min-width: 0; }
+.st-act-card span { display: block; color: #3d5258; font-size: 12.5px; font-weight: 700; }
+.st-act-card b { display: block; margin: 2px 0 1px; color: #071d49; font-size: 22px; line-height: 1.15; }
+.st-act-card small { display: block; color: var(--mut); font-size: 12px; }
+.st-act-card em { flex-shrink: 0; padding: 7px 12px; border-radius: 8px; background: #eef3f4; color: #071d49; font-style: normal; font-size: 12.5px; font-weight: 700; }
+.st-act-card.due em { background: #071d49; color: #fff; }
+
+/* ---------- Table ---------- */
+.st-table td {
+  white-space: normal;
+}
+
+.st-id {
+  display: block;
+  margin-top: 2px;
+  color: var(--mut);
+  font-size: 12px;
+}
+
+.st-contact small {
+  display: block;
+  color: var(--mut);
+}
+
+.st-rate.none {
+  color: var(--bad);
+  font-weight: 700;
+}
+
+.st-status {
+  display: inline-block;
+  padding: 3px 10px;
+  border: 1px solid transparent;
+  border-radius: 99px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.st-status.active { border-color: #9fd9b7; background: #e5f6ea; color: #15803d; }
+.st-status.leave { border-color: #f4d58d; background: #fef3c7; color: #b45309; }
+.st-status.inactive { border-color: #d5dde0; background: #eef3f4; color: var(--mut); }
+
+.st-row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.st-row-actions .inv-btn {
+  padding: 7px 14px;
+}
+
+/* Employee Info popup (wide list) */
+.inv-box.st-emp-box {
+  max-width: 1400px;
+}
+
+.st-emp-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.st-emp-tools input {
+  flex: 1 1 auto;
+  max-width: 420px;
+  height: 40px;
+}
+
+.st-emp-tools select {
+  flex: 0 1 170px;
+  height: 40px;
+}
+
+.st-emp-tools .inv-btn {
+  min-height: 40px;
+}
+
+.st-emp-tools span {
+  color: var(--mut);
+  font-size: 12.5px;
+}
+
+.st-emp-tools #empCount {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.st-emp-privacy {
+  flex-basis: 100%;
+  color: var(--mut);
+  font-size: 11px;
+}
+
+.st-emp-box .st-table th {
+  white-space: nowrap;
+}
+
+.st-emp-details-toggle {
+  padding: 5px 10px;
+  border: 1px solid #d5a52a;
+  border-radius: 7px;
+  background: #fff;
+  color: #071d49;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.st-emp-details-toggle:hover,
+.st-emp-details-toggle[aria-expanded="true"] {
+  background: #fbf5e4;
+}
+
+.st-emp-detail-row td {
+  padding: 12px 16px !important;
+  background: #fffcf2;
+}
+
+.st-emp-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.7fr) minmax(240px, 2fr);
+  gap: 12px 24px;
+}
+
+.st-emp-detail-grid span,
+.st-emp-detail-grid b {
+  display: block;
+}
+
+.st-emp-detail-grid span {
+  margin-bottom: 3px;
+  color: var(--mut);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.st-emp-detail-grid b {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+/* Editable ID number and status dropdown */
+.st-emp-id {
+  width: 120px;
+  height: 34px;
+  padding: 4px 8px;
+  font-weight: 600;
+}
+
+.st-emp-status {
+  height: 34px;
+  padding: 4px 8px;
+  border: 1px solid #d5dde0;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  cursor: pointer;
+}
+
+.st-emp-status.active { border-color: #9fd9b7; background: #e5f6ea; color: #15803d; }
+.st-emp-status.leave { border-color: #f4d58d; background: #fef3c7; color: #b45309; }
+.st-emp-status.sick { border-color: #f5c2c0; background: #fff1f0; color: #c2410c; }
+.st-emp-status.inactive { border-color: #d5dde0; background: #eef3f4; color: var(--mut); }
+.st-emp-status option { background: #fff; color: var(--ink); }
+
+.st-status.sick { border-color: #f5c2c0; background: #fff1f0; color: #c2410c; }
+
+.inv-btn.st-del {
+  border-color: #f5c2c0;
+  background: #fff5f4;
+  color: var(--bad);
+}
+
+/* ---------- Small screens ---------- */
+@media (max-width: 1000px) {
+  .st-act-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .st-head {
+    flex-direction: column;
+  }
+
+  .st-tools .st-search,
+  .st-tools .st-filter {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .st-tools-actions {
+    margin-left: 0;
+  }
+
+  .st-emp-tools input,
+  .st-emp-tools select,
+  .st-emp-tools .inv-btn {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .st-emp-tools #empCount {
+    margin-left: 0;
+  }
+
+  .st-emp-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Login section in the Add / Edit Staff popup */
+.st-login-title {
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.st-section {
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.st-section i { color: var(--mut); margin-right: 4px; }
+
+.st-login-title small {
+  color: var(--mut);
+  font-weight: 400;
+}
+
+.st-login-hint {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fff8e6;
+  color: #7c5a05;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.staff-date-control { position: relative; }
+.staff-date-control input[type="text"] { width: 100%; padding-right: 42px; }
+.staff-date-control .staff-date-icon { position: absolute; top: 50%; right: 14px; transform: translateY(-50%); color: #4a5c63; pointer-events: none; }
+.staff-date-control .staff-date-picker {
+  position: absolute; top: 0; right: 0; width: 38px; height: 100%;
+  padding: 0; border: 0; opacity: 0; cursor: pointer;
+}
+
+/* "Office access" checkbox (roles.js / supabase/office_access.sql) */
+.st-check { display: flex !important; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #f8fafb; cursor: pointer; text-transform: none !important; letter-spacing: 0 !important; }
+.st-check input { flex: none; width: 18px !important; height: 18px !important; margin: 2px 0 0; accent-color: #071d49; }
+.st-check b { color: #071d49; font-size: 13.5px; }
+.st-check small { display: block; margin-top: 2px; color: var(--mut); font-size: 12px; font-weight: 500; line-height: 1.4; }
+.st-office { background: #fff6dc !important; color: #7a5b06 !important; }
+
+/* ---------- Staff list: profile picture (or first letter) beside the name ---------- */
+.st-who { display: flex; align-items: center; gap: 10px; }
+.st-av { position: relative; display: grid; flex: none; place-items: center; width: 36px; height: 36px; border-radius: 50%;
+  background: #071d49; color: #f4d477; font-size: 15px; font-weight: 800; }

@@ -1,0 +1,520 @@
+/* ---------- Customer Records page ---------- */
+.cr-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) 1.3fr;
+  gap: 18px;
+  align-items: start;
+}
+
+/* Let both columns shrink instead of pushing the page sideways */
+.cr-layout > * {
+  min-width: 0;
+}
+
+.cr-receipt {
+  overflow-x: auto;
+}
+
+.cr-clear:hover {
+  border-color: #f5c2c0;
+  background: #fdeceb;
+  color: var(--bad);
+}
+
+/* Customer list */
+.cr-row {
+  cursor: pointer;
+}
+
+.cr-row.on td {
+  background: #e3f3f0;
+}
+
+.cr-row.on td:first-child {
+  box-shadow: inset 4px 0 0 var(--pri);
+}
+
+/* Selected customer */
+.cr-detail {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.cr-pick {
+  padding: 40px 10px;
+  color: var(--mut);
+  text-align: center;
+}
+
+.cr-pick i {
+  font-size: 30px;
+  opacity: 0.5;
+}
+
+.cr-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.cr-avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--pri);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.cr-head h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.cr-head p {
+  margin: 2px 0 0;
+  color: var(--mut);
+}
+
+/* Buttons that open Daily Schedule / Weekly Schedule / Warranty with this customer filled in */
+.cr-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 0; }
+.cr-actions span { color: var(--mut); font-size: 13px; }
+.cr-actions button { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border: 1px solid #b8d8d2;
+  border-radius: 8px; background: #fff; color: #0f766e; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.cr-actions button:hover { background: #e3f3f0; border-color: #0f766e; }
+@media print { .cr-actions { display: none !important; } }
+
+/* Receipts: long item names wrap instead of pushing the Amount column out of view */
+.cr-receipt { overflow-x: auto; }
+.cr-receipt td:not(.num) { white-space: normal; overflow-wrap: anywhere; }
+
+.cr-info {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0 6px;
+}
+
+.cr-info div {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f4f9f8;
+}
+
+.cr-info dt {
+  color: var(--mut);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.cr-info dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.cr-sub {
+  margin: 18px 0 10px;
+  font-size: 14px;
+  color: var(--mut);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* One receipt */
+.cr-receipt {
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.cr-receipt header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: #f4f9f8;
+  border-bottom: 1px solid var(--line);
+}
+
+.cr-receipt header b {
+  margin-right: 10px;
+  color: var(--pri);
+  font-family: ui-monospace, Consolas, monospace;
+}
+
+.cr-receipt header span {
+  color: var(--mut);
+}
+
+.cr-print {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--mut);
+  cursor: pointer;
+}
+
+.cr-print:hover {
+  background: #e3f3f0;
+  color: var(--pri);
+}
+
+.cr-print-head {
+  display: none;
+}
+
+.cr-receipt table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.cr-receipt th {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  color: #3d5258;
+  font-size: 11px;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.cr-receipt td {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.cr-receipt .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cr-receipt tfoot td {
+  border-bottom: 0;
+  font-weight: 800;
+  text-align: right;
+}
+
+.cr-receipt tfoot td:last-child {
+  color: var(--pri);
+  font-size: 15px;
+}
+
+.cr-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  color: var(--mut);
+  font-size: 12px;
+}
+
+.cr-meta b {
+  color: var(--ink);
+}
+
+.cr-remarks {
+  margin: 0;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  background: #fffbea;
+  font-size: 12px;
+}
+
+@media (max-width: 1000px) {
+  .cr-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .cr-info {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Print one receipt: only that card, with the company header */
+@media print {
+  body.cr-printing .side,
+  body.cr-printing .inv-header,
+  body.cr-printing .inv-stats,
+  body.cr-printing .inv-toolbar,
+  body.cr-printing .cr-list,
+  body.cr-printing .cr-head,
+  body.cr-printing .cr-info,
+  body.cr-printing .cr-sub,
+  body.cr-printing .cr-history,
+  body.cr-printing .cr-receipt:not(.printing),
+  body.cr-printing .cr-receipt header {
+    display: none !important;
+  }
+
+  body.cr-printing,
+  body.cr-printing .content {
+    display: block;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+  }
+
+  body.cr-printing .cr-layout {
+    display: block;
+  }
+
+  body.cr-printing .cr-detail {
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  body.cr-printing .cr-print-head {
+    display: grid;
+    gap: 2px;
+    padding: 0 0 12px;
+    text-align: center;
+  }
+
+  body.cr-printing .cr-print-head b {
+    font-size: 18px;
+  }
+
+  body.cr-printing .cr-print-head strong {
+    margin-top: 8px;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* ---------- Requests from the installation form ---------- */
+.cr-new {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 99px;
+  background: #fdeceb;
+  color: var(--bad);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  vertical-align: 1px;
+}
+
+.cr-request {
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.cr-request.is-new {
+  border-color: #f5c2c0;
+  box-shadow: inset 4px 0 0 var(--bad);
+}
+
+.cr-request header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #fff8f2;
+  border-bottom: 1px solid var(--line);
+}
+
+.cr-request header b {
+  margin-right: 10px;
+  color: var(--pri);
+  font-family: ui-monospace, Consolas, monospace;
+}
+
+.cr-request header span {
+  color: var(--mut);
+  font-size: 12px;
+}
+
+.cr-req-status {
+  width: auto;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cr-req-status[data-v="New"] { background: #fdeceb; color: var(--bad); }
+.cr-req-status[data-v="Contacted"] { background: #fff4d6; color: #8a5a00; }
+.cr-req-status[data-v="Scheduled"] { background: #e6eefc; color: #1d4ed8; }
+.cr-req-status[data-v="Done"] { background: #e5f6ea; color: #15803d; }
+.cr-req-status[data-v="Cancelled"] { background: #f1f3f4; color: var(--mut); }
+
+.cr-request dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  margin: 0;
+  padding: 12px 14px;
+}
+
+.cr-request dt {
+  color: var(--mut);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.cr-request dd {
+  margin: 1px 0 0;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+@media print {
+  body.cr-printing .cr-request { display: none !important; }
+}
+
+.cr-request dl .wide {
+  grid-column: 1 / -1;
+}
+
+/* ---------- Page pop-up (Daily / Weekly Schedule, Warranty), same look as Employee Info ---------- */
+.inv-box.cr-page-box {
+  display: flex;
+  flex-direction: column;
+  max-width: 1400px;
+  height: 92vh;
+  overflow: hidden;
+}
+
+.cr-page-box .inv-box-head {
+  flex: none;
+}
+
+.cr-page-sub {
+  margin: 4px 0 0;
+  color: var(--mut);
+  font-size: 13px;
+}
+
+.cr-page-frame {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.cr-page-frame iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.cr-page-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--mut);
+  font-weight: 600;
+}
+
+.cr-page-loading[hidden] {
+  display: none;
+}
+
+/* "Booked" message under the pop-up title after the installation form is sent */
+.cr-booked {
+  color: #15803d;
+}
+
+.cr-booked i {
+  margin-right: 2px;
+}
+
+/* Message after the schedule is set from the pop-up */
+.cr-booked-msg {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  z-index: 2100;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: min(640px, calc(100vw - 32px));
+  padding: 12px 14px;
+  border: 1px solid #9fd9b7;
+  border-radius: 10px;
+  background: #e5f6ea;
+  color: #14532d;
+  font-size: 14px;
+  line-height: 1.45;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  transform: translateX(-50%);
+}
+
+.cr-booked-msg i {
+  margin-top: 2px;
+  color: #15803d;
+}
+
+.cr-booked-msg button {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: #14532d;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Links under the booked message: open that date in the Daily / Weekly Schedule */
+.cr-booked-go { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.cr-booked-go a {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px;
+  background: #15803d; color: #fff; font-size: 13px; font-weight: 700; text-decoration: none;
+}
+.cr-booked-go a:hover { background: #166534; }
+.cr-booked-go a i { margin: 0; color: #fff; }
+.cr-booked-msg.bad { border-color: #f1c7c3; background: #fdeceb; color: #7a1d14; }
+.cr-booked-msg.bad i, .cr-booked-msg.bad button { color: #b42318; }
+.cr-booked-msg span > i.fa-spinner { margin-right: 6px; }
+
+/* Customer's exact location pin in the info box */
+.cr-info .cr-pin-row a { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; background: #d93025; color: #fff; font-weight: 700; text-decoration: none; }
+.cr-info .cr-pin-row a:hover { background: #a50e0e; }
+.cr-info .cr-pin-row small { display: block; margin-top: 3px; }
+
+/* JO history: every job order of the customer with the SRP of each model */
+.cr-history { margin-bottom: 14px; border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; }
+.cr-history table { width: 100%; min-width: 360px; border-collapse: collapse; font-size: 13px; }
+.cr-history th { padding: 8px 12px; background: #f4f9f8; border-bottom: 1px solid var(--line); color: #3d5258; font-size: 11px; text-align: left; text-transform: uppercase; }
+.cr-history td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.cr-history .num { text-align: right; white-space: nowrap; }
+.cr-history .cr-h-jo b { display: block; color: var(--pri); font-family: ui-monospace, Consolas, monospace; }
+.cr-history .cr-h-jo small { color: var(--mut); white-space: nowrap; }
+.cr-history tfoot td { border-bottom: 0; background: #f4f9f8; font-weight: 700; }
+.cr-history td { white-space: normal; }
+.cr-history td:nth-last-child(4) { min-width: 130px; word-break: break-word; }
+
+.cr-history .cr-h-jo small { display: block; }
+.cr-history .cr-h-jo .jo-stk { margin-top: 5px; }

@@ -1,0 +1,385 @@
+/* Survey: Installation Acceptance & Agreement + Ocular Inspection terms (2 A4 pages), like the printed form.
+   Printed on A4 with NO margins: each .sv-page is exactly one sheet. */
+@page { size: A4; margin: 0; }
+
+/* Toolbar (same look as Warranty / Formal Quotation; this page doesn't load aftersales.css, whose
+   8 mm print margin would shrink the pages) */
+.q-bar { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 18px; }
+.q-bar h1 { display: block; margin: 0 0 4px; font-size: 24px; }
+.q-bar p { margin: 0; color: var(--mut); }
+.q-bar-actions { display: flex; gap: 8px; }
+.q-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border: 1px solid var(--line); border-radius: 8px;
+  background: #fff; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.q-btn:hover { background: var(--bg); }
+.q-btn.gold { border-color: #d97706; background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; }
+.fq-back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px; color: #0f766e; font-size: 13px; font-weight: 600; text-decoration: none; }
+.fq-back:hover { text-decoration: underline; }
+@media screen and (max-width: 800px) {
+  .q-bar { flex-direction: column; gap: 10px; margin-bottom: 12px; }
+  .q-bar h1 { font-size: 20px; }
+  .q-bar-actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 6px; }
+  .q-bar-actions .q-btn { justify-content: center; padding: 9px 6px; font-size: 12px; gap: 5px; }
+}
+.sv { --navy: #1d2433; --navy-2: #2c3446; --gold: #d5a52a; --gold-2: #f2d27a; --gold-3: #a8781a; --blue: #1f5fd1; --ink: #1a1f2b; }
+
+.sv-paper { display: grid; gap: 24px; justify-items: center; padding: 8px 0 30px; }
+.sv-page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 794px;            /* A4 at 96 dpi */
+  min-height: 1123px;
+  overflow: hidden;
+  background: #f7f8fb;
+  color: var(--ink);
+  font: 13.5px/1.38 "Open Sans", "Segoe UI", Arial, sans-serif;
+  box-shadow: 0 4px 22px rgba(15, 23, 42, .18);
+}
+.sv-body { flex: 1; padding: 0 42px 14px; }
+
+/* ---------- Header banner: dark with gold slants and a blue swoosh ---------- */
+.sv-banner {
+  position: relative;
+  height: 138px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #2a3142 0%, #161b27 100%);
+}
+.sv-banner::before, .sv-banner::after {   /* gold slants, left and right */
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 46%;
+  height: 100%;
+  background: linear-gradient(115deg, transparent 0 34%, var(--gold-3) 34% 36%, var(--gold-2) 36% 37.5%, transparent 37.5% 58%, rgba(31, 95, 209, .55) 58% 59%, transparent 59%);
+}
+.sv-banner::before { left: 0; }
+.sv-banner::after { right: 0; transform: scaleX(-1); }
+.sv-banner .sv-swoosh {   /* gold band along the bottom, rising at the sides */
+  position: absolute;
+  left: -5%;
+  right: -5%;
+  bottom: -46px;
+  height: 80px;
+  border-top: 5px solid var(--gold);
+  border-radius: 50% 50% 0 0 / 70% 70% 0 0;
+  background: #f7f8fb;
+  box-shadow: 0 -4px 0 rgba(31, 95, 209, .5);
+}
+.sv-logo {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  height: 112px;
+}
+.sv-logo-mark { position: relative; width: 108px; height: 75px; overflow: hidden; flex: none; }
+.sv-logo-mark img { position: absolute; top: -15px; left: -27px; width: 156px; height: 156px; max-width: none; }
+.sv-logo-text { display: flex; flex-direction: column; align-items: center; font-family: Montserrat, "Arial Black", Arial, sans-serif; line-height: .9; }
+.sv-logo-text b { color: #dfe3ea; font-size: 44px; font-weight: 900; letter-spacing: 1px; text-shadow: 0 2px 0 #7b8291; }
+.sv-logo-text em { color: var(--gold); font-size: 50px; font-style: normal; font-weight: 900; letter-spacing: 1px; text-shadow: 0 2px 0 #7a5410; }
+.sv-logo-text span { display: flex; align-items: center; gap: 8px; margin-top: 2px; color: #dfe3ea; font-size: 18px; font-weight: 900; }
+.sv-logo-text span::before, .sv-logo-text span::after { content: ""; width: 54px; height: 1px; background: #9aa3b2; }
+.sv-logo-text small { margin-top: 6px; color: #dfe3ea; font: 700 10.5px Montserrat, Arial, sans-serif; letter-spacing: 3.5px; }
+
+/* ---------- Page 1 ---------- */
+.sv-title {
+  margin: 14px 0 0;
+  color: #12161f;
+  font: 900 27px/1.05 Montserrat, "Arial Black", Arial, sans-serif;
+  white-space: nowrap;
+  letter-spacing: -.5px;
+  text-align: center;
+  transform: rotate(-1.2deg);
+}
+.sv-title-line { height: 4px; margin: 6px 20px 0; border-radius: 4px; background: linear-gradient(90deg, transparent, var(--gold) 20%, var(--gold-2) 50%, var(--gold) 80%, transparent); }
+.sv-appt { display: flex; justify-content: flex-end; align-items: baseline; gap: 8px; margin: 10px 0 2px; font-weight: 600; }
+
+.sv-tab {   /* dark label with a gold slant in front */
+  position: relative;
+  display: inline-block;
+  margin: 10px 0 0 14px;
+  padding: 4px 34px 4px 26px;
+  background: var(--navy);
+  color: #fff;
+  font: 700 14.5px Montserrat, Arial, sans-serif;
+  letter-spacing: .6px;
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 16px) 100%, 0 100%);
+}
+.sv-tab::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 14px; background: linear-gradient(180deg, var(--gold-2), var(--gold-3)); clip-path: polygon(10px 0, 100% 0, 4px 100%, 0 100%); }
+
+.sv-fields { border: 1.5px solid #3b4252; }
+.sv-fields label { display: flex; align-items: baseline; gap: 8px; padding: 5px 12px; font-size: 13.5px; font-weight: 600; }
+.sv-fields label + label { border-top: 1.5px solid #3b4252; }
+.sv-fields label span { flex: none; }
+
+.sv input.sv-in, .sv textarea.sv-in {
+  flex: 1;
+  min-width: 0;
+  padding: 0 4px;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  color: #0b2a63;
+  font: 600 14.5px "Segoe UI", Arial, sans-serif;
+}
+.sv input.sv-in:focus { outline: none; border-bottom-color: var(--gold); background: #fffbea; }
+.sv input.line { border-bottom: 1.5px solid #3b4252; }
+
+.sv-agree-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; margin: 10px 0 0; font-size: 14px; }
+.sv-agree-line input { flex: 1 1 260px; }
+
+.sv-box {
+  margin-top: 10px;
+  padding: 10px 18px 8px;
+  border: 2px solid var(--gold);
+  border-radius: 10px;
+  background: #fff;
+}
+.sv-box h4 { margin: 6px 0 2px; font-size: 14.5px; font-weight: 800; }
+.sv-box h4:first-child { margin-top: 0; }
+.sv-box p.indent { margin: 0 0 6px 58px; }
+.sv-box ul { margin: 2px 0 6px; padding-left: 26px; list-style: none; }
+.sv-box li { position: relative; margin: 2px 0; }
+.sv-box li::before { content: ""; position: absolute; left: -20px; top: .55em; width: 9px; height: 9px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #f6d36b, #c08a17); }
+
+/* Footer band at the bottom of each page */
+.sv-foot { position: relative; height: 56px; margin-top: auto; overflow: hidden; background: linear-gradient(180deg, #232a3a, #121620); }
+.sv-foot::before {
+  content: "";
+  position: absolute;
+  left: -5%;
+  right: -5%;
+  top: -40px;
+  height: 64px;
+  border-bottom: 5px solid var(--gold);
+  border-radius: 0 0 50% 50% / 0 0 80% 80%;
+  background: #f7f8fb;
+  box-shadow: 0 4px 0 rgba(31, 95, 209, .55);
+}
+
+/* ---------- Page 2: cards with a dark header bar ---------- */
+.sv-card { margin-top: 12px; border: 2px solid var(--gold); border-radius: 10px; background: #fff; overflow: hidden; }
+.sv-card-h {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 16px 0 0;
+  background: linear-gradient(180deg, var(--navy-2), var(--navy));
+  border-bottom: 3px solid var(--gold);
+  color: #fff;
+}
+.sv-card-h i { display: grid; place-items: center; width: 54px; height: 42px; background: linear-gradient(180deg, #3a4357, #252c3b); color: var(--gold-2); font-size: 20px; }
+.sv-card-h b { flex: 1; font: 700 17px Montserrat, Arial, sans-serif; letter-spacing: .3px; }
+.sv-card-h small { color: #e8ebf1; font: 700 12px Montserrat, Arial, sans-serif; letter-spacing: .5px; }
+.sv-card-b { padding: 8px 18px 10px; font-size: 13.5px; }
+.sv-card-b h4 { margin: 0 0 2px; font-size: 14.5px; font-weight: 800; }
+.sv-card-b ul { margin: 0; padding-left: 26px; list-style: none; }
+.sv-card-b li { position: relative; margin: 3px 0; }
+.sv-card-b li::before { content: ""; position: absolute; left: -20px; top: .5em; width: 9px; height: 9px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #f6d36b, #c08a17); }
+
+.sv-sign-row { display: grid; grid-template-columns: 1.3fr 1fr; gap: 26px; align-items: end; margin-top: 8px; }
+.sv-sign-row label { display: grid; gap: 4px; font-weight: 800; }
+
+/* Tap-to-sign spot: a line with the signature drawn on it */
+.sv-sig {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 58px;
+  border: 0;
+  border-bottom: 1.5px solid #3b4252;
+  background: transparent;
+  cursor: pointer;
+}
+.sv-sig img { max-height: 54px; max-width: 100%; }
+.sv-sig img:not([src]) { display: none; }
+.sv-sig .hint { position: absolute; bottom: 6px; color: #9aa3b2; font-size: 12px; font-weight: 600; }
+.sv-sig.signed .hint { display: none; }
+.sv-sig:hover { background: #fffbea; }
+
+.sv-installer label { display: flex; align-items: flex-end; gap: 8px; margin: 6px 0; font-weight: 700; }
+.sv-installer label > span { flex: none; padding-bottom: 4px; }
+.sv-installer input.sv-in { border-bottom: 1.5px dashed #3b4252; }
+.sv-installer .sv-sig { flex: 0 0 200px; height: 46px; border-bottom-style: dashed; }
+.sv-installer .sv-sig img { max-height: 42px; }
+
+/* ---------- Screen: smaller screens scale the pages down ---------- */
+@media screen and (max-width: 900px) {
+  .sv-paper { overflow-x: auto; justify-items: start; }
+}
+
+/* ---------- Printing / the saved PDF ---------- */
+@media print {
+  body.app > *:not(main), .q-bar, #chatLauncher, #cloudBadge, .sv-sig .hint { display: none !important; }
+  /* Strong enough to beat the padding Customer Records adds to its pop-up, which pushed each form
+     page past the sheet edge and turned 2 pages into 4 */
+  html, body, body.app { margin: 0 !important; padding: 0 !important; min-height: 0 !important; background: #fff !important; }
+  body.app { display: block !important; }
+  body.app main.content.sv { margin: 0 !important; padding: 0 !important; max-width: none !important; }
+  .sv-paper { display: block; gap: 0; padding: 0 !important; margin: 0 !important; overflow: visible !important; }
+  /* A hair under 297 mm so rounding can never spill onto an extra blank sheet */
+  .sv-page { width: 210mm; min-height: 0; height: 296.6mm; margin: 0; box-shadow: none; page-break-after: always; break-after: page; page-break-inside: avoid; break-inside: avoid; }
+  .sv-page:last-child { page-break-after: auto; break-after: auto; }
+  .sv input.sv-in { border-bottom-color: transparent; }
+  .sv input::placeholder { color: transparent !important; }
+  .sv input:focus { background: transparent !important; }
+  .sv input.line, .sv-installer input.sv-in { border-bottom-color: #3b4252; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+.sf-capture .sv-sig .hint { display: none; }
+.sf-capture .sv-page { box-shadow: none; }
+
+/* Page 2 has more text: a little tighter so it fits on one A4 page */
+.sv-page + .sv-page { line-height: 1.32; }
+.sv-page + .sv-page .sv-card { margin-top: 9px; }
+.sv-page + .sv-page .sv-card-h i { height: 36px; }
+.sv-page + .sv-page .sv-card-h b { font-size: 15.5px; }
+.sv-page + .sv-page .sv-card-b { padding: 6px 16px 8px; font-size: 13px; }
+.sv-page + .sv-page .sv-card-b li { margin: 1px 0; }
+.sv-page + .sv-page .sv-sig { height: 50px; }
+.sv-page + .sv-page .sv-installer label { margin: 3px 0; }
+.sv-page + .sv-page .sv-installer .sv-sig { height: 40px; }
+
+/* Banner: logo text a bit smaller and the gold band a bit lower, so "GUARDIAN OF DEGREES" stays clear */
+.sv-logo { height: 102px; }
+.sv-logo-text b { font-size: 36px; }
+.sv-logo-text em { font-size: 40px; }
+.sv-logo-text span { font-size: 15px; }
+.sv-logo-text small { margin-top: 4px; font-size: 10px; }
+.sv-banner .sv-swoosh { bottom: -54px; }
+
+/* The long "Additional terms…" heading stays on one line like the printed form */
+.sv-card-h b.long { font-size: 13.5px !important; white-space: nowrap; letter-spacing: 0; }
+
+/* The saved PDF: hints like mm/dd/yyyy are not part of the signed form */
+.sf-capture .sv input::placeholder { color: transparent; }
+
+/* =====================================================================
+   LOOK v2: matches the AIRCON G.O.D designed form (straight banner with gold corner bands,
+   condensed headings, dashed client boxes, cards with a gold slant beside the icon)
+   ===================================================================== */
+.sv-page { background: #fff; font-family: "Open Sans", Arial, sans-serif; }
+
+/* Banner: deep navy with a blue glow, gold diagonal bands in both top corners, gold line at the bottom */
+.sv-banner {
+  height: 150px;
+  background: radial-gradient(ellipse 60% 120% at 50% 20%, #1d3f86 0%, #10224a 45%, #0a1226 100%);
+  border-bottom: 3px solid var(--gold);
+  box-shadow: 0 2px 0 #b8861d;
+}
+.sv-banner::before, .sv-banner::after {
+  width: 34%;
+  background:
+    linear-gradient(118deg, transparent 0 18%, #6e4a0e 18% 19%, #f6dc8c 19% 24%, #c48f22 24% 29%, #fff1bf 29% 30%, #b8861d 30% 34%, transparent 34% 38%,
+      #e7c063 38% 40%, transparent 40%);
+  transform: none;
+}
+.sv-banner::after { right: 0; left: auto; transform: scaleX(-1); }
+.sv-banner .sv-swoosh { display: none; }
+.sv-logo { height: 146px; gap: 10px; }
+.sv-logo-mark { width: 128px; height: 89px; }
+.sv-logo-mark img { top: -18px; left: -32px; width: 185px; height: 185px; }
+.sv-logo-text b { color: #eef1f5; font-size: 46px; letter-spacing: 2px; text-shadow: 0 2px 0 #8d96a6, 0 4px 6px rgba(0, 0, 0, .5); }
+.sv-logo-text em { color: #e9bb4a; font-size: 50px; letter-spacing: 2px; text-shadow: 0 2px 0 #8a5d10, 0 4px 6px rgba(0, 0, 0, .5); }
+.sv-logo-text span { color: #eef1f5; font-size: 17px; }
+.sv-logo-text span::before, .sv-logo-text span::after { width: 64px; background: #c9a24a; }
+.sv-logo-text small { color: #eef1f5; font-size: 10.5px; letter-spacing: 4px; }
+
+/* Title: tall condensed letters, gold rule with a diamond in the middle */
+.sv-title {
+  margin: 16px 0 0;
+  transform: none;
+  color: #172648;
+  font: 700 37px/1.05 Oswald, "Arial Narrow", Impact, sans-serif;
+  letter-spacing: .3px;
+}
+.sv-title-line { position: relative; height: 3px; margin: 8px 70px 0; background: linear-gradient(90deg, transparent, #c9a24a 15%, #e9c66a 50%, #c9a24a 85%, transparent); }
+.sv-title-line::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  background: #e2b444;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.sv-appt { margin: 16px 0 4px; font-size: 15px; font-weight: 500; }
+.sv-appt input.line { max-width: 210px !important; }
+
+/* Section tabs */
+.sv-tab { margin: 14px 0 0 10px; padding: 4px 38px 4px 28px; background: #172648; font: 600 16px Oswald, "Arial Narrow", Arial, sans-serif; letter-spacing: .8px; }
+
+/* Client information: four separate dashed boxes */
+.sv-fields { display: grid; gap: 7px; margin-top: 10px; border: 0; }
+.sv-fields label { padding: 4px 10px; border: 1px dashed #4a4f5c; border-radius: 1px; font-weight: 500; }
+.sv-fields label + label { border-top: 1px dashed #4a4f5c; }
+
+.sv-agree-line { margin-top: 14px; }
+.sv-box { margin-top: 14px; border: 1.5px solid #e2b444; border-radius: 9px; }
+.sv-box h4 { font-family: "Open Sans", Arial, sans-serif; }
+
+/* Bottom of page 1: dark band with gold corner bands (like the banner) */
+.sv-foot {
+  height: 46px;
+  background: radial-gradient(ellipse 60% 140% at 50% 100%, #1d3f86 0%, #0a1226 70%);
+  border-top: 3px solid var(--gold);
+}
+.sv-foot::before {
+  left: 0; right: auto; top: 0; width: 30%; height: 100%;
+  border: 0; border-radius: 0; box-shadow: none;
+  background: linear-gradient(62deg, transparent 0 20%, #c48f22 20% 26%, #f6dc8c 26% 30%, #b8861d 30% 34%, transparent 34%);
+}
+.sv-foot::after {
+  content: ""; position: absolute; right: 0; top: 0; width: 30%; height: 100%; transform: scaleX(-1);
+  background: linear-gradient(62deg, transparent 0 20%, #c48f22 20% 26%, #f6dc8c 26% 30%, #b8861d 30% 34%, transparent 34%);
+}
+
+/* Page 2 cards: navy bar, gold icon block with a gold slant, condensed white title */
+.sv-card { border: 1.5px solid #e2b444; border-radius: 9px; }
+.sv-card-h { background: linear-gradient(180deg, #1f2f57, #121d3a); border-bottom: 2px solid #e2b444; }
+.sv-card-h i { position: relative; width: 58px; background: linear-gradient(180deg, #2a3b66, #18264a); color: #f0c95a; }
+.sv-card-h i::after { content: ""; position: absolute; right: -7px; top: 0; bottom: 0; width: 6px; background: linear-gradient(180deg, #f6dc8c, #b8861d); transform: skewX(-18deg); }
+.sv-card-h b { padding-left: 4px; font: 600 19px Oswald, "Arial Narrow", Arial, sans-serif; letter-spacing: .4px; }
+.sv-card-h b.long { font: 600 17.5px Oswald, "Arial Narrow", Arial, sans-serif !important; }
+.sv-card-h small { font: 600 13px Oswald, "Arial Narrow", Arial, sans-serif; letter-spacing: .6px; }
+/* Installer information: no box around it, just the bar and the lines */
+.sv-page + .sv-page .sv-card:last-child { border: 0; border-radius: 0; background: transparent; overflow: visible; }
+.sv-page + .sv-page .sv-card:last-child .sv-card-h { border-radius: 9px; }
+
+/* Bottom of page 2: gold and blue swoosh rising to the right, faint snowflake */
+.sv-page + .sv-page .sv-foot {
+  height: 64px;
+  border-top: 0;
+  background: transparent;
+}
+.sv-page + .sv-page .sv-foot::before {
+  left: -10%; right: -10%; top: 18px; width: auto; height: 120px;
+  border-top: 4px solid #e2b444; border-radius: 60% 40% 0 0 / 100% 60% 0 0;
+  background: linear-gradient(180deg, #172648, #0a1226);
+  box-shadow: 0 -4px 0 rgba(31, 95, 209, .6);
+  transform: rotate(-2deg);
+}
+.sv-page + .sv-page .sv-foot::after { display: none; }
+.sv-page + .sv-page::after {
+  content: "\f2dc";   /* snowflake */
+  position: absolute; right: 26px; bottom: 54px;
+  color: rgba(23, 38, 72, .06);
+  font: 900 120px "Font Awesome 6 Free";
+  pointer-events: none;
+}
+
+/* Fit: both pages within one A4 sheet */
+.sv-banner { height: 140px; }
+.sv-logo { height: 136px; }
+.sv-title { margin-top: 12px; }
+.sv-appt { margin: 10px 0 2px; }
+.sv-tab { margin-top: 10px; }
+.sv-fields { gap: 5px; margin-top: 8px; }
+.sv-agree-line { margin-top: 10px; }
+.sv-box { margin-top: 10px; }

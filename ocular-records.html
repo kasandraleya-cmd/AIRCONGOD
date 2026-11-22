@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Ocular Records</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="inventory.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+</head>
+<body class="app">
+  <script>if (!sessionStorage.getItem("aircon_user")) location.href = "index.html";</script>
+
+  <!-- OCULAR RECORDS: every Ocular Survey sent to the office, by customer.
+       HR / Manager, Owner / Head Supervisor, Installation Supervisor, Admin / Office Staff and Developer (ocular.js canHistory). -->
+  <aside class="side">
+    <div class="side-brand"><img src="AIRCON.png" alt="Logo"><span>AIRCON G.O.D</span></div>
+    <nav aria-label="Main menu"></nav>
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <main class="content inv">
+    <div class="inv-header">
+      <div>
+        <h1>Ocular Records</h1>
+        <p>Ocular surveys submitted by installers, ready for quotation.</p>
+      </div>
+      <div><a class="inv-btn light" href="ocular.html" style="text-decoration:none"><i class="fas fa-binoculars"></i> New ocular survey</a></div>
+    </div>
+
+    <div class="inv-stats">
+      <div class="inv-stat"><i class="fas fa-binoculars"></i><div><b id="totalCount">0</b><span>Ocular surveys</span></div></div>
+      <div class="inv-stat red"><i class="fas fa-hourglass-half"></i><div><b id="waitCount">0</b><span>Waiting for quotation</span></div></div>
+      <div class="inv-stat green"><i class="fas fa-file-signature"></i><div><b id="quotedCount">0</b><span>Quoted</span></div></div>
+    </div>
+
+    <div id="records"></div>
+  </main>
+
+  <script>
+    function logout() { sessionStorage.clear(); window.location.href = "index.html"; }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+  <script src="pricelist.js?v=4"></script>
+  <script src="pricepicker.js?v=4"></script>
+  <script src="copper.js?v=4"></script>
+  <script src="daterange.js?v=3"></script>
+  <script src="ocular.js?v=12"></script>
+  <script>
+    // Only the people who see the ocular history (HR, supervisors, office, owner); others go back to the Dashboard
+    if (!Ocular.canHistory()) {
+      document.documentElement.style.visibility = "hidden";
+      location.replace("dashboard.html");
+    } else {
+      Ocular.showHistory(document.getElementById("records"));   // the list with search, Waiting / Quoted, items, Make quotation
+      const counts = () => {
+        const all = Ocular.read(), quoted = all.filter((s) => s.status === "Quoted").length;
+        document.getElementById("totalCount").textContent = all.length;
+        document.getElementById("waitCount").textContent = all.length - quoted;
+        document.getElementById("quotedCount").textContent = quoted;
+      };
+      counts();
+      addEventListener("storage", (e) => { if (e.key === Ocular.KEY) counts(); });
+      (window.cloudReady || Promise.resolve()).then(counts);
+    }
+  </script>
+</body>
+</html>

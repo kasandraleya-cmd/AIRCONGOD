@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b1f44">
+  <title>AIRCON G.O.D · AIRCON SURVEY FORM</title>
+    <link rel="icon" type="image/png" href="logo.png?v=2" />
+    <link rel="apple-touch-icon" href="logo.png?v=2" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="base.css?v=1">
+  <link rel="stylesheet" href="style.css?v=5">
+</head>
+<body>
+  <main class="card">
+    <header class="brand">
+      <img src="logo.png" alt="AIRCON G.O.D Guardian of Degrees">
+      <h1>AIRCON SURVEY FORM</h1>
+      <p>Please complete the form below so we can schedule an aircon survey.</p>
+      <div class="benefits" aria-label="Aircon service benefits">
+        <div>
+          <span class="benefit-icon" aria-hidden="true"><svg viewBox="0 0 32 36"><path d="M16 2 29 7v10c0 8-5.6 13.7-13 17C8.6 30.7 3 25 3 17V7z"/><path class="icon-mark" d="m9.5 17 4.2 4.2L23 12"/></svg></span>
+          <p><b>QUALITY SERVICE</b><small>You can trust</small></p>
+        </div>
+        <div>
+          <span class="benefit-icon snow" aria-hidden="true"><svg viewBox="0 0 24 24"><g id="snowArm"><path d="M12 2v20M9 4.5l3 3 3-3M9 19.5l3-3 3 3"/></g><use href="#snowArm" transform="rotate(60 12 12)"/><use href="#snowArm" transform="rotate(120 12 12)"/></svg></span>
+          <p><b>CLEAN &amp; SAFE</b><small>Installation</small></p>
+        </div>
+        <div>
+          <span class="benefit-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 10v11"/><path d="M14 3.5 9 10v11h8.7a2 2 0 0 0 1.95-1.55l1.5-6.5A2 2 0 0 0 19.2 10H14l1-4.2a2 2 0 0 0-1-2.3Z"/></svg></span>
+          <p><b>YOUR COMFORT</b><small>Is our priority</small></p>
+        </div>
+      </div>
+    </header>
+
+    <form id="surveyForm">
+      <div class="grid">
+        <div class="field">
+          <label for="name">Name</label>
+          <input type="text" id="name" name="name" autocomplete="name" placeholder="Full name" required>
+        </div>
+        <div class="field">
+          <label for="date">Date of survey</label>
+          <div class="date-control">
+            <input type="text" id="date" name="date" placeholder="mm/dd/yyyy" inputmode="numeric" maxlength="10" autocomplete="off" required>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18"></path></svg>
+            <input type="date" id="datePicker" class="date-picker-native" aria-label="Choose survey date">
+          </div>
+          <small class="error"></small>
+        </div>
+        <div class="field wide">
+          <label for="address">Complete address</label>
+          <input type="text" id="address" name="address" autocomplete="street-address" placeholder="House no., street, barangay, city" required>
+        </div>
+        <div class="field wide location-field">
+          <label>Pin your exact location <span>(optional, helps our survey team find you)</span></label>
+          <p class="location-help">Tap <b>Use my current location</b> or tap the map to place a pin. You can drag the pin to your home.</p>
+          <div class="location-actions">
+          <button type="button" class="location-button" id="locateBtn">◎ Use my current location</button>
+            <button type="button" class="location-clear" id="clearPinBtn" hidden>Remove pin</button>
+          </div>
+          <div id="locationMap" class="location-map" role="application" aria-label="Map: tap to place the survey location pin"></div>
+          <small class="location-status" id="locationStatus" aria-live="polite">Loading map…</small>
+          <input type="hidden" id="latitude" name="latitude">
+          <input type="hidden" id="longitude" name="longitude">
+          <input type="hidden" id="locationAccuracy" name="location_accuracy">
+        </div>
+        <div class="field wide">
+          <label for="landmark">Landmark</label>
+          <input type="text" id="landmark" name="landmark" placeholder="Nearby landmark">
+        </div>
+        <div class="field">
+          <label for="contact">Contact number</label>
+          <input type="tel" id="contact" name="contact" autocomplete="tel" placeholder="09XX XXX XXXX" required>
+        </div>
+        <div class="field">
+          <label for="contactPerson">Contact person</label>
+          <input type="text" id="contactPerson" name="contactPerson" autocomplete="name" placeholder="Name of person available at the site" required>
+        </div>
+        <div class="field">
+          <label for="inverterType">Inverter or non-inverter</label>
+          <select id="inverterType" name="inverterType" required>
+            <option value="">Select</option><option>Inverter</option><option>Non-inverter</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="brandHp">Brand and HP</label>
+          <input type="text" id="brandHp" name="brandHp" placeholder="e.g. Daikin / 1.5 HP" required>
+        </div>
+        <div class="field">
+          <label for="payment">Mode of payment</label>
+          <select id="payment" name="payment" required>
+            <option value="">Select</option><option>Cash</option><option>GCash</option><option>Bank transfer</option><option>Credit card</option>
+          </select>
+        </div>
+        <div class="field wide">
+          <label for="note">Special note</label>
+          <textarea id="note" name="note" rows="2" placeholder="Tell us about your aircon or what you would like us to check"></textarea>
+        </div>
+      </div>
+
+      <div class="reminder">
+        <h2>Reminder</h2>
+        <p>If you have plans on the day of our scheduled survey, we kindly ask you to reschedule them in advance or have someone stay at home. This will help us avoid any inconvenience.</p>
+        <b>Thank you for your understanding.</b>
+        <span class="reminder-heart" aria-hidden="true">♥</span>
+      </div>
+      <p class="submitted" id="submitted" role="status" hidden>Form details are ready to print.</p>
+      <button class="submit" type="submit">SUBMIT SURVEY REQUEST</button>
+    </form>
+
+    <footer class="contact"><b>AIRCON G.O.D. PH</b>028 Real St. Brgy Zapote, Las Piñas City · 09772604127 / 09612379892 · ej.coolingcare@gmail.com</footer>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="script.js?v=5"></script>
+</body>
+</html>

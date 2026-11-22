@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · My Payslips</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="inventory.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+  <style>
+    .mp { --navy: #071d49; --navy-2: #0b2a63; --gold: #d5a52a; --gold-2: #f4d477; --gold-soft: #fff6dc; }
+    .mp-note { margin: 0 0 14px; padding: 12px 14px; border: 1px solid #f1e2b5; border-left: 4px solid var(--gold); border-radius: 0 10px 10px 0;
+      background: var(--gold-soft); color: #5c4a14; font-size: 13px; line-height: 1.5; }
+    .mp-note.bad { border-color: #f1c7c3; border-left-color: #b42318; background: #fdeceb; color: #7a1d14; }
+    .mp .inv-table th.num, .mp .inv-table td.num { text-align: right; }
+    .mp-net { color: var(--navy); font-weight: 800; }
+    .inv-btn.navy { border-color: var(--navy); background: linear-gradient(135deg, var(--navy), var(--navy-2)); color: #fff; }
+    .inv-btn.navy i { color: var(--gold-2); }
+
+    .pr-modal { position: fixed; inset: 0; z-index: 9500; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(15, 23, 42, .55); }
+    .pr-modal[hidden] { display: none; }
+    .pr-modal-box { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow: auto; border-radius: 14px; background: #fff; box-shadow: 0 12px 40px rgba(0, 0, 0, .3); }
+    .pr-modal-actions { position: sticky; bottom: 0; display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); background: #fff; }
+    .slip { padding: 22px 24px; color: #111; font-size: 13px; }
+    .slip-head { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 3px solid #d5a52a; }
+    .slip-head i.logo { width: 46px; height: 46px; border-radius: 10px; background: #fff url("AIRCON.png") 52% 14% / 182% no-repeat; border: 1px solid #d5a52a; }
+    .slip-head b { display: block; color: #071d49; font-size: 17px; }
+    .slip-head small { color: #64767d; }
+    .slip h2 { margin: 14px 0 2px; color: #071d49; font-size: 15px; letter-spacing: .5px; }
+    .slip .who { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; margin: 10px 0 14px; }
+    .slip .who span { color: #64767d; }
+    .slip table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+    .slip th { padding: 6px 0; border-bottom: 1px solid #dfe5e8; color: #071d49; font-size: 12px; text-align: left; text-transform: uppercase; letter-spacing: .4px; }
+    .slip td { padding: 5px 0; border-bottom: 1px dashed #edf1f3; }
+    .slip td:last-child, .slip th:last-child { text-align: right; }
+    .slip .tot td { border-bottom: 0; font-weight: 800; }
+    .slip .netbox { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding: 12px 14px; border-radius: 10px; background: #071d49; color: #fff; }
+    .slip .netbox b { color: #f4d477; font-size: 20px; }
+    #printArea { display: none; }
+    @media print {
+      @page { size: A5; margin: 8mm; }
+      body.app > *:not(#printArea) { display: none !important; }
+      #printArea { display: block !important; }
+      #printArea .slip { padding: 0; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body class="app">
+
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) window.location.href = "index.html";
+  </script>
+
+  <aside class="side">
+    <div class="side-brand">
+      <img src="AIRCON.png" alt="Logo">
+      <span>AIRCON G.O.D</span>
+    </div>
+    <nav aria-label="Main menu"><!-- filled in by sidebar.js --></nav>
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <main class="content inv mp">
+    <div class="inv-header">
+      <div>
+        <h1>My Payslips</h1>
+        <p>Your payslips for each finalized pay period.</p>
+      </div>
+    </div>
+
+    <div id="notes"></div>
+
+    <div class="inv-stats">
+      <div class="inv-stat"><i class="fas fa-file-invoice"></i><div><b id="sCount">0</b><span>Payslips</span></div></div>
+      <div class="inv-stat green"><i class="fas fa-money-bill-wave"></i><div><b id="sLast">₱0</b><span>Latest net pay</span></div></div>
+    </div>
+
+    <div class="inv-table-wrap">
+      <table class="inv-table">
+        <thead>
+          <tr>
+            <th>Pay period</th>
+            <th class="num">Gross pay</th>
+            <th class="num">Deductions</th>
+            <th class="num">Net pay</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="rows"><tr><td colspan="5" class="inv-empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+
+  <div class="pr-modal" id="slipModal" hidden>
+    <div class="pr-modal-box" role="dialog" aria-modal="true" aria-label="Payslip">
+      <div id="slipView"></div>
+      <div class="pr-modal-actions">
+        <button type="button" class="inv-btn light" id="slipClose">Close</button>
+        <button type="button" class="inv-btn navy" id="slipPrint"><i class="fas fa-print"></i> Print</button>
+      </div>
+    </div>
+  </div>
+  <div id="printArea"></div>
+
+  <script>
+    function logout() { sessionStorage.clear(); window.location.href = "index.html"; }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+  <script src="payslip.js?v=7"></script>
+
+  <script>
+    // Each person's own pay comes from the database function my_payslips() (supabase/my_payslips.sql),
+    // which returns ONLY the logged-in person's line from each finalized period.
+    const $ = (id) => document.getElementById(id);
+    const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const { pay, peso, num, DEDUCTIONS } = Payslip;   // payslip.js
+
+    function slipHtml(slip) {
+      const r = slip.line || {}, snap = r.snap || {}, p = pay(slip);
+      const line = (label, v) => v ? `<tr><td>${label}</td><td>${peso(v)}</td></tr>` : "";
+      const qty = p.basis === "monthly" ? (num(r.days) ? `${num(r.days)} absent day(s)` : (p.whole ? "whole month" : p.weekly ? "week" : "half month"))
+        : `${num(r.days)} ${p.basis === "per job" ? "job(s)" : "day(s)"}`;
+      return `<div class="slip">
+        <div class="slip-head"><i class="logo"></i><div><b>AIRCON G.O.D</b><small>028 Real St. Brgy Zapote Las Piñas City</small></div></div>
+        <h2>PAYSLIP</h2><div style="color:#64767d">Pay period: <b style="color:#111">${esc(slip.label || slip.period)}</b></div>
+        <div class="who"><div><span>Name</span><br><b>${esc(snap.name || "—")}</b></div><div><span>Staff ID</span><br><b>${esc(snap.code || "—")}</b></div>
+          <div><span>Position</span><br><b>${esc(snap.position || "—")}</b></div><div><span>Rate</span><br><b>${peso(p.rate)} / ${esc(p.basis)}</b></div></div>
+        <table><tr><th>Earnings</th><th>Amount</th></tr>
+          <tr><td>Basic pay <small style="color:#64767d">(${esc(qty)})</small></td><td>${peso(p.basic)}</td></tr>
+          ${line(`Overtime <small style="color:#64767d">(${num(r.ot)} hr)</small>`, p.otPay)}${line("Allowance", p.allow)}${line(`Meal allowance <small style="color:#64767d">(${p.mealDays} day(s) present)</small>`, p.meal)}${line(`Incentive${p.incDays ? ` <small style="color:#64767d">(team incentive, ${p.incDays} day(s))</small>` : ""}`, p.inc)}
+          <tr class="tot"><td>Gross pay</td><td>${peso(p.gross)}</td></tr></table>
+        <table><tr><th>Deductions</th><th>Amount</th></tr>
+          ${line(`Late <small style="color:#64767d">(${p.lateMin} min late)</small>`, p.late)}
+          ${DEDUCTIONS.map(([f, label]) => line(label, num(r[f]))).join("")}
+          ${p.ded ? "" : '<tr><td colspan="2" style="color:#64767d">None</td></tr>'}
+          <tr class="tot"><td>Total deductions</td><td>${peso(p.ded)}</td></tr></table>
+        <div class="netbox"><span>NET PAY</span><b>${peso(p.net)}</b></div>
+      </div>`;
+    }
+
+    let SLIPS = [];
+    function note(html, bad) { $("notes").innerHTML = html ? `<p class="mp-note${bad ? " bad" : ""}">${html}</p>` : ""; }
+
+    function render() {
+      $("sCount").textContent = SLIPS.length;
+      $("sLast").textContent = SLIPS.length ? peso(pay(SLIPS[0]).net) : "₱0";
+      $("rows").innerHTML = SLIPS.length ? SLIPS.map((s, i) => {
+        const p = pay(s);
+        return `<tr>
+          <td><b>${esc(s.label || s.period)}</b></td>
+          <td class="num">${peso(p.gross)}</td>
+          <td class="num">${peso(p.ded)}</td>
+          <td class="num mp-net">${peso(p.net)}</td>
+          <td class="num"><button type="button" class="inv-btn light" data-slip="${i}" style="padding:7px 10px"><i class="fas fa-file-invoice"></i> View payslip</button></td>
+        </tr>`;
+      }).join("") : `<tr><td colspan="5" class="inv-empty"><i class="fas fa-file-invoice"></i><br>No payslips yet. They show up here once HR finalizes a pay period.</td></tr>`;
+    }
+
+    async function loadSlips() {
+      const res = await Payslip.load();
+      if (res.error) {
+        note(res.missing ? "My Payslips isn't set up in the database yet. Ask the Developer to run <b>supabase/my_payslips.sql</b> in Supabase."
+          : "Couldn't load your payslips: " + esc(res.error), true);
+        SLIPS = [];
+        return render();
+      }
+      SLIPS = res.slips;
+      note("");
+      render();
+      if (location.hash === "#latest" && SLIPS.length) openSlip(0);   // from the Dashboard's "View payslip"
+    }
+
+    const modal = $("slipModal");
+    function openSlip(i) {
+      $("slipView").innerHTML = slipHtml(SLIPS[i]);
+      modal.hidden = false;
+      $("slipClose").focus();
+    }
+    $("rows").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-slip]");
+      if (b) openSlip(+b.dataset.slip);
+    });
+    $("slipClose").onclick = () => (modal.hidden = true);
+    modal.addEventListener("click", (e) => { if (e.target === modal) modal.hidden = true; });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") modal.hidden = true; });
+    $("slipPrint").onclick = () => { $("printArea").innerHTML = $("slipView").innerHTML; window.print(); };
+
+    loadSlips();
+  </script>
+</body>
+</html>

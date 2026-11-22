@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Inventory</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="inventory.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+</head>
+<body class="app">
+
+  <!-- SECURITY GUARD -->
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) window.location.href = "index.html";
+  </script>
+
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="side-brand">
+      <img src="AIRCON.png" alt="Logo">
+      <span>AIRCON G.O.D</span>
+    </div>
+
+    <nav aria-label="Main menu"><!-- filled in by sidebar.js --></nav>
+
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="content inv">
+
+    <div class="inv-header">
+      <div>
+        <h1>Inventory Management</h1>
+        <p>Aircon units and spare parts in stock.</p>
+      </div>
+    </div>
+
+    <!-- SUMMARY CARDS -->
+    <div class="inv-stats">
+      <div class="inv-stat teal">
+        <i class="fas fa-cubes"></i>
+        <div><b id="sItems">0</b><span>Total Units</span></div>
+      </div>
+      <div class="inv-stat red">
+        <i class="fas fa-exclamation-triangle"></i>
+        <div><b id="sLow">0</b><span>Low Stock Alerts</span></div>
+      </div>
+      <div class="inv-stat green">
+        <i class="fas fa-coins"></i>
+        <div><b id="sValue">₱0</b><span>Total Inventory Value</span></div>
+      </div>
+    </div>
+
+    <!-- LOW STOCK ALERT -->
+    <div class="inv-alert" id="lowAlert" hidden></div>
+
+    <!-- SEARCH + FILTER -->
+    <div class="inv-toolbar">
+      <div class="inv-search">
+        <i class="fas fa-search"></i>
+        <input type="text" id="search" placeholder="Search by item name, SKU, brand or location...">
+      </div>
+      <select id="catFilter"><option value="">All Categories</option></select>
+    </div>
+
+    <!-- TABLE -->
+    <div class="inv-table-wrap">
+      <table class="inv-table">
+        <thead>
+          <tr>
+            <th>Brand / Item</th>
+            <th class="center">Units</th>
+            <th>Status</th>
+            <th>Category</th>
+            <th>Location</th>
+            <th class="num">Unit Price</th>
+            <th class="center">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <!-- ADD / EDIT ITEM POPUP -->
+  <div class="inv-modal" id="modal" hidden>
+    <div class="inv-box" role="dialog" aria-labelledby="mTitle">
+      <div class="inv-box-head">
+        <h3 id="mTitle">Add Item</h3>
+        <button type="button" class="inv-x" id="mClose" aria-label="Close">&times;</button>
+      </div>
+
+      <form id="itemForm" autocomplete="off">
+        <div class="inv-grid">
+          <div class="wide"><label>Item Name</label><input name="name" placeholder="e.g. Daikin 1.0 HP Inverter" required></div>
+          <div><label>SKU</label><input name="sku" placeholder="Enter SKU"></div>
+          <div><label>Brand</label><input name="brand" list="brands" placeholder="Brand"></div>
+          <div><label>Category</label><input name="category" list="cats" placeholder="Category"></div>
+          <div><label>Location</label><input name="location" placeholder="Warehouse / rack"></div>
+          <div><label>Stock Qty</label><input name="qty" type="number" min="0" step="1" placeholder="0"></div>
+          <div><label>Unit Price (₱)</label><input name="price" type="number" min="0" step="0.01" placeholder="0.00"></div>
+          <div class="wide"><label>Reorder Level <small>(alert when stock is at or below this)</small></label><input name="reorder" type="number" min="0" step="1" placeholder="0"></div>
+        </div>
+
+        <datalist id="cats">
+          <option>ST - INDOOR</option><option>ST - OUTDOOR</option><option>WT - WINDOW TYPE</option><option>FM - INDOOR</option><option>FM - OUTDOOR</option><option>CC - INDOOR</option><option>CC - OUTDOOR</option><option>CS - INDOOR</option><option>CS - OUTDOOR</option><option>Spare Parts</option>
+        </datalist>
+        <datalist id="brands">
+          <option>MIDEA</option><option>AMERICAN HOME</option><option>CARRIER</option><option>TCL</option>
+          <option>LG</option><option>AUX</option><option>KOLIN</option><option>DAIKIN</option>
+          <option>PANASONIC</option><option>SAMSUNG</option><option>GREE CRYSTAL</option>
+        </datalist>
+
+        <div class="inv-box-actions">
+          <button type="button" class="inv-btn light" id="mCancel">Cancel</button>
+          <button type="submit" class="inv-btn orange" id="mSave">Save Item</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = "index.html";
+    }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+
+  <script>
+    const ITEMS_KEY = "aircon_items";   // items you add by hand
+    const STOCK_KEY = "aircon_stock";   // units saved on the Scanner page
+    const DEFAULT_CATS = ["ST - INDOOR","ST - OUTDOOR","WT - WINDOW TYPE","FM - INDOOR","FM - OUTDOOR","CC - INDOOR","CC - OUTDOOR","CS - INDOOR","CS - OUTDOOR","Spare Parts"];
+
+    const $ = (s) => document.querySelector(s);
+    const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const load = (k) => JSON.parse(localStorage.getItem(k) || "[]");
+    const peso = (n) => "₱" + Number(n || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const form = $("#itemForm");
+    const modal = $("#modal");
+    let editId = null;
+    let editScan = null;   // row key when editing scanned units
+
+    // ---------- Build the item list (manual items + scanned units) ----------
+    function buildRows() {
+      const manual = load(ITEMS_KEY).map((i) => ({ ...i, qty: +i.qty || 0, price: +i.price || 0, reorder: +i.reorder || 0, manual: true, scanned: 0 }));
+
+      // Count scanned units that are still in stock, one row per brand, with each unit's serial
+      const groups = {};
+      load(STOCK_KEY).filter((s) => s.status === "in").forEach((s) => {
+        const key = groupKey(s);
+        const g = groups[key] || (groups[key] = {
+          key, name: s.brand || "No brand", unnamed: !s.brand, brand: s.brand,
+          units: [], qty: 0, scanned: 0, reorder: 0, value: 0, manual: false,
+        });
+        g.units.push(s);
+        g.qty++; g.scanned++;
+        g.value += +s.price || 0;
+        g.reorder = Math.max(g.reorder, +s.reorder || 0);
+      });
+
+      Object.values(groups).forEach((g) => {
+        // Show a value only when every unit agrees, otherwise "Mixed"
+        const same = (f) => { const v = [...new Set(g.units.map((u) => u[f] || ""))]; return v.length === 1 ? v[0] : "Mixed"; };
+        g.category = same("category");
+        g.location = same("location");
+        g.price = same("price");
+        g.sku = g.units.map((u) => u.barcode).join(", ");   // for search and export
+      });
+
+      return manual.map((i) => ({ ...i, value: i.qty * i.price })).concat(Object.values(groups));
+    }
+
+    // Brand rows that are folded shut (all are open at first)
+    const closed = new Set();
+    const priceText = (p) => (p === "Mixed" ? "Mixed" : +p ? peso(p) : "—");
+
+    // One line per scanned unit, shown under its brand row
+    const unitTable = (r) => `
+      <tr class="inv-detail"><td colspan="7">
+        <table class="inv-units">
+          <thead><tr><th>#</th><th>Serial No.</th><th>Unit Type</th><th>Category</th><th>Location</th><th>Date In</th><th class="num">Unit Price</th><th></th></tr></thead>
+          <tbody>${r.units.map((u, i) => `
+            <tr>
+              <td class="inv-n">${i + 1}</td>
+              <td class="mono">${esc(u.barcode)}</td>
+              <td>${esc(u.unit) || "—"}</td>
+              <td>${esc(u.category) || "—"}</td>
+              <td>${esc(u.location) || "—"}</td>
+              <td>${esc(u.date) || "—"}</td>
+              <td class="num">${priceText(u.price)}</td>
+              <td class="center"><button type="button" class="inv-icon del" data-unit-del="${esc(u.barcode)}" title="Remove this unit"><i class="fas fa-times"></i></button></td>
+            </tr>`).join("")}
+          </tbody>
+        </table>
+      </td></tr>`;
+
+    // A brand is low when it has this many units or fewer, unless its Reorder Level says otherwise
+    const LOW_STOCK_AT = 5;
+    const lowAt = (r) => r.reorder || LOW_STOCK_AT;
+    const stockState = (r) => (r.qty <= 0 ? "out" : r.qty <= lowAt(r) ? "low" : "ok");
+
+    // ---------- Show everything ----------
+    function render() {
+      const all = buildRows();
+
+      // Summary cards
+      $("#sItems").textContent = all.reduce((t, r) => t + r.qty, 0);   // every unit, not every row
+      const low = all.filter((r) => stockState(r) !== "ok");
+      $("#sLow").textContent = low.length;
+
+      // Alert bar listing every brand that is running low
+      $("#lowAlert").hidden = !low.length;
+      $("#lowAlert").innerHTML = `<i class="fas fa-exclamation-triangle"></i>
+        <span><b>Low stock:</b> ${low.map((r) => `${esc(r.name)} <b>(${r.qty} left)</b>`).join(", ")}.
+        <small>Alerts at ${LOW_STOCK_AT} units or fewer per brand, or at the brand's Reorder Level if set.</small></span>`;
+      $("#sValue").textContent = peso(all.reduce((t, r) => t + r.value, 0));
+
+      // Category filter (keeps the current choice)
+      const cats = [...new Set(DEFAULT_CATS.concat(all.map((r) => r.category).filter(Boolean)))];
+      const select = $("#catFilter");
+      const chosen = select.value;
+      select.innerHTML = '<option value="">All Categories</option>' + cats.map((c) => `<option>${esc(c)}</option>`).join("");
+      select.value = cats.includes(chosen) ? chosen : "";
+
+      // Search + filter
+      const q = $("#search").value.toLowerCase();
+      const rows = all
+        .filter((r) => !select.value || r.category === select.value)
+        .filter((r) => !q || [r.name, r.sku, r.brand, r.category, r.location].join(" ").toLowerCase().includes(q));
+
+      $("#rows").innerHTML = rows.length
+        ? rows.map((r) => {
+            const s = stockState(r);
+            const badge = { ok: "In stock", low: "Low stock", out: "Out of stock" }[s];
+            const actions = r.manual
+              ? `<button class="inv-icon" data-edit="${r.id}" title="Edit"><i class="fas fa-pen"></i></button>
+                 <button class="inv-icon del" data-del="${r.id}" title="Delete"><i class="fas fa-trash"></i></button>`
+              : `<button class="inv-icon" data-scan-edit="${esc(r.key)}" title="Edit"><i class="fas fa-pen"></i></button>
+                 <button class="inv-icon del" data-scan-del="${esc(r.key)}" title="Delete"><i class="fas fa-trash"></i></button>`;
+            const open = !r.manual && !closed.has(r.key);
+            const nameCell = r.manual
+              ? `<b>${esc(r.name)}</b><small class="inv-sub">${esc([r.brand, r.sku].filter(Boolean).join(" · ")) || "Added by hand"}</small>`
+              : `<button type="button" class="inv-toggle" data-toggle="${esc(r.key)}" title="${open ? "Hide" : "Show"} serial numbers">
+                   <i class="fas fa-chevron-${open ? "down" : "right"}"></i>
+                   <span><b${r.unnamed ? ' style="color:var(--mut)"' : ""}>${esc(r.name)}</b>
+                   <small class="inv-sub"><i class="fas fa-barcode"></i> ${r.qty} serial number${r.qty > 1 ? "s" : ""}</small></span>
+                 </button>`;
+            return `
+              <tr class="${r.manual ? "" : "inv-brand"}">
+                <td>${nameCell}</td>
+                <td class="center"><span class="inv-qty">${r.qty}</span></td>
+                <td><span class="inv-badge ${s}">${badge}</span></td>
+                <td>${esc(r.category) || "—"}</td>
+                <td>${esc(r.location) || "—"}</td>
+                <td class="num">${priceText(r.price)}</td>
+                <td class="center">${actions}</td>
+              </tr>${open ? unitTable(r) : ""}`;
+          }).join("")
+        : `<tr><td colspan="7" class="inv-empty"><i class="fas fa-box-open"></i><br>${all.length ? "No items match your search." : "No items yet. Scan units in Stock In on the Scanner."}</td></tr>`;
+    }
+
+    // ---------- Add / edit popup ----------
+    // Scanned units are grouped by brand; this finds the units behind one row
+    const groupKey = (s) => (s.brand || "").trim().toLowerCase() || "-";   // "-" = units with no brand yet
+    const BRAND_FIELDS = ["brand", "category", "location", "price", "reorder"];
+
+    function openModal(id = null, scanKey = null) {
+      editId = id;
+      editScan = scanKey;
+      form.reset();
+      $("#mTitle").textContent = id || scanKey ? "Edit Item" : "Add Item";
+      $("#mSave").textContent = id || scanKey ? "Save Changes" : "Save Item";
+      BRAND_FIELDS.forEach((k) => {
+        form[k].dataset.ph ??= form[k].placeholder;   // remember the normal placeholder
+        form[k].placeholder = form[k].dataset.ph;
+      });
+      // A brand row covers many units: name, SKU (serial) and quantity belong to each unit, so they can't be typed here
+      ["name", "sku", "qty"].forEach((k) => {
+        form[k].disabled = !!scanKey;
+        form[k].title = scanKey ? "Set per unit on the Scanner. Quantity is the number of scanned units in stock." : "";
+      });
+      if (id) {
+        const item = load(ITEMS_KEY).find((i) => i.id === id);
+        Object.keys(item).forEach((k) => { if (form[k]) form[k].value = item[k]; });
+      }
+      if (scanKey) {
+        const row = buildRows().find((r) => !r.manual && r.key === scanKey);
+        $("#mTitle").textContent = "Edit " + row.name + " (" + row.qty + " unit" + (row.qty > 1 ? "s" : "") + ")";
+        form.name.value = row.name;
+        form.sku.value = row.qty + " serial number" + (row.qty > 1 ? "s" : "");
+        form.qty.value = row.qty;
+        // Fields where the units differ are left empty (placeholder "Mixed") and stay as they are unless you type a value
+        BRAND_FIELDS.forEach((k) => {
+          const v = k === "reorder" ? row.reorder || "" : row[k] || "";
+          form[k].value = v === "Mixed" ? "" : v;
+          if (v === "Mixed") form[k].placeholder = "Mixed (leave empty to keep)";
+        });
+      }
+      modal.hidden = false;
+      form.name.focus();
+    }
+    const closeModal = () => (modal.hidden = true);
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form));
+      Object.keys(data).forEach((k) => (data[k] = String(data[k]).trim()));
+      if (editScan !== null) {
+        // Save the changes to every scanned unit of this brand (empty fields are left as they are)
+        const stock = load(STOCK_KEY);
+        stock.filter((s) => s.status === "in" && groupKey(s) === editScan).forEach((s) => {
+          BRAND_FIELDS.forEach((k) => { if (data[k] !== "") s[k] = data[k]; });
+        });
+        localStorage.setItem(STOCK_KEY, JSON.stringify(stock));
+        closeModal();
+        return render();
+      }
+
+      if (!data.name) return;
+
+      const list = load(ITEMS_KEY);
+      if (editId) {
+        const i = list.findIndex((x) => x.id === editId);
+        list[i] = { ...list[i], ...data };
+      } else {
+        list.push({ id: Date.now(), ...data });
+      }
+      localStorage.setItem(ITEMS_KEY, JSON.stringify(list));
+      closeModal();
+      render();
+    });
+
+    $("#rows").addEventListener("click", (e) => {
+      const toggle = e.target.closest("[data-toggle]");
+      if (toggle) {
+        const key = toggle.dataset.toggle;
+        closed.has(key) ? closed.delete(key) : closed.add(key);
+        return render();
+      }
+
+      const edit = e.target.closest("[data-edit]");
+      if (edit) return openModal(+edit.dataset.edit);
+
+      const scanEdit = e.target.closest("[data-scan-edit]");
+      if (scanEdit) return openModal(null, scanEdit.dataset.scanEdit);
+      const scanDel = e.target.closest("[data-scan-del]");
+      if (scanDel) {
+        const key = scanDel.dataset.scanDel;
+        const stock = load(STOCK_KEY);
+        const units = stock.filter((s) => s.status === "in" && groupKey(s) === key);
+        if (!confirm(`Delete all ${units.length} scanned unit${units.length > 1 ? "s" : ""} of this brand (${units.map((u) => u.barcode).join(", ")})?`)) return;
+        localStorage.setItem(STOCK_KEY, JSON.stringify(stock.filter((s) => !units.includes(s))));
+        return render();
+      }
+
+      const unitDel = e.target.closest("[data-unit-del]");
+      if (unitDel) {
+        const code = unitDel.dataset.unitDel;
+        if (!confirm("Remove unit " + code + " from inventory?")) return;
+        localStorage.setItem(STOCK_KEY, JSON.stringify(load(STOCK_KEY).filter((s) => s.barcode !== code)));
+        return render();
+      }
+
+      const del = e.target.closest("[data-del]");
+      if (!del || !confirm("Delete this item?")) return;
+      localStorage.setItem(ITEMS_KEY, JSON.stringify(load(ITEMS_KEY).filter((i) => i.id !== +del.dataset.del)));
+      render();
+    });
+
+    // ---------- Buttons ----------
+    $("#mClose").onclick = closeModal;
+    $("#mCancel").onclick = closeModal;
+    modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+    $("#search").addEventListener("input", render);
+    $("#catFilter").addEventListener("change", render);
+    // Refresh when the Scanner page saves in another tab
+    window.addEventListener("storage", (e) => { if (e.key === STOCK_KEY || e.key === ITEMS_KEY) render(); });
+
+    render();
+  </script>
+</body>
+</html>

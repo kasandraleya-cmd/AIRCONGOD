@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Attendance</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="dashboard.css?v=15">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+</head>
+<body class="app dashboard">
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) location.href = "index.html";
+    // ATTENDANCE: only the Owner / Head Supervisor, HR / Manager (and Developer) may open it (sidebar.js hides the link for the rest)
+    else if (!Roles.me().staffAndPay) { document.documentElement.style.visibility = "hidden"; location.replace("dashboard.html"); }
+  </script>
+
+  <aside class="side">
+    <div class="side-brand"><img src="AIRCON.png" alt="Logo"><span>AIRCON G.O.D</span></div>
+    <nav aria-label="Main menu"></nav>
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <main class="content">
+    <div class="db-head">
+      <div>
+        <h1>Attendance</h1>
+        <p>Crew attendance, units installed and services completed per week.</p>
+      </div>
+    </div>
+
+      <!-- CREW ATTENDANCE: days present and units installed, from the Daily Schedule (attendance.js) -->
+      <section class="db-card db-att">
+        <div class="db-card-h">
+          <h3><i class="fas fa-user-check"></i> Crew attendance</h3>
+          <div class="db-att-month">
+            <button type="button" data-attm="-1" aria-label="Previous week"><i class="fas fa-chevron-left"></i></button>
+            <b id="attMonth"></b>
+            <button type="button" data-attm="1" aria-label="Next week"><i class="fas fa-chevron-right"></i></button>
+          </div>
+        </div>
+        <div class="db-att-wrap">
+          <table class="db-att-table">
+            <thead><tr><th>Crew</th><th>Position</th><th class="num">Days present</th><th class="num">Units installed</th><th class="num">Services done</th><th class="num">Rate + incentive</th><th></th></tr></thead>
+            <tbody id="attRows"></tbody>
+          </table>
+        </div>
+        <p class="db-att-note">Comes from the crew names on the <a href="dailysched.html">Daily Schedule</a>: a day counts once they're on a crew (not cancelled or rescheduled); units count when the job is <b>DONE</b>.
+          Weekly, Monday to Sunday (same as the Payroll pay week). The rate is their Payroll rate on the <a href="staff.html">Staff</a> page; Rate + incentive = rate, meal allowance and team incentive for the week. Click a name to see their client list.</p>
+      </section>
+
+      <!-- One crew member's attendance sheet -->
+      <div class="db-att-modal" id="attModal" hidden>
+        <div class="db-att-box" role="dialog" aria-modal="true" aria-label="Attendance">
+          <div class="db-att-box-h">
+            <div class="db-att-month">
+              <button type="button" data-attp="-1" aria-label="Previous week"><i class="fas fa-chevron-left"></i></button>
+              <b id="attPopMonth"></b>
+              <button type="button" data-attp="1" aria-label="Next week"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <button type="button" class="db-att-close" id="attClose" aria-label="Close">&times;</button>
+          </div>
+          <div id="attPop"></div>
+        </div>
+      </div>
+
+    <script src="payslip.js?v=7"></script>
+    <script src="incentive-teams.js?v=2"></script>
+    <script src="attendance.js?v=22"></script>
+    <script>
+      // Crew attendance box (business view): every active crew member, for the chosen WEEK (Mon–Sun, like Payroll)
+      (function () {
+        const rowsEl = document.getElementById("attRows");
+        if (!rowsEl || typeof Attendance === "undefined") return;
+        const A = Attendance;
+        const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+        let month = A.thisWeek();   // "wk-2026-11-16" (the Monday)
+        const crew = () => {
+          let staff = [];
+          try { staff = JSON.parse(localStorage.getItem("aircon_staff") || "[]"); } catch (e) {}
+          return staff.filter((s) => s && s.name && (s.status || "Active") === "Active" && A.isCrew(s));
+        };
+        // Rates (Payroll rate) and incentives: only Developer, Owner and HR can read them
+        const team = {};   // month → { staffId: { rate, basis, incentive } } (a week reads the month of its Sunday)
+        function loadTeam(m, force) {
+          if (team[m] !== undefined && !force) return;
+          if (team[m] === undefined) team[m] = null;
+          A.loadTeamPay(m).then((p) => { team[m] = p; draw(); });
+        }
+        function draw() {
+          const pm = A.monthOf(month);
+          loadTeam(pm);
+          const [from, to] = A.periodRange(month), t = A.tally(from, to), teamInc = A.teamIncentives ? A.teamIncentives(from, to) : {};
+          const list = crew().map((s) => ({ s, a: A.forStaff(s, from, to, t) }))
+            .sort((x, y) => y.a.days - x.a.days || y.a.units - x.a.units || x.s.name.localeCompare(y.s.name));
+          document.getElementById("attMonth").textContent = A.periodLabel(month);
+          document.querySelector('[data-attm="1"]').disabled = month >= A.thisWeek();
+          rowsEl.innerHTML = list.length ? list.map(({ s, a }) => `<tr class="${a.days ? "" : "zero"}" data-who="${esc(s.id)}" tabindex="0" title="See ${esc(s.name)}'s client list">
+              <td><b>${esc(s.name)}</b>${s.nickname ? ` <small>(${esc(s.nickname)})</small>` : ""}</td>
+              <td>${esc(s.position)}</td>
+              <td class="num"><b>${a.days}</b></td><td class="num">${a.units}</td><td class="num">${a.services}</td>
+              <td class="num">${(() => { const tp = team[pm] && team[pm][s.id]; const p = A.payOf(a, tp ? { ...tp, incentive: 0 } : tp, s, teamInc[String(s.id)]); return p ? A.peso(p.total) : "—"; })()}</td>
+              <td class="num"><i class="fas fa-chevron-right"></i></td></tr>`).join("")
+            : `<tr><td colspan="7" class="empty">No installers, team service or drivers on the Staff page yet.</td></tr>`;
+          if (!modal.hidden) drawPop();
+        }
+
+        // Popup: one person's sheet (name, counts, client list with rate, incentive and total)
+        const modal = document.getElementById("attModal");
+        let who = null, popMonth = month;
+        const one = {};   // "staffId|month" → that person's rate + incentive
+        const CAN_SET = Roles.me().staffAndPay;
+        function drawPop() {
+          const s = crew().find((x) => String(x.id) === String(who));
+          if (!s) { modal.hidden = true; return; }
+          const key = s.id + "|" + A.monthOf(popMonth);
+          if (!CAN_SET) one[key] = { hidden: true };   // Admin Staff: no rates (the database refuses them anyway)
+          if (one[key] === undefined) { one[key] = null; A.loadPay(A.monthOf(popMonth), s.id).then((p) => { one[key] = p; if (!modal.hidden) drawPop(); }); }
+          document.getElementById("attPopMonth").textContent = A.periodLabel(popMonth);
+          document.querySelector('[data-attp="1"]').disabled = popMonth >= A.thisWeek();
+          document.getElementById("attPop").innerHTML = A.sheetHtml(s, popMonth, one[key], CAN_SET);
+        }
+        // Owner / HR: save this month's incentive for the person in the popup
+        document.getElementById("attPop").addEventListener("click", async (e) => {
+          const btn = e.target.closest("[data-save-inc]");
+          if (!btn) return;
+          const amount = document.querySelector("#attPop [data-incentive]").value;
+          btn.disabled = true;
+          const err = await A.saveIncentive(who, popMonth, amount);
+          if (err) { btn.disabled = false; return alert("Incentive was NOT saved: " + err); }
+          delete one[who + "|" + popMonth];
+          loadTeam(popMonth, true);
+          drawPop();
+          if (window.notify) notify("Incentive saved.", "good");
+        });
+        document.getElementById("attPop").addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && e.target.matches("[data-incentive]")) document.querySelector("#attPop [data-save-inc]").click();
+        });
+        const open = (tr) => { who = tr.dataset.who; popMonth = month; modal.hidden = false; drawPop(); document.getElementById("attClose").focus(); };
+        rowsEl.addEventListener("click", (e) => { const tr = e.target.closest("tr[data-who]"); if (tr) open(tr); });
+        rowsEl.addEventListener("keydown", (e) => { const tr = e.target.closest("tr[data-who]"); if (tr && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); open(tr); } });
+        document.querySelectorAll("[data-attp]").forEach((b) => b.addEventListener("click", () => { popMonth = A.shiftPeriod(popMonth, +b.dataset.attp); drawPop(); }));
+        document.getElementById("attClose").onclick = () => (modal.hidden = true);
+        modal.addEventListener("click", (e) => { if (e.target === modal) modal.hidden = true; });
+        document.addEventListener("keydown", (e) => { if (e.key === "Escape") modal.hidden = true; });
+
+        document.querySelectorAll("[data-attm]").forEach((b) => b.addEventListener("click", () => { month = A.shiftPeriod(month, +b.dataset.attm); draw(); }));
+        addEventListener("storage", (e) => { if (e.key === "aircon_daily" || e.key === "aircon_staff") draw(); });
+        (window.cloudReady || Promise.resolve()).then(draw);
+        draw();
+      })();
+    </script>
+  </main>
+
+  <script>
+    function logout() { sessionStorage.clear(); window.location.href = "index.html"; }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+</body>
+</html>

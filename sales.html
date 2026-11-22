@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Job Order</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="sales.css?v=12">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+</head>
+<body class="app">
+
+  <!-- SECURITY GUARD -->
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) window.location.href = "index.html";
+  </script>
+
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="side-brand">
+      <img src="AIRCON.png" alt="Logo">
+      <span>AIRCON G.O.D</span>
+    </div>
+
+    <nav aria-label="Main menu"><!-- filled in by sidebar.js --></nav>
+
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="content so xl">
+  <div class="xl-file">
+
+    <div class="xl-titlebar">
+      <i class="fas fa-file-excel"></i>
+      <b>AIRCON G.O.D. PH – JOB ORDER</b>
+      <span>Job Order</span>
+    </div>
+
+    <!-- RIBBON -->
+    <div class="xl-ribbon">
+      <button type="button" class="xl-btn" id="saveBtn"><i class="fas fa-check-circle" style="color:#d5a52a"></i><span>Submit</span></button>
+      <button type="button" class="xl-btn" id="newBtn"><i class="fas fa-file" style="color:#475569"></i>New JO</button>
+      <div class="xl-sep"></div>
+      <button type="button" class="xl-btn" id="searchBtn"><i class="fas fa-search" style="color:#d5a52a"></i>Search / Edit</button>
+      <button type="button" class="xl-btn" id="quoteBtn"><i class="fas fa-file-invoice" style="color:#071d49"></i>Quotation</button>
+      <button type="button" class="xl-btn" id="printBtn"><i class="fas fa-print" style="color:#d5a52a"></i>Print JO</button>
+      <div class="xl-sep"></div>
+      <button type="button" class="xl-btn" id="delBtn" disabled><i class="fas fa-trash-alt" style="color:#d5a52a"></i>Delete</button>
+    </div>
+
+    <!-- FORMULA BAR -->
+    <div class="xl-fx">
+      <span class="xl-name">A1</span>
+      <span class="xl-fxi">fx</span>
+      <span id="mode" class="xl-mode">New job order</span>
+      <span id="joStock" class="xl-stock" title="Red until all the units of this job order are recorded from stock; green once they are"></span>
+      <span class="xl-tip">Enter = next cell · Ctrl+Enter = submit</span>
+    </div>
+
+    <div class="xl-scroll">
+      <form class="xl-sheet" id="soForm" autocomplete="off">
+
+        <div class="xl-banner">AIRCON G.O.D. PH<span id="soTitle"></span></div>
+
+        <!-- INFO CELLS -->
+        <div class="xl-info">
+          <!-- The customer's request reference (AG#0001 install, AGC#0001 cleaning): fills in their name and details -->
+          <div class="xl-lbl">Ref #</div><div class="xl-val" style="grid-column: span 3"><input data-f="ref" placeholder="AG#0001 or AGC#0001: type the request's reference no. to fill in the customer" title="Type the reference number from the customer's install or cleaning request"></div>
+          <div class="xl-lbl">Customer Name</div><div class="xl-val"><input data-f="customer" placeholder="Type a name" autofocus></div>
+          <div class="xl-lbl">Job Order #</div><div class="xl-val"><input data-f="no" class="xl-jo" placeholder="JO#00001" title="Filled in automatically. You can change it."></div>
+
+          <div class="xl-lbl">Complete Address</div><div class="xl-val"><input data-f="address" placeholder="House no., street, barangay, city"></div>
+          <div class="xl-lbl">Date</div><div class="xl-val"><input data-f="date" type="text" inputmode="numeric" placeholder="MM/DD/YYYY" maxlength="10" aria-label="Job order date (MM/DD/YYYY)"></div>
+
+          <div class="xl-lbl">Contact No</div><div class="xl-val"><input data-f="contact" placeholder="Contact number"></div>
+          <div class="xl-lbl">Installer</div><div class="xl-val"><input data-f="installer" placeholder="Installer"></div>
+
+          <div class="xl-lbl">Contact Person</div><div class="xl-val"><input data-f="contact_person" placeholder="Someone to call if the client doesn't answer"></div>
+          <div class="xl-lbl">Backup No</div><div class="xl-val"><input data-f="contact2" placeholder="Contact person's number"></div>
+
+          <div class="xl-lbl">Landmark</div><div class="xl-val"><input data-f="landmark" placeholder="e.g. beside 7-Eleven, blue gate"></div>
+          <div class="xl-lbl">MOP</div><div class="xl-val xl-pick"><input data-f="mop" placeholder="Select mode of payment"><i class="fas fa-chevron-down"></i></div>
+        </div>
+
+        <!-- ITEMS -->
+        <table class="xl-table">
+          <!-- Column widths: # · Qty · Description · Serial no. · Unit cost · Sales · Discount · Net sales · clear button -->
+          <colgroup>
+            <col style="width:44px"><col style="width:80px"><col><col style="width:200px"><col style="width:130px">
+            <col style="width:130px"><col style="width:130px"><col style="width:140px"><col style="width:40px">
+          </colgroup>
+          <thead>
+            <tr class="xl-letters">
+              <th class="corner"></th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th><th class="x"></th>
+            </tr>
+            <tr class="xl-cols">
+              <th class="n">#</th>
+              <th>QTY</th>
+              <th class="left">DESCRIPTION</th>
+              <th title="In-stock units of the brand / HP in the description (from the Scanner)">SERIAL NO.</th>
+              <th>UNIT COST</th>
+              <th>SALES</th>
+              <th>DISCOUNT</th>
+              <th>NET SALES</th>
+              <th class="x"></th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+          <tfoot>
+            <tr class="xl-addrow">
+              <td colspan="9"><button type="button" class="xl-add" id="addRowBtn" title="Add another item row"><i class="fas fa-plus"></i> Add row</button></td>
+            </tr>
+            <tr>
+              <td colspan="5" class="tlabel">TOTAL</td>
+              <td class="calc" id="tSales">0.00</td>
+              <td class="calc" id="tDisc">0.00</td>
+              <td class="calc big" id="tNet">0.00</td>
+              <td class="x"></td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <!-- REMARKS -->
+        <div class="xl-remarks">
+          <div class="xl-lbl">Remarks</div>
+          <div class="xl-val"><textarea data-f="remarks" rows="2" placeholder="Notes about this job order"></textarea></div>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- SHEET TABS -->
+    <div class="xl-tabs">
+      <button type="button" class="xl-tab on">JOForm</button>
+      <button type="button" class="xl-tab" onclick="document.getElementById('searchBtn').click()">JODatabase</button>
+    </div>
+
+  </div>
+</main>
+
+  <!-- SEARCH POPUP -->
+  <div class="so-modal" id="modal" hidden>
+    <div class="so-box">
+      <div class="so-box-head">
+        <h3>Job Order Database</h3>
+        <button type="button" class="so-close" id="closeBtn" aria-label="Close">&times;</button>
+      </div>
+      <input id="q" class="so-q" placeholder="Search JO#, customer, installer, landmark, MOP, date...">
+      <div id="list" class="so-list"></div>
+    </div>
+  </div>
+
+    <!-- DELETE CONFIRMATION POPUP -->
+<div class="so-modal" id="confirmBox" hidden>
+  <div class="so-confirm" role="alertdialog" aria-labelledby="delTitle">
+    <div class="so-confirm-icon"><i class="fas fa-trash-alt"></i></div>
+    <h3 id="delTitle">Delete this job order?</h3>
+    <p>You are about to delete <b id="delNo"></b>.</p>
+    <div class="so-confirm-info" id="delInfo"></div>
+    <p class="so-confirm-warn">This cannot be undone.</p>
+    <div class="so-confirm-actions">
+      <button type="button" class="so-btn ghost" id="delCancel">Cancel</button>
+      <button type="button" class="so-btn red" id="delYes"><i class="fas fa-trash"></i> Yes, delete</button>
+    </div>
+  </div>
+</div>
+
+  <div class="so-toast" id="toast" hidden></div>
+  <div class="opt-menu" id="optMenu" hidden role="listbox"></div>
+
+  <script>
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = "index.html";
+    }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+  <script src="pricelist.js?v=4"></script>
+  <script src="pricepicker.js?v=4"></script>
+  <script src="jostock.js?v=1"></script>
+  <script src="jo-autoassign.js?v=1"></script>
+
+  <script>
+    const KEY = "aircon_jobs";          // saved job orders
+    const ITEMS_KEY = "aircon_items";   // inventory items (for price suggestions)
+    const START_ROWS = 6;
+
+    const $ = (s) => document.querySelector(s);
+    const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const money = (n) => Number(n || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const load = (k) => JSON.parse(localStorage.getItem(k) || "[]");
+    const jobs = () => load(KEY);
+    const today = () => new Date().toISOString().slice(0, 10);
+
+    const fields = [...document.querySelectorAll("[data-f]")];
+    // Warehouse Staff (not office managers) may only fill in the Serial No. of the units on a job order
+    // (the database allows the same: supabase/job_orders_warehouse_serials.sql)
+    const SERIAL_ONLY = (() => { try { const r = Roles.me(); return r.warehouse && !r.manager; } catch (e) { return false; } })();
+    const body = $("#rows");
+    let editId = null;
+    let customers = {};   // name -> { address, landmark, contact }
+    let prices = {};      // item description -> last unit cost
+
+    const isoToUsDate = (value) => {
+      const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      return match ? `${match[2]}/${match[3]}/${match[1]}` : String(value || "");
+    };
+    const usToIsoDate = (value) => {
+      const text = String(value || "").trim();
+      if (!text) return "";
+      let match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (match) {
+        const month = +match[1], day = +match[2], year = +match[3];
+        const date = new Date(year, month - 1, day);
+        if (month < 1 || month > 12 || date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+        return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      }
+      return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : null;
+    };
+    const getData = () => Object.fromEntries(fields.map((e) => [e.dataset.f, e.dataset.f === "date" ? (usToIsoDate(e.value) || e.value.trim()) : e.value.trim()]));
+    const setData = (d) => fields.forEach((e) => (e.value = e.dataset.f === "date" ? isoToUsDate(d[e.dataset.f]) : (d[e.dataset.f] || "")));
+
+    function toast(text, ok = true) {
+      const t = $("#toast");
+      t.textContent = text;
+      t.className = "so-toast" + (ok ? "" : " err");
+      t.hidden = false;
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => (t.hidden = true), 2500);
+    }
+
+    // ---------- Item rows ----------
+    function addRow(it = {}) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="n"></td>
+        <td><input class="qty" type="number" min="0" step="any" placeholder="0"></td>
+        <td class="desc-cell"><input class="desc" placeholder="Type a unit or material"></td>
+        <td class="serial-cell"><input class="serial" autocomplete="off" spellcheck="false" placeholder="Type or pick a serial"></td>
+        <td><input class="cost" type="number" min="0" step="any" placeholder="0.00"></td>
+        <td class="calc sales">0.00</td>
+        <td><input class="disc" type="number" min="0" step="any" placeholder="0.00"></td>
+        <td class="calc net">0.00</td>
+        <td class="x"><button type="button" class="so-x" title="Clear this row" tabindex="-1">&times;</button></td>`;
+      tr.querySelector(".qty").value = it.qty ?? "";
+      tr.querySelector(".desc").value = it.desc ?? "";
+      tr.querySelector(".cost").value = it.cost ?? "";
+      tr.querySelector(".disc").value = it.disc ?? "";
+      tr.querySelector(".serial").value = it.serial ?? "";
+      if (SERIAL_ONLY) {   // warehouse: only the Serial No. can be changed
+        tr.querySelectorAll("input:not(.serial)").forEach((i) => (i.disabled = true));
+        tr.querySelector(".so-x").hidden = true;
+      }
+      body.appendChild(tr);
+      [...body.rows].forEach((r, i) => (r.querySelector(".n").textContent = i + 1));
+    }
+
+    const rowHasData = (r) => r.querySelector(".desc").value.trim() || +r.querySelector(".qty").value || +r.querySelector(".cost").value;
+
+    function calc() {
+      let tS = 0, tD = 0, tN = 0;
+      [...body.rows].forEach((r) => {
+        const qty = +r.querySelector(".qty").value || 0;
+        const cost = +r.querySelector(".cost").value || 0;
+        const disc = +r.querySelector(".disc").value || 0;
+        const sales = qty * cost;
+        const net = sales ? sales - disc : 0;
+        r.querySelector(".sales").textContent = money(sales);
+        r.querySelector(".net").textContent = money(net);
+        r.classList.toggle("blank", !rowHasData(r));
+        tS += sales; tD += sales ? disc : 0; tN += net;
+      });
+      $("#tSales").textContent = money(tS);
+      $("#tDisc").textContent = money(tD);
+      $("#tNet").textContent = money(tN);
+      updateStock();
+      refreshStockBadge();
+      return tN;
+    }
+    // Red until every aircon unit on this JO has its serial number from stock, green once it does (jostock.js)
+    function refreshStockBadge() {
+      const el = $("#joStock");
+      if (!el || typeof JoStock === "undefined") return;
+      let html = JoStock.badge({ items: readItems() });
+      // Units that still wait for their serial but HAVE stock count as green too ("Stock available")
+      const reds = body.querySelectorAll("tr.stk-red").length, open = body.querySelectorAll("tr.stk-open").length;
+      if (!reds && open) html = '<span class="jo-stk green" title="Every unit has stock: its serial number is set when you save."><i></i>Stock available</span>';
+      el.innerHTML = html;
+    }
+
+    // ---------- Serial No. + "no stock" ----------
+    // A unit in the description (e.g. "LG ... 1.5 HP") lists the scanned units in stock of that brand
+    // (and HP, when the unit's specs say it). Serials already on another row, or on another saved
+    // job order, aren't offered again. No matching unit in stock → the description turns red.
+    const STOCK_KEY = "aircon_stock";
+    const BRANDS = ["AMERICAN HOME", "GREE CRYSTAL", "GREE", "MIDEA", "CARRIER", "TCL", "LG", "AUX", "KOLIN", "DAIKIN", "PANASONIC", "SAMSUNG", "HISENSE", "IFFALCON"];
+    const up = (t) => String(t || "").toUpperCase().trim();
+    const hpOf = (t) => { const m = up(t).match(/(\d+(?:\.\d+)?)\s*HP\b/); return m ? +m[1] : null; };
+    const hasWord = (word, text) => !!word && new RegExp("(^|[^A-Z0-9])" + word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "([^A-Z0-9]|$)").test(text);
+    // Which scanned units fit the description:
+    //  · a price-list MODEL (e.g. "MIDEA CELEST PRO … 1.0 HP") → only units scanned as that same model
+    //    (Model Specs on the Scanner). No unit of that model in stock → "No stock" (red).
+    //  · just a brand (e.g. "MIDEA") → every unit of that brand (also older units with no model set)
+    const squash = (t) => up(t).replace(/[^A-Z0-9.]+/g, "");
+    const isModel = (t) => !!t && typeof PricePicker !== "undefined" && !!PricePicker.find(t);
+    const unitMatches = (u, line) => {
+      // "(Outdoor)" lines take outdoor units, every other line takes indoor / single units
+      const wantOut = /\(OUTDOOR\)/.test(line);
+      if (wantOut ? (u.unit && u.unit !== "Outdoor") : u.unit === "Outdoor") return false;
+      const desc = line.replace(/\s*\((INDOOR|OUTDOOR)\)\s*/g, " ").trim();
+      if (!hasWord(up(u.brand), desc)) return false;
+      if (isModel(desc)) return squash(u.specs) === squash(desc);   // a model: only units of that exact model
+      const hd = hpOf(desc), hu = hpOf(u.specs || u.name);
+      return !(hd && hu && hd !== hu);
+    };
+    const isUnitDesc = (desc, stock) => {
+      if (!desc) return false;
+      const p = typeof PricePicker !== "undefined" && PricePicker.find(desc);
+      if (p) return p.unit === "UNIT";
+      return [...BRANDS, ...stock.map((u) => up(u.brand))].some((b) => hasWord(b, desc));
+    };
+    // "No. 3 · 602HAWSBF529"; with only a brand typed, each unit's model is shown too
+    const serialText = (u, desc) => (u.unitNo ? `No. ${u.unitNo} · ` : "") + u.barcode
+      + (!isModel(desc) && u.specs ? ` · ${String(u.specs).replace(new RegExp("^" + up(u.brand) + "\\s*", "i"), "")}` : "");
+
+    function updateStock() {
+      const allUnits = load(STOCK_KEY);
+      const stock = allUnits.filter((u) => u.status === "in" && u.barcode);
+      // Serials already sold on other saved job orders
+      const sold = new Set();
+      jobs().forEach((j) => { if (j.id !== editId) (j.items || []).forEach((i) => i.serial && sold.add(i.serial)); });
+      const rows = [...body.rows];
+      const picked = rows.map((r) => r.querySelector(".serial").value.trim());
+      rows.forEach((r, n) => {
+        const sel = r.querySelector(".serial"), cell = r.querySelector(".desc-cell");
+        const desc = up(r.querySelector(".desc").value);
+        const current = picked[n];
+        if (!isUnitDesc(desc, stock)) {
+          // Materials / services: no serial (a serial already typed stays and can still be cleared)
+          r._serialOpts = [];
+          sel.disabled = !current;
+          sel.classList.remove("need", "unknown");
+          sel.title = "";
+          cell.classList.remove("nostock"); cell.title = "";
+          r.classList.remove("stk-red", "stk-green", "stk-open");
+          return;
+        }
+        const others = new Set(picked.filter((v, i) => i !== n && v).map((v) => v.toLowerCase()));
+        const cands = stock.filter((u) => unitMatches(u, desc) && !sold.has(u.barcode) && !others.has(u.barcode.toLowerCase()))
+          .sort((a, b) => (+a.unitNo || 1e9) - (+b.unitNo || 1e9));
+        // Suggestions while typing: the in-stock serials of this model (and this JO's own unit when reopened)
+        const own = current && allUnits.find((x) => x.barcode.toLowerCase() === current.toLowerCase());
+        const keepOld = own && !cands.includes(own) && own.status === "out";   // this JO's own unit, already stocked out
+        // The list shown under the box (serialMenu below): [{ value, sub, tag }]
+        const model = (u) => { const s = String(u.specs || ""), b = up(u.brand); return b && up(s).startsWith(b) ? s.slice(b.length).trim() : s; };
+        r._serialOpts = (keepOld ? [{ value: own.barcode, sub: [own.unitNo && "No. " + own.unitNo, model(own)].filter(Boolean).join(" · "), tag: "This JO" }] : [])
+          .concat(cands.map((u) => ({ value: u.barcode, sub: [u.unitNo && "No. " + u.unitNo, model(u)].filter(Boolean).join(" · ") })));
+        r._serialStock = cands.length;
+        sel.disabled = false;
+        // Typed serial that isn't a matching unit in stock: allowed, but marked (it won't be stocked out)
+        const known = !current || cands.includes(own) || keepOld;
+        sel.classList.toggle("need", !current);
+        sel.classList.toggle("unknown", !known);
+        sel.title = !current ? (cands.length ? `Type or pick the serial number (${cands.length} in stock)` : "No stock")
+          : !known ? "This serial isn't an in-stock unit of this model in Inventory, so it won't be stocked out." : "";
+        const qty = +r.querySelector(".qty").value || 1;
+        const available = cands.length + (current ? 1 : 0) - (current && !keepOld ? 1 : 0);
+        const none = !current && !cands.length;
+        const short = !none && qty > available;
+        cell.classList.toggle("nostock", none || short);
+        // The whole row: RED when this unit has no stock, GREEN when it has (a serial picked, or a unit in stock waiting for one)
+        const lack = none || short;
+        r.classList.toggle("stk-red", lack);
+        r.classList.toggle("stk-green", !lack);
+        r.classList.toggle("stk-open", !lack && !current);
+        cell.title = none ? "No stock: no unit of this brand / HP is in stock (Scanner → Stock In)."
+          : short ? `Only ${available} in stock for this unit, but the quantity is ${qty}.` : "";
+      });
+    }
+    // Stock just came in (another tab / Scanner / another computer): rows waiting for a unit take one and turn green by themselves
+    window.addEventListener("storage", (e) => { if (e.key === STOCK_KEY) { calc(); if (!SERIAL_ONLY) [...body.rows].forEach(autoSerial); } });
+
+    // ---------- Serial No. suggestions: a list under the box (same look as the Description suggestions) ----------
+    // Shows the in-stock serials of the row's model; typing narrows it down. Click, or ↑ ↓ + Enter, to pick.
+    const serialMenu = document.createElement("div");
+    serialMenu.className = "serial-suggest";
+    serialMenu.hidden = true;
+    document.body.appendChild(serialMenu);
+    let menuInput = null, menuOpts = [], menuAt = -1;
+    function showSerials(input) {
+      const row = input.closest("tr");
+      const all = row._serialOpts || [];
+      const q = input.value.trim().toLowerCase();
+      const exact = all.some((o) => o.value.toLowerCase() === q);
+      menuOpts = q && !exact ? all.filter((o) => (o.value + " " + o.sub).toLowerCase().includes(q)) : all;
+      if (input.disabled || (!menuOpts.length && all.length)) return hideSerials();
+      menuInput = input;
+      menuAt = menuOpts.findIndex((o) => o.value.toLowerCase() === q);
+      const stock = row._serialStock || 0;
+      serialMenu.innerHTML = `<div class="ss-head">${stock ? `${stock} in stock` : "No stock for this model"}</div>`
+        + menuOpts.map((o, i) => `<button type="button" data-i="${i}" class="${i === menuAt ? "on" : ""}">
+            <b>${esc(o.value)}</b>${o.tag ? `<em>${esc(o.tag)}</em>` : ""}<small>${esc(o.sub || "")}</small></button>`).join("");
+      const r = input.closest("td").getBoundingClientRect();
+      serialMenu.style.left = r.left + scrollX + "px";
+      serialMenu.style.top = r.bottom + scrollY + 2 + "px";
+      serialMenu.style.width = Math.max(r.width, 260) + "px";
+      serialMenu.hidden = false;
+    }
+    function hideSerials() { serialMenu.hidden = true; menuInput = null; }
+    function pickSerial(i) {
+      const input = menuInput, o = menuOpts[i];
+      if (!input || !o) return;
+      input.value = o.value;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      hideSerials();   // after the events, so the list doesn't open again
+    }
+    serialMenu.addEventListener("mousedown", (e) => {
+      const b = e.target.closest("button");
+      if (b) { e.preventDefault(); pickSerial(+b.dataset.i); }
+    });
+    body.addEventListener("focusin", (e) => { if (e.target.classList.contains("serial")) showSerials(e.target); });
+    body.addEventListener("click", (e) => { if (e.target.classList.contains("serial")) showSerials(e.target); });
+    body.addEventListener("input", (e) => { if (e.target.classList.contains("serial") && document.activeElement === e.target) showSerials(e.target); });
+    body.addEventListener("focusout", (e) => { if (e.target === menuInput) setTimeout(() => { if (document.activeElement !== menuInput) hideSerials(); }, 120); });
+    body.addEventListener("keydown", (e) => {
+      if (!e.target.classList.contains("serial")) return;
+      if (serialMenu.hidden) { if (e.key === "ArrowDown") { e.preventDefault(); showSerials(e.target); } return; }
+      const n = menuOpts.length;
+      if ((e.key === "ArrowDown" || e.key === "ArrowUp") && n) {
+        e.preventDefault(); e.stopPropagation();
+        menuAt = (menuAt + (e.key === "ArrowDown" ? 1 : -1) + n) % n;
+        serialMenu.querySelectorAll("button").forEach((b, i) => b.classList.toggle("on", i === menuAt));
+        serialMenu.querySelectorAll("button")[menuAt].scrollIntoView({ block: "nearest" });
+      } else if (e.key === "Enter" && menuAt >= 0) {
+        e.preventDefault(); e.stopPropagation(); pickSerial(menuAt);
+      } else if (e.key === "Escape") hideSerials();
+    }, true);
+    window.addEventListener("resize", hideSerials);
+    document.querySelector(".xl-scroll").addEventListener("scroll", hideSerials);
+    // A typed serial is tidied up when leaving the box: spaces trimmed, and written exactly as in Inventory
+    // ("602hahybf129" → "602HAHYBF129"), so the unit is found and stocked out on Submit / Update
+    body.addEventListener("change", (e) => {
+      if (!e.target.classList.contains("serial")) return;
+      const typed = e.target.value.trim();
+      const unit = typed && load(STOCK_KEY).find((u) => String(u.barcode || "").toLowerCase() === typed.toLowerCase());
+      e.target.value = unit ? unit.barcode : typed;
+      autoCost(e.target.closest("tr"), unit);
+      calc();
+    });
+
+    // The unit's SRP (Price List, by the model of the unit picked from stock) becomes the UNIT COST automatically.
+    // A price someone typed themselves is never replaced; the outdoor unit of a set stays 0 (the price is on the indoor unit).
+    function srpOfUnit(u) {
+      const find = (t) => (typeof PricePicker !== "undefined" && t ? PricePicker.find(t) : null);
+      const p = find(u.specs) || find([u.brand, u.specs].filter(Boolean).join(" ")) || find(u.name);
+      return p ? +p.srp : 0;
+    }
+    // An available unit of the chosen model / brand is set as the row's Serial No. automatically (the lowest Unit No.
+    // in stock). Its unit cost and the green status follow; it is recorded as stocked out when the JO is saved.
+    // Not when Qty is more than 1 (one serial number is one unit: add a row per unit), and never over a serial already there.
+    function autoSerial(row) {
+      if (SERIAL_ONLY || !row) return;
+      const serial = row.querySelector(".serial");
+      if (!serial || serial.disabled || serial.value.trim()) return;
+      if ((+row.querySelector(".qty").value || 1) > 1) return;
+      const first = (row._serialOpts || []).find((o) => !o.tag);
+      if (!first) return;
+      serial.value = first.value;
+      row._autoSerial = true;
+      serial.dispatchEvent(new Event("change", { bubbles: true }));   // tidies it, fills the unit cost, recalculates
+      autoRecord();
+    }
+
+    // A JO that is already saved records a unit as soon as it turns green: the serial (and its cost) are saved on the
+    // JO and the unit is stocked out to this customer, so Serial Number Tracking shows the customer and SOLD right away.
+    // Only the rows that were just given a serial are saved (nothing else you may be typing); a brand-new JO is saved
+    // with Save JO / Submit as usual.
+    let autoTimer = null;
+    function autoRecord() {
+      if (!editId || SERIAL_ONLY) return;
+      clearTimeout(autoTimer);
+      autoTimer = setTimeout(() => {
+        const list = jobs(), i = list.findIndex((j) => j.id === editId);
+        if (i < 0) return;
+        const before = list[i];
+        const items = (before.items || []).map((it) => ({ ...it }));
+        let n = 0;
+        [...body.rows].forEach((r, k) => {
+          if (!r._autoSerial) return;
+          const it = items[k], serial = r.querySelector(".serial").value.trim();
+          if (!it || !serial || String(it.desc || "").trim() !== r.querySelector(".desc").value.trim() || (+it.qty || 1) > 1) return;
+          it.serial = serial;
+          if (!(+it.cost)) it.cost = r.querySelector(".cost").value;
+          r._autoSerial = false;
+          n++;
+        });
+        if (!n) return;
+        const total = items.reduce((t, it) => { const s = (+it.qty || 0) * (+it.cost || 0); return t + (s ? s - (+it.disc || 0) : 0); }, 0);
+        const job = { ...before, items, total };
+        list[i] = job;
+        localStorage.setItem(KEY, JSON.stringify(list));
+        const moved = stockOutSerials(job, before);
+        refreshLists();
+        refreshStockBadge();
+        if (moved.out) toast(`${moved.out} unit${moved.out > 1 ? "s" : ""} recorded to ${job.customer || job.no}: Serial Number Tracking now shows ${moved.out > 1 ? "them" : "it"} as SOLD.`);
+      }, 400);
+    }
+    function autoCost(row, unit) {
+      const costEl = row && row.querySelector(".cost");
+      if (!costEl || /\(outdoor\)/i.test(row.querySelector(".desc").value)) return;
+      const cur = +costEl.value || 0, auto = row.dataset.autoCost || "";
+      if (!unit) {   // serial cleared: take back a price that was filled in automatically
+        if (cur && String(cur) === auto) { costEl.value = ""; delete row.dataset.autoCost; }
+        return;
+      }
+      const srp = srpOfUnit(unit);
+      if (!srp || (cur && String(cur) !== auto)) return;
+      costEl.value = srp;
+      row.dataset.autoCost = String(srp);
+      const qty = row.querySelector(".qty");
+      if (!qty.value || !+qty.value) qty.value = 1;
+    }
+
+    function fillRows(items = []) {
+      body.innerHTML = "";
+      items.forEach(addRow);
+      while (body.rows.length < START_ROWS) addRow();
+      if (rowHasData(body.lastElementChild)) addRow();
+      if (!SERIAL_ONLY) {   // a saved JO whose serial has no unit cost yet: show the unit's SRP (saved on Update)
+        const stock = load(STOCK_KEY);
+        [...body.rows].forEach((r) => {
+          const typed = r.querySelector(".serial").value.trim().toLowerCase();
+          if (typed && !(+r.querySelector(".cost").value)) autoCost(r, stock.find((u) => String(u.barcode || "").toLowerCase() === typed));
+        });
+      }
+      calc();
+      // A saved JO that was waiting for stock: units that have come in since are set and turn green (recorded on Update)
+      if (!SERIAL_ONLY) [...body.rows].forEach(autoSerial);
+    }
+
+    const readItems = () => [...body.rows]
+      .map((r) => ({ qty: r.querySelector(".qty").value, desc: r.querySelector(".desc").value.trim(), serial: r.querySelector(".serial").value.trim(), cost: r.querySelector(".cost").value, disc: r.querySelector(".disc").value }))
+      .filter((i) => i.desc || +i.qty || +i.cost);
+
+    body.addEventListener("input", () => {
+      calc();
+      if (rowHasData(body.lastElementChild)) addRow();   // always keep one empty row at the end
+    });
+
+    // Picking a known item fills its last price and sets Qty to 1
+    body.addEventListener("change", (e) => {
+      if (!e.target.classList.contains("desc")) return;
+      const row = e.target.closest("tr");
+      const price = prices[e.target.value.trim().toLowerCase()];
+      if (price && !row.querySelector(".cost").value) row.querySelector(".cost").value = price;
+      if (e.target.value.trim() && !row.querySelector(".qty").value) row.querySelector(".qty").value = 1;
+      calc();
+      autoSerial(row);
+    });
+
+    // Units and materials on the Price List: typing or picking one sets its unit cost (still editable)
+    PricePicker.attach(body, ".desc", (input, item) => {
+      const row = input.closest("tr");
+      input.value = item.name;
+      row.querySelector(".cost").value = item.srp;
+      if (!row.querySelector(".qty").value) row.querySelector(".qty").value = 1;
+      calc();
+      autoSerial(row);
+      if (rowHasData(body.lastElementChild)) addRow();
+    }, { outdoor: true });   // every brand also lists its OUTDOOR unit for each horsepower
+
+    // + Add row: a new empty row, ready to type in
+    $("#addRowBtn").onclick = () => {
+      addRow();
+      calc();
+      body.lastElementChild.querySelector(".desc").focus();
+    };
+
+    body.addEventListener("click", (e) => {
+      if (!e.target.closest(".so-x")) return;
+      const row = e.target.closest("tr");
+      row.querySelectorAll("input").forEach((i) => (i.value = ""));
+      const serial = row.querySelector(".serial");
+      serial.value = ""; serial.dataset.v = "";
+      if (body.rows.length > START_ROWS) row.remove();
+      calc();
+    });
+
+    // ---------- Suggestions (customers and items) ----------
+    function refreshLists() {
+      customers = {}; prices = {};
+      load(ITEMS_KEY).forEach((i) => { if (+i.price) prices[(i.name || "").toLowerCase()] = i.price; });
+      jobs().forEach((j) => {
+        if (j.customer) customers[j.customer.toLowerCase()] = { name: j.customer, address: j.address, landmark: j.landmark, contact: j.contact, contact_person: j.contact_person, contact2: j.contact2 };
+        (j.items || []).forEach((i) => { if (i.desc && +i.cost) prices[i.desc.toLowerCase()] = i.cost; });
+      });
+    }
+
+    // ---------- Formal pick lists (Mode of payment, returning customers) ----------
+    const MOP = ["Cash", "Bank Transfer", "Credit Card", "Debit Card", "G-Cash", "PayMaya", "GoTyme", "Salmon", "Check / Cheque"];
+    const MOP_ICONS = { "Cash": "fa-money-bill-wave", "Bank Transfer": "fa-university", "Credit Card": "fa-credit-card", "Debit Card": "fa-credit-card",
+      "G-Cash": "fa-mobile-alt", "PayMaya": "fa-mobile-alt", "GoTyme": "fa-mobile-alt", "Salmon": "fa-hand-holding-usd", "Check / Cheque": "fa-money-check" };
+    const menu = $("#optMenu");
+    let menuFor = null, menuItems = [], menuIndex = -1;
+
+    function openMenu(input, all, { showAll = false, icons = {}, title = "" } = {}) {
+      const q = input.value.trim().toLowerCase();
+      menuItems = showAll || !q ? all : all.filter((o) => o.toLowerCase().includes(q));
+      if (!menuItems.length || (menuItems.length === 1 && menuItems[0] === input.value)) return closeMenu();
+      menuFor = input;
+      menuIndex = menuItems.indexOf(input.value);
+      menu.innerHTML = (title ? `<div class="opt-title">${esc(title)}</div>` : "") + menuItems.map((o, i) => `
+        <button type="button" role="option" data-i="${i}" class="${i === menuIndex ? "on" : ""}">
+          ${icons[o] ? `<i class="fas ${icons[o]}"></i>` : ""}<span>${esc(o)}</span>${o === input.value ? '<i class="fas fa-check opt-tick"></i>' : ""}
+        </button>`).join("");
+      const r = input.closest(".xl-val").getBoundingClientRect();
+      menu.style.left = r.left + scrollX + "px";
+      menu.style.top = r.bottom + scrollY + 4 + "px";
+      menu.style.width = Math.max(r.width, 240) + "px";
+      menu.hidden = false;
+    }
+    function closeMenu() { menu.hidden = true; menuFor = null; }
+    function pickOption(i) {
+      const input = menuFor;
+      input.value = menuItems[i];
+      closeMenu();
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    menu.addEventListener("mousedown", (e) => {
+      const b = e.target.closest("button");
+      if (b) { e.preventDefault(); pickOption(+b.dataset.i); }
+    });
+
+    // Which list each box uses
+    const PICKS = {
+      mop: (input, showAll) => openMenu(input, MOP, { showAll, icons: MOP_ICONS, title: "Mode of payment" }),
+      customer: (input) => input.value.trim() && openMenu(input, Object.values(customers).map((c) => c.name), { title: "Returning customers" }),
+    };
+    Object.entries(PICKS).forEach(([f, open]) => {
+      const input = $(`[data-f="${f}"]`);
+      input.addEventListener("focus", () => f === "mop" && open(input, true));
+      input.addEventListener("click", () => open(input, f === "mop"));
+      input.addEventListener("input", () => open(input, false));
+      input.addEventListener("blur", () => setTimeout(() => menuFor === input && closeMenu(), 120));
+      input.addEventListener("keydown", (e) => {
+        if (menu.hidden || menuFor !== input) {
+          if (e.key === "ArrowDown") { e.preventDefault(); open(input, true); }
+          return;
+        }
+        const n = menu.querySelectorAll("button").length;
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          e.preventDefault();
+          menuIndex = (menuIndex + (e.key === "ArrowDown" ? 1 : -1) + n) % n;
+          menu.querySelectorAll("button").forEach((b, i) => b.classList.toggle("on", i === menuIndex));
+          menu.querySelectorAll("button")[menuIndex].scrollIntoView({ block: "nearest" });
+        } else if (e.key === "Enter" && menuIndex >= 0) {
+          e.preventDefault(); e.stopPropagation(); pickOption(menuIndex);
+        } else if (e.key === "Escape") closeMenu();
+      }, true);
+    });
+    // The chevron opens the list too
+    document.querySelectorAll(".xl-pick > i").forEach((i) => i.addEventListener("mousedown", (e) => {
+      e.preventDefault(); const input = i.previousElementSibling; input.focus(); PICKS[input.dataset.f](input, true);
+    }));
+    window.addEventListener("resize", closeMenu);
+    document.querySelector(".xl-scroll").addEventListener("scroll", closeMenu);
+
+    // Picking a known customer fills in the rest of their details
+    $('[data-f="customer"]').addEventListener("change", (e) => {
+      const c = customers[e.target.value.trim().toLowerCase()];
+      if (!c || editId) return;
+      ["address", "landmark", "contact", "contact_person", "contact2"].forEach((f) => {
+        const input = $(`[data-f="${f}"]`);
+        if (!input.value) input.value = c[f] || "";
+      });
+    });
+
+    // ---------- Ref #: the customer's request reference fills in their name and details ----------
+    // AG#0001 = install request (install_requests), AGC#0001 = cleaning request (cleaning_requests).
+    // "ag1", "AG 0001" or "agc#12" are tidied to AG#0001 / AGC#0012. Older numbers (IR-…, CR-…) work too.
+    const tidyRef = (t) => {
+      const s = String(t || "").toUpperCase().replace(/\s+/g, "");
+      const m = s.match(/^(AGC|AG)#?(\d+)$/);
+      return m ? `${m[1]}#${m[2].padStart(4, "0")}` : s;
+    };
+    async function findRequest(ref) {
+      const same = (r) => r && tidyRef(r.no) === ref;
+      const local = (key) => { try { return (JSON.parse(localStorage.getItem(key) || "[]") || []).find(same); } catch (e) { return null; } };
+      let hit = local("aircon_install_requests") || local("aircon_cleaning_requests");
+      if (hit) return hit;
+      await (window.cloudReady || Promise.resolve());
+      if (!window.cloud) return null;
+      const tables = ref.startsWith("AGC#") || ref.startsWith("CR-") ? ["cleaning_requests", "install_requests"] : ["install_requests", "cleaning_requests"];
+      for (const t of tables) {
+        const { data } = await window.cloud.from(t).select("*").eq("no", ref).limit(1);
+        if (data && data[0]) return data[0];
+      }
+      return null;
+    }
+    let refLooking = "";
+    async function fillFromRef() {
+      const box = $('[data-f="ref"]');
+      const ref = tidyRef(box.value);
+      if (!ref || ref === refLooking) return;
+      if (ref === fillFromRef.done && $('[data-f="customer"]').value.trim()) return;   // already filled from this reference
+      box.value = ref;
+      refLooking = ref;
+      const r = await findRequest(ref);
+      refLooking = "";
+      if (tidyRef(box.value) !== ref) return;   // changed while looking it up
+      if (!r) return toast("No request found with reference " + ref + ".", false);
+      fillFromRef.done = ref;
+      const put = (f, v) => { const input = $(`[data-f="${f}"]`); if (input && v && !input.value.trim()) input.value = v; };
+      $('[data-f="customer"]').value = String(r.name || "").trim();   // the customer's name always comes from the request
+      put("address", r.address);
+      put("landmark", r.landmark);
+      put("contact", r.contact);
+      put("contact_person", r.person || r.contact_person);
+      put("contact2", r.contact2);
+      // Details from their earlier job orders fill anything still empty
+      $('[data-f="customer"]').dispatchEvent(new Event("change"));
+      toast("Customer from " + ref + ": " + (r.name || "no name"));
+    }
+    $('[data-f="ref"]').addEventListener("change", fillFromRef);
+    // A full reference typed in (AG#0001 / AGC#0001) looks it up without leaving the box
+    $('[data-f="ref"]').addEventListener("input", (e) => {
+      clearTimeout(fillFromRef.timer);
+      if (/^(AGC?)#?\d{4,}$/i.test(e.target.value.replace(/\s+/g, ""))) fillFromRef.timer = setTimeout(fillFromRef, 400);
+    });
+
+    // ---------- New / open / save / delete ----------
+    function nextNo() {
+      // Uses the number at the end, so a typed JO# like "JO#2026-15" is followed by JO#00016
+      const nums = jobs().map((j) => +((String(j.no).match(/(\d+)\s*$/) || [])[1] || 0));
+      return "JO#" + String(Math.max(0, ...nums) + 1).padStart(5, "0");
+    }
+
+    function setMode() {
+      refreshStockBadge();
+      $("#mode").textContent = editId ? "Editing " + $('[data-f="no"]').value : "New job order";
+      $("#mode").classList.toggle("edit", !!editId);
+      $("#saveBtn span").textContent = editId ? "Update" : window.JO_FROM_CUSTOMER ? "Save JO" : "Submit";
+      $("#delBtn").disabled = !editId;
+      if (SERIAL_ONLY) {
+        $("#mode").textContent = editId
+          ? "Warehouse: pick the Serial No. of each unit on " + $('[data-f="no"]').value + ", then Update"
+          : "Warehouse: open a job order with Search / Edit to fill in its serial numbers";
+        $("#saveBtn").disabled = !editId;
+        $("#saveBtn span").textContent = "Update";
+      }
+    }
+
+    function newJob() {
+      editId = null;
+      setData({ no: nextNo(), date: today() });
+      fillRows();
+      setMode();
+      if (!SERIAL_ONLY) $('[data-f="customer"]').focus();
+    }
+
+    function openJob(id) {
+      const job = jobs().find((j) => j.id === id);
+      if (!job) return;
+      editId = id;
+      setData(job);
+      fillRows(job.items);
+      setMode();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function saveJob() {
+      if (SERIAL_ONLY && !editId) return toast("Open a job order with Search / Edit first, then pick its serial numbers.", false);
+      if (SERIAL_ONLY) return saveSerialsOnly();
+      const dateField = $('[data-f="date"]');
+      const dateValue = usToIsoDate(dateField.value);
+      if (dateField.value.trim() && !dateValue) { toast("Enter the date as MM/DD/YYYY.", false); return dateField.focus(); }
+      const data = getData();
+      if (dateValue) data.date = dateValue;
+      if (!data.customer) { toast("Customer name is required.", false); return $('[data-f="customer"]').focus(); }
+
+      // The JO# can be typed by hand, but two job orders can't share one
+      if (!data.no) data.no = nextNo();
+      if (jobs().some((j) => j.no.toLowerCase() === data.no.toLowerCase() && j.id !== editId)) {
+        toast(data.no + " is already used by another job order.", false);
+        return $('[data-f="no"]').focus();
+      }
+      const items = readItems();
+      // A job order can be saved with no items: the units are added when the warehouse scans them out
+      // on the Scanner (Stock Out → Select Job Order), each with its serial number.
+
+      // Serial No. can be left blank: the JO saves anyway, and the serial can be picked later by opening
+      // the JO from Search / Edit. When a serial IS picked, it's one unit, so that row's Qty must be 1.
+      for (const r of body.rows) {
+        if (!r.querySelector(".serial").value || (+r.querySelector(".qty").value || 1) <= 1) continue;
+        r.querySelector(".qty").focus();
+        return toast(`One serial number per row: set Qty to 1 for ${r.querySelector(".desc").value.trim()}, and add another row for each extra unit.`, false);
+      }
+      const noSerial = [...body.rows].filter((r) => !r.querySelector(".serial").value && r.querySelector(".serial").classList.contains("need")).length;
+
+      const job = { ...data, items, total: calc() };
+      const list = jobs();
+      const before = editId ? list.find((j) => j.id === editId) : null;
+      if (editId) {
+        const i = list.findIndex((j) => j.id === editId);
+        list[i] = { ...list[i], ...job };
+      } else {
+        list.push({ id: Date.now(), ...job });
+      }
+      localStorage.setItem(KEY, JSON.stringify(list));
+      const moved = stockOutSerials(job, before);
+      toast(job.no + (editId ? " updated." : " saved.") + (moved.out ? ` ${moved.out} unit${moved.out > 1 ? "s" : ""} stocked out to ${job.customer}.` : "")
+        + (moved.back ? ` ${moved.back} returned to stock.` : "")
+        + (noSerial ? ` ${noSerial} unit${noSerial > 1 ? "s have" : " has"} no serial yet: pick it later in Search / Edit.` : "")
+        + (items.length ? "" : " No items yet: they're added when the units are scanned out on the Scanner."));
+      refreshLists();
+      // Created from Customer Records: make sure it is saved online first (the page is about to change), then tell
+      // Customer Records, which closes this pop-up and goes to JO Records with the new JO highlighted
+      if (window.JO_FROM_CUSTOMER && !editId && window.parent !== window) {
+        const online = typeof window.cloudSaveNow === "function"
+          ? Promise.all([KEY, STOCK_KEY, "aircon_serials"].map((k) => window.cloudSaveNow(k).catch(() => null)))
+          : Promise.resolve();
+        online.then(() => { try { window.parent.postMessage({ type: "jo-saved", no: job.no }, location.origin); } catch (e) {} });
+        return;
+      }
+      newJob();
+    }
+
+    // ---------- Warehouse: save ONLY the serial numbers ----------
+    // The saved job order is kept exactly as it is; only each item's "serial" is set from its row
+    // (rows follow the job order's items, in order). The database checks the same thing.
+    function saveSerialsOnly() {
+      const list = jobs();
+      const i = list.findIndex((j) => j.id === editId);
+      if (i < 0) return toast("This job order no longer exists. Search again.", false);
+      const before = list[i];
+      const rows = [...body.rows];
+      const items = (before.items || []).map((it, k) => {
+        const sel = rows[k] && rows[k].querySelector(".serial");
+        return { ...it, serial: (sel && sel.value.trim()) || "" };
+      });
+      const tooMany = items.find((it) => it.serial && (+it.qty || 1) > 1);
+      if (tooMany) return toast(`${tooMany.desc} has Qty ${tooMany.qty}: one serial number is one unit. Ask the office to split it into one row per unit.`, false);
+      const job = { ...before, items };
+      list[i] = job;
+      localStorage.setItem(KEY, JSON.stringify(list));
+      const moved = stockOutSerials(job, before);
+      toast(`${job.no} updated.` + (moved.out ? ` ${moved.out} unit${moved.out > 1 ? "s" : ""} stocked out to ${job.customer}.` : "")
+        + (moved.back ? ` ${moved.back} returned to stock.` : ""));
+      refreshLists();
+      newJob();
+    }
+
+    // ---------- The client gets the unit: stock it out in Inventory ----------
+    // Every serial picked on the job order is marked as out (sold) in Inventory, with the customer who got it,
+    // the JO# and the date; Serial Number Tracking shows the same customer and "Sold".
+    // A serial taken off the job order (or the whole JO deleted) goes back into stock.
+    const SERIAL_KEY = "aircon_serials";
+    const serialsOf = (j) => new Set(((j && j.items) || []).map((i) => i.serial).filter(Boolean));
+    function stockOutSerials(job, before) {
+      const now = serialsOf(job), was = serialsOf(before);
+      const stock = load(STOCK_KEY), serials = load(SERIAL_KEY);
+      let out = 0, back = 0;
+      const track = (code, fields) => {
+        const s = serials.find((x) => String(x.serial || "").trim().toLowerCase() === code.toLowerCase());
+        if (s) Object.assign(s, fields);
+      };
+      stock.forEach((u) => {
+        const code = u.barcode;
+        if (now.has(code)) {
+          if (u.status !== "out") out++;
+          Object.assign(u, { status: "out", outDate: job.date || today(), customer: job.customer, jo: job.no });
+          track(code, { status: "Sold", customer: job.customer });
+        } else if (was.has(code) && u.status === "out" && (!u.jo || u.jo === (before.no || job.no))) {
+          Object.assign(u, { status: "in", outDate: "", customer: "", jo: "" });
+          track(code, { status: "Available", customer: "" });
+          back++;
+        }
+      });
+      if (now.size || was.size) {
+        localStorage.setItem(STOCK_KEY, JSON.stringify(stock));
+        localStorage.setItem(SERIAL_KEY, JSON.stringify(serials));
+      }
+      return { out, back };
+    }
+
+    const confirmBox = $("#confirmBox");
+
+// Step 1: the Delete button opens the popup
+function deleteJob() {
+  if (!editId || SERIAL_ONLY) return;
+  const job = jobs().find((j) => j.id === editId);
+  $("#delNo").textContent = $('[data-f="no"]').value;
+  $("#delInfo").textContent = job ? job.customer + "  ·  ₱" + money(job.total) : "";
+  confirmBox.hidden = false;
+  $("#delCancel").focus();   // Cancel is selected first, so Enter can't delete by accident
+}
+
+// Step 2: "Yes, delete" removes it
+function confirmDelete() {
+  const gone = jobs().find((j) => j.id === editId);
+  localStorage.setItem(KEY, JSON.stringify(jobs().filter((j) => j.id !== editId)));
+  const moved = gone ? stockOutSerials({ no: gone.no, items: [] }, gone) : { back: 0 };   // its units go back into stock
+  confirmBox.hidden = true;
+  toast("Job order deleted." + (moved.back ? ` ${moved.back} unit${moved.back > 1 ? "s" : ""} returned to stock.` : ""));
+  refreshLists();
+  newJob();
+}
+
+$("#delYes").onclick = confirmDelete;
+$("#delCancel").onclick = () => (confirmBox.hidden = true);
+confirmBox.addEventListener("click", (e) => { if (e.target === confirmBox) confirmBox.hidden = true; });
+
+    // ---------- Print ----------
+    function printJob(title) {
+      $("#soTitle").textContent = title ? " · " + title : "";
+      window.print();
+    }
+    window.addEventListener("afterprint", () => ($("#soTitle").textContent = ""));
+
+    // ---------- Search / Edit popup ----------
+    const modal = $("#modal");
+    function renderList() {
+      const q = $("#q").value.toLowerCase();
+      const rows = jobs()
+        .filter((j) => !q || [j.no, j.customer, j.contact_person, j.installer, j.landmark, j.mop, j.date].join(" ").toLowerCase().includes(q))
+        .reverse();
+      $("#list").innerHTML = rows.length
+        ? rows.map((j) => `<button type="button" class="so-hit" data-id="${j.id}"><b>${esc(j.no)}</b><span>${esc(j.customer)}</span>${JoStock.badge(j)}<small>${esc(j.date)}</small><em>₱${money(j.total)}</em></button>`).join("")
+        : '<p class="so-none">No job orders found.</p>';
+    }
+    function openModal() { modal.hidden = false; $("#q").value = ""; renderList(); $("#q").focus(); }
+    const closeModal = () => (modal.hidden = true);
+
+    $("#list").addEventListener("click", (e) => {
+      const hit = e.target.closest("[data-id]");
+      if (hit) { openJob(+hit.dataset.id); closeModal(); }
+    });
+    $("#q").addEventListener("input", renderList);
+    $("#closeBtn").onclick = closeModal;
+    modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+
+    // ---------- Buttons and keyboard ----------
+    $("#saveBtn").onclick = saveJob;
+    $("#searchBtn").onclick = openModal;
+    // Quotation: opens the Warranty quotation filled in with this job order
+    $("#quoteBtn").onclick = () => {
+      const d = getData();
+      const items = readItems();
+      if (d.customer || items.length) {
+        sessionStorage.setItem("aircon_quote_from_jo", JSON.stringify({
+          no: d.no, customer: d.customer, date: d.date, mop: d.mop, address: [d.address, d.landmark].filter(Boolean).join(" · "),
+          contact: d.contact || d.contact2,
+          items,
+        }));
+      }
+      location.href = "aftersales.html";
+    };
+    $("#printBtn").onclick = () => printJob("JOB ORDER");
+    $("#newBtn").onclick = newJob;
+    $("#delBtn").onclick = deleteJob;
+
+    // Enter = next box, Ctrl+Enter = submit
+    $("#soForm").addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" || e.target.tagName === "TEXTAREA") return;
+      e.preventDefault();
+      if (e.ctrlKey) return saveJob();
+      const boxes = [...$("#soForm").querySelectorAll("input:not([readonly]), textarea")];
+      const next = boxes[boxes.indexOf(e.target) + 1];
+      if (next) next.focus();
+    });
+    document.addEventListener("keydown", (e) => {
+     if (e.key === "Escape") { closeModal(); confirmBox.hidden = true; }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); saveJob(); }
+
+        
+    });
+
+    // Warehouse: everything but the Serial No. is locked; no new / delete / quotation / add row
+    if (SERIAL_ONLY) {
+      fields.forEach((f) => (f.disabled = true));
+      ["#newBtn", "#delBtn", "#quoteBtn", "#addRowBtn"].forEach((s) => ($(s).hidden = true));
+      document.body.classList.add("serial-only");
+    }
+
+    if (!SERIAL_ONLY && typeof JoAuto !== "undefined") JoAuto.run();   // saved JOs waiting for stock take the units that came in
+    refreshLists();
+    newJob();
+
+    // Opened from Customer Records → Create JO: a NEW job order with that customer's details filled in
+    (function prefillFromCustomer() {
+      let p = null;
+      try { p = JSON.parse(sessionStorage.getItem("aircon_jo_prefill") || "null"); } catch (e) {}
+      sessionStorage.removeItem("aircon_jo_prefill");
+      if (!p || !p.fields || SERIAL_ONLY || new URLSearchParams(location.search).get("jo")) return;
+      window.JO_FROM_CUSTOMER = true;   // opened inside Customer Records: the button says Save JO, and saving closes this pop-up
+      setData({ ...getData(), ...p.fields });
+      fillRows(p.items || []);
+      [...body.rows].forEach(autoSerial);   // the requested units get an available serial right away
+      setMode();
+      toast("New job order for " + (p.fields.customer || "the customer") + ": check the details, then pick the units / prices and Submit.");
+    })();
+
+    // Opened from a "New job order" alert (sales.html?jo=<id>): open that job order straight away
+    (function openFromLink() {
+      const want = new URLSearchParams(location.search).get("jo");
+      if (!want) return;
+      const tryOpen = () => {
+        const job = jobs().find((j) => String(j.id) === want);
+        if (!job) return false;
+        openJob(job.id);
+        history.replaceState(null, "", location.pathname);   // a refresh doesn't reopen it
+        return true;
+      };
+      if (!tryOpen()) (window.cloudReady || Promise.resolve()).then(() => { if (!tryOpen()) toast("That job order wasn't found. It may have been deleted.", false); });
+    })();
+  </script>
+</body>
+</html>

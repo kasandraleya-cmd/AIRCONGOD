@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Login · AIRCON G.O.D PH</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+    <link rel="stylesheet" href="login.css" />
+    <script src="loading.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+</head>
+
+  <body data-page="login" class="login">
+    <script>
+      if (sessionStorage.getItem("aircon_user")) location.href = "dashboard.html";
+    </script>
+
+   
+    <video autoplay muted loop playsinline id="bg-video">
+      <source src="VIDEO.mp4" type="video/mp4">
+      Your browser does not support HTML5 video.
+    </video>
+
+    <div id="toast"></div>
+
+    <div class="login-box">
+      <div class="avatar"><img src="AIRCON.png" alt="AIRCON G.O.D logo" /></div>
+      
+      <h2>Login</h2>
+
+      <form id="lf">
+        <label for="u">Email or Username</label>
+        <div class="field">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7z" />
+          </svg>
+          <!-- A full email, or a short username like "jared" (signs in as jared@aircongod.app) -->
+          <input id="u" placeholder="ENTER EMAIL OR USERNAME" autocomplete="username" autocapitalize="none" />
+        </div>
+
+        <label for="p">Password</label>
+        <div class="field">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="5" y="11" width="14" height="10" rx="2" />
+            <path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2" />
+          </svg>
+          <input id="p" type="password" placeholder="ENTER PASSWORD" autocomplete="current-password" />
+        </div>
+
+        <button class="btn">LOGIN</button>
+
+        <div class="extras">
+          <label class="remember"><input type="checkbox" id="rm" /> Remember me</label>
+          <a href="#" id="forgot">Forgot password?</a>
+        </div>
+      </form>
+    </div>
+
+    <script src="accounts.js?v=4"></script>
+    <script>
+      const toast = document.getElementById("toast");
+      const showToast = (text) => {
+        toast.textContent = text;
+        toast.style.display = "block";
+        setTimeout(() => (toast.style.display = "none"), 2500);
+      };
+
+      const saved = localStorage.getItem("aircon_remember");
+      if (saved) {
+        document.getElementById("u").value = saved;
+        document.getElementById("rm").checked = true;
+      }
+
+      // Logins are checked in accounts.js (by the online database when it's set up).
+      // The role decides what each one may do (only a Developer can clear records or manage staff).
+      document.getElementById("lf").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const user = document.getElementById("u").value.trim().toLowerCase();
+        const pass = document.getElementById("p").value;
+        const button = e.submitter || document.querySelector("#lf button[type=submit]");
+        if (button) button.disabled = true;
+        const account = await checkLogin(user, pass);
+        if (button) button.disabled = false;
+
+        if (account && account.error) {
+          showToast(account.error);
+        } else if (account) {
+          if (document.getElementById("rm").checked) localStorage.setItem("aircon_remember", user);
+          else localStorage.removeItem("aircon_remember");
+          sessionStorage.setItem("aircon_user", account.user);
+          sessionStorage.setItem("aircon_name", account.name);
+          sessionStorage.setItem("aircon_role", account.role);
+          location.href = "dashboard.html";
+        } else {
+          showToast("Wrong email/username or password.");
+        }
+      });
+
+      document.getElementById("forgot").addEventListener("click", (e) => {
+        e.preventDefault();
+        showToast("Please ask a Developer to reset your password.");
+      });
+    </script>
+      
+  </body>
+</html>

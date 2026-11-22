@@ -1,0 +1,170 @@
+/* Formal Quotation (formalquotation.html): a formal quotation sheet with the AIRCON G.O.D logo
+   (the logo styles .q-logo come from aftersales.css, shared with the Warranty quotation) */
+
+.fq-back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px; color: #0f766e; font-size: 13px;
+  font-weight: 600; text-decoration: none; }
+.fq-back:hover { text-decoration: underline; }
+
+.fq-sheet {
+  --line: #1f1f1f;
+  width: 960px;
+  margin: 0 auto;
+  padding: 26px 28px 30px;
+  background: #fff;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, .18);
+  color: #111;
+  font-family: "Merriweather", Georgia, serif;
+  font-size: 11px;
+}
+.fq-sheet input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0 4px;
+}
+.fq-sheet input:focus { background: #fff8d6; }
+
+/* Header: logo + company details */
+.fq-head { text-align: center; line-height: 1.55; }
+.fq-head p { margin: 0; font-weight: 700; font-size: 11.5px; }
+.fq-head p.small { font-size: 9.5px; }
+.fq-head .q-logo { margin-bottom: 8px; }
+
+.fq-title { margin: 16px 0 12px; text-align: center; font-size: 17px; font-weight: 900; }
+.fq-sub { margin: 14px 0 8px; text-align: center; font-size: 13px; font-weight: 900; }
+
+/* Client details: label cell + value cell, two pairs per row; Mode of Payment fills the last row */
+.fq-info {
+  display: grid;
+  grid-template-columns: 118px 1fr 104px 30%;
+  border: 1px solid var(--line);
+  border-width: 1px 0 0 1px;
+  margin-right: 128px;   /* lines up with the items table (its last column is the Type tools, screen only) */
+}
+.fq-info > span {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 22px;
+  border: 1px solid var(--line);
+  border-width: 0 1px 1px 0;
+}
+.fq-info .lbl { padding: 0 6px; background: #f2f2f2; font-weight: 900; font-size: 10px; letter-spacing: .3px; white-space: nowrap; }
+.fq-info .val.wide { grid-column: 2 / -1; }
+.fq-info input { flex: 1; width: auto; min-width: 0; height: 20px; padding: 0 6px; font-weight: 700; }
+.fq-info input:focus { background: #fff8d6; }
+
+/* Mode of payment pick list */
+.fq-pick { position: relative; }
+.fq-pick input { padding-right: 18px; cursor: pointer; }
+.fq-pick > i { position: absolute; right: 8px; color: #64748b; font-size: 10px; cursor: pointer; }
+.fq-pick input::placeholder { color: #94a3b8; font-weight: 400; }
+.opt-menu { position: absolute; z-index: 60; max-height: 320px; overflow-y: auto; padding: 6px; background: #fff;
+  border: 1px solid #d5dde3; border-radius: 8px; box-shadow: 0 10px 28px rgba(15, 23, 42, .14);
+  font-family: system-ui, "Segoe UI", sans-serif; }
+.opt-menu[hidden] { display: none; }
+.opt-title { margin-bottom: 4px; padding: 6px 10px; border-bottom: 1px solid #edf1f4; color: #64748b;
+  font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
+.opt-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 6px;
+  background: none; color: #1e293b; font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.opt-menu button > i:first-child { width: 18px; color: #0f766e; text-align: center; font-size: 13px; }
+.opt-menu button span { flex: 1; }
+.opt-menu button:hover, .opt-menu button.on { background: #e3f3f0; color: #0d635c; }
+.opt-tick { color: #0d635c; font-size: 12px; }
+
+/* Items table */
+.fq-items { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.fq-items .tools-col { width: 128px; }
+.fq-items th {
+  padding: 3px 4px;
+  border: 1px solid var(--line);
+  font-weight: 700;
+  text-align: center;
+}
+.fq-items td { height: 16px; padding: 0; border: 1px solid var(--line); }
+.fq-items td input { height: 16px; font-weight: 700; }
+.fq-items td:nth-child(2) input,
+.fq-items td:nth-child(3) input { text-align: center; }
+.fq-items td:nth-child(4) input,
+.fq-items td:nth-child(5) input { text-align: right; padding-right: 6px; }
+
+/* Row types */
+.fq-items tr.red input { color: #e01010; }
+/* Area (room) rows: blue centered text, like "MASTER BEDROOM" / "ROOM 1" on the office's quotations */
+.fq-items tr.type-section .dc input { color: #1a1aff; font-weight: 900; text-align: center; }
+.fq-items tr.type-note .dc input:focus { background: #7ff7f7; }
+.fq-items tr.type-group .dc input { color: #e000e0; text-align: center; }
+.fq-items tr.type-note .dc { background: #00f0f0; }
+.fq-items tr.type-note .dc input { color: #e01010; text-align: center; }
+.fq-items tr:not(.type-item) td:nth-child(n+2):not(.tools) input { visibility: hidden; }
+
+/* Total */
+.fq-items tfoot td { height: 22px; border: 1px solid var(--line); }
+.fq-items tfoot td.blank { border: 0; }
+.fq-items .tl { padding: 0 8px; text-align: right; font-weight: 900; white-space: nowrap; }
+.fq-items .tv { padding-right: 6px; text-align: right; color: #e01010; font-size: 12px; font-weight: 900; }
+/* TOTAL and OCULAR lines above TOTAL AMOUNT TO PAY (the ocular fee already paid is taken off) */
+.fq-items tfoot tr.sub .tl { font-size: 10px; font-weight: 800; text-align: center; }
+.fq-items .tsub { padding-right: 6px; text-align: right; font-weight: 800; }
+.fq-items .tsub input { height: 20px; padding: 0; text-align: right; font-weight: 800; }
+.fq-items tfoot tr.pay .tl { background: #0b1f44; color: #fff; text-align: right; }
+
+/* Row tools (screen only): type list, red text, remove */
+.fq-items .tools {
+  border: 0 !important;
+  padding-left: 6px;
+  white-space: nowrap;
+  font-family: system-ui, "Segoe UI", sans-serif;
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 600;
+}
+.fq-items th.tools { text-align: left; }
+.fq-items .tools select {
+  width: 82px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  background: #fff;
+  font-size: 10px;
+  cursor: pointer;
+}
+.fq-items .tools button {
+  width: 16px;
+  height: 16px;
+  margin-left: 2px;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  background: #fff;
+  color: #475569;
+  font: 700 10px/1 system-ui, sans-serif;
+  cursor: pointer;
+}
+.fq-items tr.red .tools .rd { border-color: #e01010; background: #e01010; color: #fff; }
+.fq-items .tools .x:hover { border-color: #dc2626; color: #dc2626; }
+.fq-items tbody tr:hover .tools select,
+.fq-items tbody tr:hover .tools button { border-color: #0f766e; }
+
+/* Printing: only the sheet, on A4 */
+@page { size: A4; margin: 8mm; }
+@media print {
+  .side, .q-bar, .fq-items .tools, .fq-items .tools-col, #cloudBadge, #chatLauncher, #chatPanel, #chatDock { display: none !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body.app { display: block; background: #fff; }
+  .content { padding: 0; }
+  .q-paper { padding: 0; background: none; overflow: visible; }
+  .fq-sheet { width: 100%; padding: 0; box-shadow: none; }
+  .fq-sheet input:focus { background: transparent; }
+  .fq-info { margin-right: 0; }
+  .fq-items .tools-col { width: 0 !important; }
+  .fq-pick > i, .opt-menu { display: none !important; }
+  .fq-info input::placeholder { color: transparent; }
+  .fq-info .lbl { background: #f2f2f2; }
+  .q-logo { zoom: 0.85; }
+}

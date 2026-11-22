@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Warranty · Warranty</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <!-- ?v= makes browsers load the newest styles; raise the number after changing aftersales.css -->
+  <link rel="stylesheet" href="aftersales.css?v=9">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+  <!-- Turn the signed sheet into a PDF (Sign & Save) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    /* PHONES: the same Warranty sheet as on a computer, shrunk to fit the screen width (--pz, set by the script
+       at the end of the page), like Ocular and Formal Quotation. Tap a box to type (the phone zooms in), pinch to
+       read; the sheet's own signature lines open the signing pad. The step-by-step phone form is not used.
+       Buttons: three per line, Print and Save on the last line, Save in gold. */
+    @media screen and (max-width: 800px) {
+      .pf { display: none !important; }
+      .q-paper, .q-paper:not(.show) { display: block; padding: 8px; overflow: hidden; }
+      .q-paper .q-sheet, .q-paper.show .q-sheet { zoom: var(--pz, 0.45); }
+      .q-bar-actions #printBtn, .q-bar-actions #saveSignedBtn { display: inline-flex; }
+      .q-bar-actions #saveSignedBtn { grid-column: span 2; }
+    }
+  </style>
+</head>
+<body class="app">
+
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) window.location.href = "index.html";
+  </script>
+
+  <aside class="side">
+    <div class="side-brand">
+      <img src="AIRCON.png" alt="Logo">
+      <span>AIRCON G.O.D</span>
+    </div>
+    <nav aria-label="Main menu"><!-- filled in by sidebar.js --></nav>
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <main class="content">
+
+    <div class="q-bar">
+      <div>
+        <h1>Warranty · Quotation</h1>
+        <p>Create, sign and save warranty quotations.</p>
+      </div>
+      <div class="q-bar-actions">
+        <button type="button" class="q-btn" id="newBtn"><i class="fas fa-file"></i> New</button>
+        <button type="button" class="q-btn" id="formalBtn"><i class="fas fa-file-signature"></i> <span class="q-long">Formal Quotation</span><span class="q-short">Formal Quote</span></button>
+        <a class="q-btn" href="ocular.html" style="text-decoration:none"><i class="fas fa-binoculars"></i> <span class="q-long">Survey (Ocular)</span><span class="q-short">Ocular</span></a>
+        <button type="button" class="q-btn" id="surveyBtn"><i class="fas fa-clipboard-check"></i> Agreement</button>
+        <button type="button" class="q-btn" id="signedBtn"><i class="fas fa-folder-open"></i> Signed Forms</button>
+        <button type="button" class="q-btn" id="printBtn"><i class="fas fa-print"></i> Print</button>
+        <button type="button" class="q-btn gold" id="saveSignedBtn"><i class="fas fa-save"></i> Save</button>
+      </div>
+    </div>
+
+    <!-- THE QUOTATION SHEET -->
+    <div class="q-paper">
+      <div class="q-sheet" id="sheet">
+
+       <header class="q-head">
+         <!-- Logo built from text + the sharp emblem in AIRCON.png, so it stays crisp on screen and in print -->
+         <div class="q-logo" role="img" aria-label="AIRCON G.O.D Guardian of Degrees">
+           <span class="q-logo-mark"><img src="AIRCON.png" alt=""></span>
+           <span class="q-logo-text">
+             <b>AIRCON<em>G.O.D</em></b>
+             <small>GUARDIAN OF DEGREES</small>
+           </span>
+         </div>
+         <p>028 Real St. Brgy Zapote Las Piñas City</p>
+        <p>09772604127/09612379892</p>
+        <p>ej.coolingcare@gmail.com</p>
+        <p>TIN: 383-793-00000</p>
+        <p class="small">Non-VAT Registered</p>
+        </header>
+
+        <h2 class="q-title">QUOTATION</h2>
+
+        <div class="q-info">
+          <label class="y c1 r1">CLIENT: <input type="text"></label>
+          <label class="y c2 r1">DATE: <input type="text"></label>
+          <label class="mop">MODE OF PAYMENT: <input type="text"></label>
+          <label class="y c1 r2">ADDRESS: <input type="text"></label>
+          <label class="y c2 r2">CONTACT NUMBER: <input type="text"></label>
+        </div>
+
+        <table class="q-items">
+          <colgroup><col style="width:51%"><col style="width:10%"><col style="width:9%"><col style="width:15%"><col style="width:15%"></colgroup>
+          <thead>
+            <tr><th>DESCRIPTION</th><th>QUANTITY</th><th>UNIT</th><th>PRICE PER UNIT</th><th>TOTAL PRICE</th></tr>
+          </thead>
+          <tbody id="rows"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4" class="tl">TOTAL AMOUNT TO PAY:</td>
+              <td class="tv" id="grand">0.00</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div class="q-terms">
+          <div class="col left">
+            <section>
+              <h4>TERMS AND CONDITIONS</h4>
+              <p>• Change of plan will be charged separately.</p>
+              <p><b>WARRANTY will be VOID if:</b></p>
+              <p>• The causes of the malfunction or damage include improper maintenance, using electrical supply at the wrong voltage or frequency, overuse, and abuse, whether deliberate or not.</p>
+              <p>• Damage is caused by unpredictable events such as pest infestations, fires, floods, accidents, and Natural Disaster.</p>
+              <p>• <b>NO FREE</b> cleaning, aircon cleaning ranges from 1,500.00 to 4,500.00.</p>
+              <p>• <b>EJ COOLING CARE</b> or <b>AUTHORIZED SERVICE CENTER</b> are allowed to provide services to the purchased AC unit/s, otherwise, <b>WARRANTY</b> will be <b>VOID</b>.</p>
+            </section>
+            <!-- Filled in automatically from the units on the quotation (warranty.js); this is the default -->
+            <section id="warrantyBox">
+              <h4>WARRANTY</h4>
+              <p>• 1 Year for the Parts</p>
+              <p>• 10 Years for the Compressor</p>
+              <p>• 30 Days for Workmanship</p>
+              <p>• 3 Years PCB board</p>
+              <p>• 7 Days Replacement</p>
+            </section>
+          </div>
+
+          <div class="col">
+            <section>
+              <h4>EXCLUSIONS</h4>
+              <p>• Permits and Plans, Plastering and Painting</p>
+              <p>• Additional copper (labor and materials) will be charged:</p>
+              <p class="in">A. ₱420.00 per foot for 1.0hp to 1.5hp</p>
+              <p class="in">B. ₱500.00 per foot 2.0hp to 3.0hp</p>
+              <p class="in">C. ₱600.00 per foot 4.0hp to 6.0hp</p>
+              <p>• Power supply including materials and labor will be charged ₱300.00 per meter.</p>
+              <p>• Excess PVC drain including material and labor will be charged ₱150.00 per pipe.</p>
+              <p>• Welding works or Special Bracket ranges from ₱3,500.00 to ₱4,500.00 (OPTIONAL)</p>
+            </section>
+            <section>
+              <h4>PAYMENT TERMS</h4>
+              <p>• 30% down payment upon approval</p>
+              <p>• Full payments upon completion</p>
+            </section>
+            <section>
+              <h4>INCLUSIONS</h4>
+              <p>• First 10 feet copper tube with insulation</p>
+              <p>• 3 Meters Communication Wire</p>
+              <p>• L type Bracket of Floor Type Bracket</p>
+              <p>• One pvc pipe for drain with clamp</p>
+              <p>• Bolts and Nuts</p>
+            </section>
+          </div>
+        </div>
+
+        <div class="q-scope">SCOPE OF WORK</div>
+        <div class="q-scope-text">1. Installation of Both Indoor and Outdoor Units &nbsp;2. Mobilization &nbsp;3. Vacuuming &nbsp;4. Leak Testing &nbsp;5. Flushing of System &nbsp;6. Test, Run And Observe</div>
+
+        <div class="q-sign-row">
+          <label class="y">Prepared by: <input type="text"></label>
+          <label class="y">Noted by: <input type="text"></label>
+        </div>
+        <label class="q-date y">Date: <input type="text"></label>
+
+        <p class="q-accept">I, <input type="text" class="line"> agrees to, and hereby accepts all of the terms and conditions, warranties, scope of work, inclusions mentioned in this quotation. I spoke to the fact that the air conditioner we purchased functions as intended and that, prior to installation, we came to an agreement regarding the positioning of the inside and outdoor units. Furthermore, I understand that the air conditioner I bought needs preventive maintenance every three months, and that warranty will be nullified if services other than those provided by AIRCON G.O.D PH or AUTHORIZED SERVICE CENTER are performed on the purchased air conditioner.</p>
+
+        <div class="q-sigs">
+          <div class="q-sig">
+            <button type="button" class="q-sig-box" data-sig="tech" aria-label="Technician signs here">
+              <span class="q-sig-hint"><i class="fas fa-pen"></i> Tap to sign</span><img alt="">
+            </button>
+            <span>TECHNICIAN'S SIGNATURE</span>
+          </div>
+          <div class="q-sig">
+            <button type="button" class="q-sig-box" data-sig="client" aria-label="Client signs here">
+              <span class="q-sig-hint"><i class="fas fa-pen"></i> Tap to sign</span><img alt="">
+            </button>
+            <span>CLIENT'S SIGNATURE</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = "index.html";
+    }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+  <script src="pricelist.js?v=4"></script>
+  <script src="pricepicker.js?v=4"></script>
+  <script src="warranty.js"></script>
+  <script src="copper.js?v=4"></script>
+  <script src="signedforms.js?v=3"></script>
+  <script src="history.js?v=3"></script>
+
+  <script>
+    const ROWS = 17;
+    const DRAFT = "aircon_quotation_draft";
+    const $ = (s) => document.querySelector(s);
+    const money = (n) => Number(n || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const body = $("#rows");
+
+    // Item rows
+    body.innerHTML = Array.from({ length: ROWS }, () => `
+      <tr>
+        <td><input type="text" class="d" autocomplete="off"></td>
+        <td><input type="number" class="q" min="0" step="any"></td>
+        <td><input type="text" class="u"></td>
+        <td><input type="number" class="p" min="0" step="any"></td>
+        <td class="t">0.00</td>
+      </tr>`).join("");
+
+    // Every box on the sheet, in order (used for the auto-saved draft)
+    const boxes = () => [...document.querySelectorAll("#sheet input")];
+
+    function calc() {
+      let grand = 0;
+      [...body.rows].forEach((r) => {
+        const total = (+r.querySelector(".q").value || 0) * (+r.querySelector(".p").value || 0);   // copper tube: QUANTITY is already the excess
+        r.querySelector(".t").textContent = money(total);
+        grand += total;
+      });
+      $("#grand").textContent = money(grand);
+      showWarranty();
+    }
+
+    // ---------- WARRANTY box: follows the units on the quotation (warranty.js) ----------
+    const DEFAULT_WARRANTY = $("#warrantyBox").innerHTML;
+    let warrantyShown = [];   // the series shown, saved with the signed form
+    let warrantyKey = null;   // what the box shows now, so it's only redrawn when that changes
+    function showWarranty() {
+      const descs = [...body.rows].map((r) => r.querySelector(".d").value.trim()).filter(Boolean);
+      const series = WARRANTY.forItems(descs);
+      // Blank until an aircon unit is on the quotation (half-typed text, materials and services don't count).
+      // A price-list aircon unit without its own warranty sheet gets the default warranty.
+      const priceListUnit = descs.some((d) => { const p = PricePicker.find(d); return p && p.unit === "UNIT"; });
+      const key = series.length ? series.map((s) => s.name).join("|") : priceListUnit ? "default" : "blank";
+      if (key === warrantyKey) return;
+      warrantyKey = key;
+      warrantyShown = series;
+      const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+      const box = $("#warrantyBox");
+      if (key === "blank") { box.innerHTML = "<h4>WARRANTY</h4>"; return; }
+      if (key === "default") { box.innerHTML = DEFAULT_WARRANTY; return; }
+      box.innerHTML = series.length === 1
+        ? `<h4>WARRANTY</h4><p class="w-unit">${esc(series[0].name)}</p>${series[0].terms.map((t) => `<p>• ${esc(t)}</p>`).join("")}`
+        : `<h4>WARRANTY</h4>${series.map((s) => `<p><b>${esc(s.name)}:</b> ${s.terms.map(esc).join(" · ")}</p>`).join("")}`;
+    }
+
+    function saveDraft() {
+      localStorage.setItem(DRAFT, JSON.stringify(boxes().map((i) => i.value)));
+    }
+
+    // Restore the draft after a refresh
+    try {
+      const saved = JSON.parse(localStorage.getItem(DRAFT) || "[]");
+      boxes().forEach((i, n) => (i.value = saved[n] ?? ""));
+    } catch (e) {}
+    calc();
+
+    // Long names get a smaller font so the whole description fits in its box (also when printed)
+    function fitText(input) {
+      input.style.fontSize = "";
+      let size = parseFloat(getComputedStyle(input).fontSize);
+      while (input.scrollWidth > input.clientWidth && size > 6.5) {
+        size -= 0.5;
+        input.style.fontSize = size + "px";
+      }
+    }
+    body.querySelectorAll(".d").forEach(fitText);
+    // Printing / Save as PDF lays the sheet out at A4 size: fit the names again for that size, and back after
+    const refitAll = () => body.querySelectorAll(".d").forEach(fitText);
+    window.addEventListener("beforeprint", refitAll);
+    window.addEventListener("afterprint", refitAll);
+    document.fonts && document.fonts.ready.then(refitAll);   // the sheet's font loads late: measure with the real letters
+
+    // ---------- Prices from the Price List (pricelist.js + pricepicker.js) ----------
+    // Typing or picking a unit/material fills its unit and price per unit (still editable)
+    PricePicker.attach(body, ".d", (input, item) => {
+      const row = input.closest("tr");
+      input.value = item.name;
+      row.querySelector(".u").value = item.unit;
+      row.querySelector(".p").value = item.srp;
+      if (!row.querySelector(".q").value) row.querySelector(".q").value = 1;
+      // A copper tube: "COPPER TUBE 10FT. - 10FT. FREE = FREE" with the 10 highlighted to type the real length (copper.js)
+      if (Copper.isItem(item.name)) { copperSet(row, Copper.FREE); copperSelectLength(row); }
+      fitText(input);
+      calc();
+      saveDraft();
+    }, {
+      // Copper tube: ONE "COPPER TUBE" choice, priced by the HP of the aircon above this row (copper.js)
+      copperFor: (input) => {
+        const rows = [...body.rows], at = rows.indexOf(input.closest("tr"));
+        return Copper.priceItemFor(rows.slice(0, at).map((r) => (r.querySelector(".d") || {}).value));
+      },
+    });
+
+    // A description that is a Price List name gets its SRP (and unit) when the price is still empty or 0,
+    // e.g. units brought in from Customer Records or typed / pasted in full. A price already typed stays.
+    function autoPrice(row) {
+      const item = PricePicker.find(row.querySelector(".d").value);
+      const price = row.querySelector(".p");
+      if (!item || +price.value) return false;
+      price.value = item.srp;
+      row.querySelector(".u").value = item.unit;
+      if (!row.querySelector(".q").value) row.querySelector(".q").value = 1;
+      return true;
+    }
+    if ([...body.rows].map(autoPrice).some(Boolean)) { calc(); saveDraft(); }   // the draft on screen now
+
+    $("#sheet").addEventListener("input", (e) => {
+      if (e.target.matches(".d")) { fitText(e.target); autoPrice(e.target.closest("tr")); }
+      calc();
+      saveDraft();
+    });
+
+    // ---------- Copper tube: first 10 ft free (copper.js) ----------
+    // "COPPER TUBE 35FT. - 10FT. FREE = 25FT. EXCESS" with QUANTITY 25 (the excess); both numbers are editable
+    function copperSet(row, length) {
+      const c = Copper.write(length), d = row.querySelector(".d");
+      d.value = c.d;
+      row.querySelector(".q").value = c.q;
+      if (!row.querySelector(".u").value) row.querySelector(".u").value = "FT";
+      // No price yet (typed by hand, e.g. "copper tube 20ft"): the copper tube price for the aircon above it
+      if (!(+row.querySelector(".p").value)) {
+        const above = [...body.rows].slice(0, [...body.rows].indexOf(row)).map((r) => r.querySelector(".d").value);
+        const item = Copper.priceItemFor(above);
+        if (item) row.querySelector(".p").value = item.srp;
+      }
+      fitText(d);
+    }
+    function copperSelectLength(row) {
+      const d = row.querySelector(".d"), m = d.value.match(/^(COPPER TUBE )(\d+(?:\.\d+)?)/i);
+      if (m) setTimeout(() => { d.focus(); d.setSelectionRange(m[1].length, m[1].length + m[2].length); }, 0);
+    }
+    // The whole length when someone starts editing the description, to tell which feet number they changed
+    body.addEventListener("focusin", (e) => {
+      if (!e.target.matches(".d")) return;
+      const len = Copper.lengthOf(e.target.value);
+      e.target.closest("tr").dataset.cuBefore = len === null ? "" : String(len);
+    });
+    const copperBefore = (tr) => (tr.dataset.cuBefore ? +tr.dataset.cuBefore : null);
+    body.addEventListener("change", (e) => {
+      const row = e.target.closest("tr");
+      if (!row) return;
+      const d = row.querySelector(".d").value;
+      // QUANTITY (the excess) changed → the description's length follows
+      if (e.target.matches(".q") && Copper.isWritten(d)) copperSet(row, Copper.lengthOf(Copper.fromExcess(e.target.value, Copper.lengthOf(d)).d));
+      // The description changed: its length → QUANTITY; a copper tube typed by hand → the 10 ft free line
+      else if (e.target.matches(".d") && Copper.isWritten(d)) copperSet(row, Copper.resolve(d, copperBefore(row)));   // either feet number may have been edited
+      else if (e.target.matches(".d") && Copper.isItem(d)) { copperSet(row, Copper.FREE); copperSelectLength(row); }
+      else return;
+      calc();
+      saveDraft();
+    });
+    // Rows written the earlier way ("… — 20FT - 10FT FREE …"): rewrite them in this format
+    [...body.rows].forEach((r) => { const d = r.querySelector(".d").value; if (/\s—\s\d/.test(d) && Copper.isWritten(d)) copperSet(r, Copper.lengthOf(d)); });
+    calc(); saveDraft();
+
+    $("#newBtn").onclick = () => {
+      if (!confirm("Clear this quotation and start a new one?")) return;
+      boxes().forEach((i) => (i.value = ""));
+      body.querySelectorAll(".d").forEach(fitText);
+      localStorage.removeItem(DRAFT);
+      clearSignatures();
+      calc();
+      formHist.reset();
+    };
+
+    $("#printBtn").onclick = () => window.print();
+
+    // ---------- History records (history.js): every quotation made, can be opened again ----------
+    const formHist = FormHistory.attach({
+      key: "aircon_hist_quotation",
+      title: "Quotation",
+      button: $("#signedBtn"),
+      get: () => boxes().map((i) => i.value),
+      set: (values) => {
+        boxes().forEach((i, n) => (i.value = values[n] ?? ""));
+        body.querySelectorAll(".d").forEach(fitText);
+        clearSignatures();
+        calc();
+        saveDraft();
+      },
+      empty: (values) => !values.some((v) => String(v).trim()),
+      summary: () => {
+        const i = formInfo();
+        return { client: i.client, date: i.date, total: i.total,
+          sub: i.details.items.map((x) => x.desc).filter(Boolean).slice(0, 3).join(", ") + (i.details.items.length > 3 ? ` +${i.details.items.length - 3} more` : "") };
+      },
+    });
+
+    // ---------- Signing on screen and saving the signed copy (signedforms.js) ----------
+    // Signatures stay only on this page (not in the draft) until the signed copy is saved.
+    const signatures = { tech: "", client: "" };
+    let savedAs = null;   // what was last saved, so the same signed form isn't saved twice
+
+    function showSignature(who) {
+      const box = document.querySelector(`.q-sig-box[data-sig="${who}"]`);
+      // No signature: remove the picture (src="" would make the browser load this page as an image)
+      const img = box.querySelector("img");
+      if (signatures[who]) img.src = signatures[who]; else img.removeAttribute("src");
+      box.classList.toggle("signed", !!signatures[who]);
+    }
+    function clearSignatures() {
+      signatures.tech = signatures.client = "";
+      showSignature("tech");
+      showSignature("client");
+      savedAs = null;
+    }
+
+    document.querySelectorAll(".q-sig-box").forEach((box) => {
+      box.onclick = async () => {
+        const who = box.dataset.sig;
+        const sig = await SignedForms.signaturePad(who === "client" ? "Client's signature" : "Technician's signature");
+        if (sig === null) return;
+        signatures[who] = sig;
+        showSignature(who);
+      };
+    });
+    // Changing the form after signing means the client should sign again
+    $("#sheet").addEventListener("input", () => {
+      if (signatures.tech || signatures.client) {
+        clearSignatures();
+        flash("The form changed, so the signatures were removed. Please sign again.");
+      }
+    });
+
+    function flash(text) {
+      let n = document.getElementById("sigNote");
+      if (!n) {
+        n = document.createElement("div");
+        n.id = "sigNote";
+        n.className = "q-note";
+        document.querySelector(".q-bar").after(n);
+      }
+      n.innerHTML = text;
+      n.hidden = false;
+    }
+
+    function formInfo() {
+      const get = (label) => {
+        const l = [...document.querySelectorAll(".q-info label")].find((x) => x.textContent.trim().toUpperCase().startsWith(label));
+        return l ? l.querySelector("input").value.trim() : "";
+      };
+      const items = [...body.rows]
+        .map((r) => ({ desc: r.querySelector(".d").value.trim(), qty: +r.querySelector(".q").value || 0, unit: r.querySelector(".u").value.trim(),
+          price: +r.querySelector(".p").value || 0 }))
+        .filter((r) => r.desc || r.qty || r.price);
+      const total = items.reduce((s, r) => s + r.qty * r.price, 0);
+      const signs = [...document.querySelectorAll(".q-sign-row input")].map((i) => i.value.trim());
+      return {
+        client: get("CLIENT"), contact: get("CONTACT NUMBER"), address: get("ADDRESS"), date: get("DATE"), total,
+        details: {
+          mop: get("MODE OF PAYMENT"), items, prepared_by: signs[0] || "", noted_by: signs[1] || "",
+          warranty: warrantyShown.map((s) => ({ series: s.name, terms: s.terms })),
+          sign_date: document.querySelector(".q-date input").value.trim(),
+          accepted_by: document.querySelector(".q-accept input").value.trim(),
+        },
+      };
+    }
+
+    // Save: keeps the quotation in the History records (saving again updates the same record)
+    $("#saveSignedBtn").onclick = () => {
+      const info = formInfo();
+      if (!info.client) return alert("Please type the client's name first.");
+      if (!info.details.items.length) return alert("Please add at least one item.");
+
+      // The acceptance line uses the client's name when it was left empty
+      const accept = document.querySelector(".q-accept input");
+      if (!accept.value.trim()) { accept.value = info.client; saveDraft(); }
+
+      const r = formHist.record("saved");
+      if (!r) return alert("The form is empty, so there's nothing to save.");
+
+      // Close the quotation (a clean sheet, like "New") and go to the History records, showing this client
+      boxes().forEach((i) => (i.value = ""));
+      body.querySelectorAll(".d").forEach(fitText);
+      localStorage.removeItem(DRAFT);
+      clearSignatures();
+      calc();
+      formHist.reset();
+      if (window.PhoneForm) PhoneForm.refresh();
+      const note = document.getElementById("sigNote");
+      if (note) note.hidden = true;
+      formHist.show(info.client);
+    };
+
+    $("#signedBtn").onclick = () => SignedForms.showList();
+
+    // Formal Quotation: opens its own page; this quotation's client details and items go along with it
+    $("#formalBtn").onclick = () => {
+      const get = (label) => {
+        const l = [...document.querySelectorAll(".q-info label")].find((x) => x.textContent.trim().toUpperCase().startsWith(label));
+        return l ? l.querySelector("input").value.trim() : "";
+      };
+      const rows = [...body.rows]
+        .map((r) => ({ d: r.querySelector(".d").value.trim(), q: r.querySelector(".q").value, u: r.querySelector(".u").value,
+          p: r.querySelector(".p").value ? (+r.querySelector(".p").value).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "" }))
+        .filter((r) => r.d || +r.q || r.p);
+      const units = { UNIT: "unit", FT: "ft.", SET: "sets", PC: "pc." };
+      rows.forEach((r) => { r.u = units[r.u] || r.u; });
+      sessionStorage.setItem("aircon_formal_from_warranty", JSON.stringify({
+        info: { client: get("CLIENT"), date: get("DATE"), address: get("ADDRESS"), contact: get("CONTACT NUMBER"), mop: get("MODE OF PAYMENT") },
+        rows,
+      }));
+      location.href = "formalquotation.html";
+    };
+
+    // Survey: opens its own page (Installation Acceptance & Agreement); this quotation's client goes along
+    $("#surveyBtn").onclick = () => {
+      const get = (label) => {
+        const l = [...document.querySelectorAll(".q-info label")].find((x) => x.textContent.trim().toUpperCase().startsWith(label));
+        return l ? l.querySelector("input").value.trim() : "";
+      };
+      // Brand, model and HP: the aircon lines of the quotation (rows that mention HP), e.g. "MIDEA NUMEN … 1.5 HP"
+      const units = [...body.rows].map((r) => r.querySelector(".d").value.trim()).filter((d) => /\d\s*HP\b/i.test(d));
+      sessionStorage.setItem("aircon_survey_prefill", JSON.stringify({
+        name: get("CLIENT"), address: get("ADDRESS"), contact: get("CONTACT NUMBER"), unit: units.join(", "),
+      }));
+      location.href = "survey.html";
+    };
+
+    // ---------- Coming from the Purchase page's Quotation button: fill in the job order ----------
+    (function fromJobOrder() {
+      let jo = null;
+      try { jo = JSON.parse(sessionStorage.getItem("aircon_quote_from_jo")); } catch (e) {}
+      sessionStorage.removeItem("aircon_quote_from_jo");
+      if (!jo) return;
+      const hasDraft = boxes().some((i) => i.value.trim());
+      if (hasDraft && !confirm("Replace the quotation on this page with " + (jo.no || "the job order") + (jo.customer ? " (" + jo.customer + ")" : "") + "?")) return;
+
+      boxes().forEach((i) => (i.value = ""));
+      const info = (label) => [...document.querySelectorAll(".q-info label")].find((l) => l.textContent.trim().toUpperCase().startsWith(label));
+      const put = (label, value) => { const l = info(label); if (l && value) l.querySelector("input").value = value; };
+      const niceDate = jo.date ? new Date(jo.date + "T00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "";
+      put("CLIENT", jo.customer);
+      put("DATE", niceDate);
+      put("MODE OF PAYMENT", (jo.mop || "").toUpperCase());
+      put("ADDRESS", jo.address);
+      put("CONTACT NUMBER", jo.contact);
+      document.querySelector('.q-accept input').value = jo.customer || "";
+
+      // Items: description, quantity, unit and price; a discount becomes its own line
+      const rows = [...body.rows];
+      const items = (jo.items || []).slice(0, rows.length);
+      let discount = 0;
+      items.forEach((it, n) => {
+        const r = rows[n];
+        const known = PricePicker.find(it.desc);
+        r.querySelector(".d").value = it.desc;
+        // A copper tube within the free 10 ft ("… FREE = FREE") stays with no quantity, so it adds nothing
+        r.querySelector(".q").value = typeof Copper !== "undefined" && Copper.isWritten(it.desc) && !(+it.qty) ? "" : +it.qty || 1;
+        r.querySelector(".u").value = known ? known.unit : typeof Copper !== "undefined" && Copper.isWritten(it.desc) ? "FT" : "PC";
+        r.querySelector(".p").value = +it.cost || (known ? known.srp : 0);   // no price sent: the Price List SRP
+        if ((+it.qty || 0) * (+it.cost || 0)) discount += +it.disc || 0;
+      });
+      if (discount && items.length < rows.length) {
+        const r = rows[items.length];
+        r.querySelector(".d").value = "LESS: DISCOUNT";
+        r.querySelector(".q").value = 1;
+        r.querySelector(".p").value = -discount;
+      }
+
+      body.querySelectorAll(".d").forEach(fitText);
+      calc();
+      saveDraft();
+    })();
+  </script>
+  <!-- Phones: step-by-step form instead of the wide paper sheet -->
+  <script src="aftersales-phone.js?v=3"></script>
+  <script>
+    // Phones: shrink the Warranty sheet to the screen width, so it looks exactly like it does on a computer
+    (function fitSheet() {
+      const paper = document.querySelector(".q-paper");
+      const fit = () => {
+        if (!matchMedia("screen and (max-width: 800px)").matches) return paper.style.removeProperty("--pz");
+        paper.style.setProperty("--pz", Math.min(1, (paper.clientWidth - 16) / 794).toFixed(3));   // 794px: the sheet's width (aftersales.css)
+      };
+      fit();
+      addEventListener("resize", fit);
+      addEventListener("orientationchange", fit);
+    })();
+  </script>
+  <script src="printwrap.js?v=1"></script>
+  <script>PrintWrap.attach("#rows .d, .q-info input");</script>
+</body>
+</html>

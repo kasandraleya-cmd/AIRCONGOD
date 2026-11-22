@@ -1,0 +1,665 @@
+/* =========================================
+   DAY OFF & LEAVE (leave.js)
+   Dashboard: staff's own panel. Staff page: Human Resources' list.
+   ========================================= */
+
+/* ---------- Dashboard: two panels side by side ---------- */
+.lv-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.lv-panel { margin-bottom: 0; }
+
+.lv-who {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 8px 0 14px;
+}
+
+.lv-who b {
+  display: block;
+  font-size: 18px;
+}
+
+.lv-avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #071d49;
+  color: #f4d477;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+/* Profile picture: the photo fills the circle; a small camera badge says it can be changed */
+.lv-photo { position: relative; padding: 0; border: 0; font-family: inherit; cursor: pointer; overflow: visible; }
+.lv-photo img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.lv-photo.has-photo > span { visibility: hidden; }
+.lv-photo > i { position: absolute; right: -2px; bottom: -2px; display: grid; place-items: center; width: 20px; height: 20px;
+  border: 2px solid #fff; border-radius: 50%; background: #d5a52a; color: #071d49; font-size: 9px; }
+.lv-photo:hover > i, .lv-photo:focus-visible > i { background: #f4d477; }
+.lv-photo:focus-visible { outline: 2px solid #d5a52a; outline-offset: 2px; }
+.lv-photo.busy { opacity: .55; cursor: progress; }
+.emp-info summary .lv-photo > i { width: 17px; height: 17px; font-size: 8px; }
+
+.lv-position {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 8px 0 0;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: #fbf5e4;
+  color: #7a5a00;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.lv-info {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.lv-info div {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.lv-info .wide { grid-column: 1 / -1; }
+
+.lv-info dt {
+  color: var(--mut);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.lv-info dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.lv-hint,
+.lv-empty {
+  margin: 12px 0 0;
+  color: var(--mut);
+  font-size: 13px;
+}
+
+.lv-empty { text-align: center; padding: 12px; }
+
+/* ---------- Buttons ---------- */
+.lv-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 8px 0 4px;
+}
+
+.lv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lv-btn.dayoff { background: #071d49; color: #fff; }
+.lv-btn.leave { border-color: #d5a52a; background: #fff; color: #071d49; }
+.lv-btn.light { border-color: var(--line); background: #fff; color: var(--ink); }
+.lv-btn.ok { padding: 6px 10px; background: #15803d; color: #fff; font-size: 12.5px; }
+.lv-btn.no { padding: 6px 10px; border-color: #f5c2c0; background: #fff; color: var(--bad); font-size: 12.5px; }
+.lv-btn:hover { filter: brightness(1.08); }
+
+/* ---------- My requests ---------- */
+.lv-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 8px;
+  font-size: 14px;
+}
+
+.lv-count {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 99px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.lv-list {
+  display: grid;
+  gap: 8px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.lv-item {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.lv-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.lv-item-when,
+.lv-item-reason,
+.lv-item-note {
+  margin-top: 4px;
+  color: var(--mut);
+  font-size: 13px;
+}
+
+.lv-item-reason { color: var(--ink); }
+.lv-item-note { font-style: italic; }
+
+.lv-cancel {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bad);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Status badges */
+.lv-status {
+  display: inline-block;
+  padding: 2px 10px;
+  border: 1px solid transparent;
+  border-radius: 99px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.lv-status.pending { border-color: #f4d58d; background: #fef3c7; color: #b45309; }
+.lv-status.approved, .lv-status.active { border-color: #9fd9b7; background: #e5f6ea; color: #15803d; }
+.lv-status.rejected { border-color: #f5c2c0; background: #fdeceb; color: var(--bad); }
+.lv-status.inactive, .lv-status.on.leave { border-color: #d5dde0; background: #eef3f4; color: var(--mut); }
+
+/* ---------- Pop-up ---------- */
+.lv-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(15, 30, 36, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.lv-box {
+  width: 100%;
+  max-width: 460px;
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 22px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.lv-box.wide { max-width: 1100px; }
+
+.lv-box-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.lv-box-head h3 { margin: 0; font-size: 19px; }
+
+.lv-x {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--mut);
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.lv-form { display: grid; gap: 12px; }
+.lv-decision-summary { margin: 0; padding: 10px 12px; border-radius: 8px; background: var(--bg); color: var(--ink); font-size: 14px; }
+
+.lv-form label {
+  display: grid;
+  gap: 5px;
+  color: #4a5c63;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.lv-form input,
+.lv-form select,
+.lv-form textarea {
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.lv-date-field { position: relative; display: flex; align-items: center; }
+.lv-date-field > input[data-date-text] { width: 100%; padding-right: 40px; }
+.lv-date-field .lv-date-button {
+  position: absolute;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+.lv-date-field .lv-date-button:hover { background: var(--bg); }
+.lv-date-field .lv-date-native {
+  position: absolute;
+  right: 8px;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lv-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.lv-error {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fdeceb;
+  color: var(--bad);
+  font-size: 13px;
+}
+
+.lv-form-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* ---------- Human Resources: list ---------- */
+.lv-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+
+.lv-tabs button {
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lv-tabs button.on { border-color: #071d49; background: #071d49; color: #fff; }
+
+.lv-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+
+.lv-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+
+.lv-table th {
+  padding: 10px;
+  background: var(--bg);
+  color: #4a5c63;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.lv-table td { padding: 10px; border-top: 1px solid var(--line); vertical-align: top; }
+.lv-table td small { display: block; margin-top: 2px; color: var(--mut); font-size: 11.5px; }
+.lv-table td.num { text-align: center; }
+.lv-table td.reason { max-width: 260px; overflow-wrap: anywhere; }
+.lv-table td.act { white-space: nowrap; }
+.lv-table td.act .lv-btn + .lv-btn { margin-left: 6px; }
+
+@media (max-width: 900px) {
+  .lv-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 520px) {
+  .lv-info, .lv-two { grid-template-columns: 1fr; }
+}
+
+/* =========================================
+   WARNINGS (leave.js)
+   ========================================= */
+/* Right column: Day off & leave on top, My warnings under it */
+.lv-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+.wn-panel h3 i { background: #fdeceb !important; color: var(--bad) !important; }
+
+.wn-unread {
+  margin-left: 4px;
+  padding: 1px 8px;
+  border-radius: 99px;
+  background: var(--bad);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.wn-level {
+  display: inline-block;
+  padding: 2px 10px;
+  border: 1px solid transparent;
+  border-radius: 99px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.wn-level.verbal { border-color: #f4d58d; background: #fef3c7; color: #b45309; }
+.wn-level.written { border-color: #f6c08f; background: #fde7cf; color: #b45f06; }
+.wn-level.final { border-color: #f1aaa5; background: #fdeceb; color: var(--bad); }
+
+.wn-item { border-left: 4px solid #f4d58d; }
+.wn-item.written { border-left-color: #f6a04d; }
+.wn-item.final { border-left-color: var(--bad); }
+.wn-item.unread { background: #fffaf2; }
+
+.wn-date { color: var(--mut); font-size: 12.5px; }
+
+.wn-read {
+  margin-top: 6px;
+  color: #15803d;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.lv-btn.wn-ack {
+  margin-top: 8px;
+  padding: 6px 12px;
+  border-color: #9fd9b7;
+  background: #e5f6ea;
+  color: #15803d;
+  font-size: 12.5px;
+}
+
+.wn-form { margin-bottom: 6px; }
+
+.wn-form-grid {
+  display: grid;
+  grid-template-columns: 2fr 1.3fr 1fr;
+  gap: 10px;
+}
+
+.lv-btn.wn-give { padding: 9px 14px; font-size: 13.5px; }
+
+@media (max-width: 700px) {
+  .wn-form-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------- My payslip (Dashboard, above Day off & leave) ---------- */
+a.lv-btn { text-decoration: none; }
+.ps-period { color: var(--mut); font-size: 13px; font-weight: 600; }
+.ps-net {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 10px 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #071d49;
+  color: #fff;
+  font-weight: 700;
+}
+.ps-net b { color: #f4d477; font-size: 22px; }
+.ps-split { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
+.ps-split div { padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; }
+.ps-split span { display: block; color: var(--mut); font-size: 12px; font-weight: 600; }
+.ps-split b { font-size: 15px; }
+
+/* ---------- Attendance sheet: My attendance (staff Dashboard) and the managers' popup ---------- */
+.at-panel { margin-top: 16px; }
+.at-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.at-head h3 { margin: 0; }
+.at-month { display: flex; align-items: center; gap: 8px; }
+.at-month b { min-width: 120px; color: #071d49; font-size: 14px; text-align: center; }
+.at-month button {
+  width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: #071d49; cursor: pointer;
+}
+.at-month button:disabled { opacity: .35; cursor: default; }
+/* The dates button: opens the date-range picker (daterange.js) */
+.at-month button.at-range {
+  display: inline-flex; align-items: center; gap: 10px; width: auto; min-width: 210px; padding: 0 12px; height: 40px; text-align: left;
+}
+.at-month button.at-range:hover { border-color: #0a66c2; }
+.at-range > i { color: #0a66c2; }
+.at-range > span { display: flex; flex-direction: column; flex: 1; line-height: 1.15; }
+.at-range small { color: #65737e; font-size: 11.5px; font-weight: 600; }
+.at-month .at-range b { min-width: 0; text-align: left; }
+.at-month button[data-att] { height: 40px; }
+
+.at-sheet { padding: 16px; border: 1px solid #dbe4e7; border-radius: 12px; background: #fff; }
+.at-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding-bottom: 12px; border-bottom: 3px solid #d5a52a; }
+.at-name span { color: var(--mut); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+.at-name b { color: #071d49; font-size: 18px; }
+.at-name small { color: var(--mut); font-size: 12.5px; }
+
+.at-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+.at-stats > div { padding: 10px; border-radius: 10px; background: #f4f7fb; text-align: center; }
+.at-stats > div:first-child { background: #071d49; }
+.at-stats > div:first-child b { color: #f4d477; }
+.at-stats > div:first-child span, .at-stats > div:first-child small { color: #dbe4f3; }
+.at-stats b { display: block; color: #071d49; font-size: 24px; line-height: 1.1; }
+.at-stats span { display: block; margin-top: 2px; color: var(--mut); font-size: 12px; font-weight: 700; }
+.at-stats small { display: block; font-size: 11px; font-weight: 500; }
+
+.at-table-wrap { overflow-x: auto; border: 1px solid #dbe4e7; border-radius: 10px; }
+.at-table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 13px; }
+.at-table th { padding: 9px 10px; background: #071d49; color: #fff; font-size: 11.5px; text-align: left; text-transform: uppercase; letter-spacing: .4px; }
+.at-table td { padding: 9px 10px; border-bottom: 1px solid #edf1f3; vertical-align: top; }
+.at-table tbody tr:nth-child(even) td { background: #fafbfc; }
+.at-table .num { text-align: right; white-space: nowrap; }
+.at-table td.at-day { color: var(--mut); white-space: nowrap; }
+.at-table td.at-none { padding: 18px; color: var(--mut); text-align: center; }
+.at-tag { display: inline-block; padding: 0 6px; border-radius: 99px; background: #e8efff; color: #1d4ed8; font-size: 11px; font-weight: 700; }
+.at-table tfoot td { border-bottom: 0; background: #f4f7fb; font-weight: 700; }
+.at-table tfoot td:first-child { color: var(--mut); text-align: right; }
+.at-table tfoot tr.at-total td { border-top: 2px solid #071d49; background: #fff6dc; color: #071d49; font-size: 15px; font-weight: 800; }
+.at-table tfoot tr.at-total td:first-child { color: #071d49; }
+
+@media (max-width: 800px) {
+  .at-stats b { font-size: 20px; }
+  .at-sheet { padding: 12px; }
+}
+
+/* Job status on the attendance sheet (same colours as the Daily Schedule) */
+.at-st { display: inline-block; padding: 1px 8px; border-radius: 99px; background: #e8eaed; color: #3c4043; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.at-st.st-waiting { background: #ffe5a0; color: #b45f06; }
+.at-st.st-on-the-way { background: #ffc8aa; color: #753800; }
+.at-st.st-ongoing { background: #c6dbfc; color: #1155cc; }
+.at-st.st-done { background: #b7e1cd; color: #0b8043; }
+.at-st.st-rescheduled { background: #e6cff2; color: #5a3286; }
+.at-st.st-cancelled { background: #f4c7c3; color: #a50e0e; }
+.at-table tr.at-notyet td.num { color: #9aa7ad; }   /* rate / incentive not added until DONE */
+
+/* Pay lines at the bottom of the attendance sheet */
+.at-name .at-rate { margin-left: auto; padding: 2px 10px; border-radius: 99px; background: #fff6dc; color: #8a6200; font-size: 12.5px; font-style: normal; font-weight: 800; }
+.at-table tfoot td small { color: var(--mut); font-weight: 500; }
+.at-table td.at-paynote { padding: 12px; color: var(--mut); font-weight: 600; text-align: center !important; }
+.at-inc { display: inline-flex; align-items: center; gap: 6px; }
+.at-inc input { width: 110px; height: 32px; padding: 0 8px; border: 1px solid #d5a52a; border-radius: 7px; background: #fff; font: inherit; font-weight: 700; text-align: right; }
+.at-inc button { height: 32px; padding: 0 12px; border: 0; border-radius: 7px; background: #071d49; color: #fff; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.at-inc button:disabled { opacity: .5; }
+
+/* My time in (IC card Time Clock, timeclock-lib.js) */
+.tc-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.tc-stats div { padding: 10px; border-radius: 12px; background: #f3f6f8; text-align: center; }
+.tc-stats b { display: block; color: #071d49; font-size: 20px; }
+.tc-stats span { color: #64767d; font-size: 12px; font-weight: 700; }
+.tc-stats .bad { background: #fdeceb; } .tc-stats .bad b { color: #b42318; }
+@media (max-width: 600px) { .tc-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tc-late { color: #b42318; font-weight: 800; }
+.tc-ok { color: #15803d; font-weight: 700; }
+
+/* =========================================
+   EMPLOYEE DASHBOARD LAYOUT (leave.js employeeLayout)
+   Installers, drivers, warehouse, editors… (not Owner / HR / Manager / Office / Supervisor)
+   ========================================= */
+#myPanel.emp-only { display: flex; flex-direction: column; gap: 16px; }
+#myPanel.emp-only[hidden] { display: none; }
+
+/* "This week" tiles */
+.emp-week { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.emp-tile { position: relative; display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 14px 16px 14px 62px; border: 1px solid var(--line); border-radius: 14px;
+  background: #fff; color: inherit; text-decoration: none; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+a.emp-tile:hover { border-color: #071d49; }
+.emp-tile > i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px;
+  background: #071d49; color: #f4d477; font-size: 15px; }
+.emp-tile-l { color: var(--mut); font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+.emp-tile b { overflow: hidden; color: #071d49; font-size: 20px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.emp-tile small { overflow: hidden; color: var(--mut); font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.emp-tile.good small { color: #15803d; }
+.emp-tile.bad { border-color: #f6d3cf; background: #fff8f7; }
+.emp-tile.bad > i { background: #fdeceb; color: var(--bad); }
+.emp-tile.bad b, .emp-tile.bad small { color: var(--bad); }
+.emp-tile.warn > i { background: #fff6dc; color: #9a6b00; }
+.emp-tile.warn b { color: #9a6b00; }
+.emp-tile.mut b { color: #64767d; }
+
+/* Main column (time in, attendance) + side column (payslip, leave, warnings, info) */
+.emp-grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+.emp-main, .emp-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.emp-only .panel { margin: 0; border-radius: 14px; }
+
+/* My information: folded card */
+.emp-info { padding: 0 !important; }
+.emp-info summary { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; list-style: none; }
+.emp-info summary::-webkit-details-marker { display: none; }
+.emp-info summary .lv-avatar { width: 42px; height: 42px; font-size: 18px; }
+.emp-info summary b { display: block; color: #071d49; font-size: 15px; }
+.emp-info summary .lv-position { font-size: 12.5px; }
+.emp-info-more { margin-left: auto; color: var(--mut); font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.emp-info-more i { margin-left: 4px; transition: transform .2s; }
+.emp-info[open] .emp-info-more i { transform: rotate(180deg); }
+.emp-info .lv-info { margin: 0; padding: 0 16px; }
+.emp-info .lv-hint { padding: 0 16px 14px; }
+
+@media (max-width: 1100px) { .emp-week { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .emp-grid { grid-template-columns: 1fr; } }
+@media (max-width: 520px) {
+  .emp-week { gap: 8px; }
+  .emp-tile { padding: 12px 12px 12px 12px; }
+  .emp-tile > i { position: static; transform: none; width: 30px; height: 30px; margin-bottom: 6px; font-size: 13px; }
+  .emp-tile b { font-size: 17px; }
+  .emp-info-more { display: none; }
+}
+/* Phones: My time in fits the screen (the per-day deduction column hides; the total is in the footer) */
+@media (max-width: 600px) {
+  .tc-panel .at-table { min-width: 0; font-size: 12.5px; }
+  .tc-panel .at-table th, .tc-panel .at-table td { padding: 8px 7px; }
+  .tc-panel .at-table thead th:nth-child(5), .tc-panel .at-table tbody td:nth-child(5) { display: none; }
+  .tc-panel .at-table tfoot td { font-size: 13px; }
+}
+
+/* ================= PHONES: Dashboard panels (My time in, My attendance sheet) ================= */
+@media (max-width: 600px) {
+  .at-head { gap: 8px; }
+  .at-head h3 { width: 100%; }
+  .at-month { width: 100%; justify-content: space-between; }
+  .at-month b { min-width: 0; }
+  .at-month button.at-range { flex: 1; min-width: 0; }
+
+  /* My time in: the 4 numbers in one compact row */
+  .tc-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .tc-stats div { padding: 8px 4px; border-radius: 10px; }
+  .tc-stats b { font-size: 16px; }
+  .tc-stats span { display: block; font-size: 10.5px; line-height: 1.2; }
+
+  /* Attendance sheet: numbers smaller, and the job list as cards instead of a wide table */
+  .at-name { flex-wrap: wrap; row-gap: 4px; }
+  .at-stats { gap: 6px; }
+  .at-stats > div { padding: 8px 4px; }
+  .at-stats b { font-size: 18px; }
+  .at-stats span { font-size: 10.5px; line-height: 1.2; }
+  .at-sheet .at-table-wrap { overflow: visible; border: 0; }
+  .at-sheet .at-table { display: block; min-width: 0; }
+  .at-sheet .at-table thead { display: none; }
+  .at-sheet .at-table tbody, .at-sheet .at-table tfoot { display: block; }
+  .at-sheet .at-table tbody tr { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 10px; margin-bottom: 8px; padding: 10px 12px; border: 1px solid #dbe4e7; border-radius: 10px; background: #fff; }
+  .at-sheet .at-table tbody td { padding: 0; border: 0; }
+  .at-sheet .at-table tbody td:nth-child(1) { grid-row: 1; grid-column: 1; }                     /* date */
+  .at-sheet .at-table tbody td:nth-child(2) { grid-row: 1; grid-column: 2; }                     /* client */
+  .at-sheet .at-table tbody td:nth-child(5) { grid-row: 1; grid-column: 3; text-align: right; }  /* status */
+  .at-sheet .at-table tbody td:nth-child(3) { grid-row: 2; grid-column: 1 / 3; color: var(--mut); font-size: 12px; }  /* location */
+  .at-sheet .at-table tbody td:nth-child(4) { grid-row: 3; grid-column: 1 / 3; font-size: 12px; }  /* unit */
+  .at-sheet .at-table tbody td:nth-child(6) { grid-row: 2 / 4; grid-column: 3; align-self: end; text-align: right; font-weight: 700; }  /* rate */
+  .at-sheet .at-table tbody td.at-none { display: block; grid-column: 1 / -1; text-align: center; white-space: normal; }
+  .at-sheet .at-table tbody tr:has(td.at-none) { display: block; }
+  .at-sheet .at-table tfoot tr { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 8px 12px; border-top: 1px solid #edf1f3; }
+  .at-sheet .at-table tfoot td { padding: 0 !important; border: 0; }
+  .at-sheet .at-table tfoot td { background: transparent !important; }
+  .at-sheet .at-table tfoot td:first-child { flex: 1; text-align: left !important; font-size: 13px; }
+  .at-sheet .at-table tfoot tr.at-total { margin-top: 4px; border-top: 2px solid #071d49; border-radius: 0 0 10px 10px; background: #fff6dc; }
+  .at-sheet .at-table tfoot td small { display: block; }
+}
+@media (max-width: 360px) {
+  .tc-panel .at-table { font-size: 11.5px; }
+  .tc-panel .at-table th, .tc-panel .at-table td { padding: 7px 4px; }
+  .tc-panel .at-table th { font-size: 10px; letter-spacing: 0; }
+  .tc-stats b { font-size: 14px; }
+}
+@media (max-width: 360px) {
+  .tc-panel .at-table td.at-day, .tc-panel .at-table tfoot td:first-child { white-space: normal; line-height: 1.25; }
+}
+
+/* Dashboard without "My information" (it is on My Profile): the other panels use the full width */
+.lv-grid.no-info { grid-template-columns: 1fr; }
+
+/* Dashboard without My time in / My attendance (they are on the My Attendance page):
+   payslip, leave, cash advance and warnings side by side */
+.emp-grid.no-main { grid-template-columns: 1fr; }
+.emp-grid.no-main .emp-side { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .emp-grid.no-main .emp-side { grid-template-columns: 1fr; } }
+/* My Attendance page: My time in, then My attendance */
+.lv-att-page { display: flex; flex-direction: column; gap: 16px; }
+.lv-att-page > .panel { margin: 0; }

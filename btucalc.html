@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Room Measurement</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+  <style>
+    /* AIRCON G.O.D theme: navy + gold, white cards, soft grey borders */
+    .cc, .cc-modal { --navy: #071d49; --navy-2: #0b2a63; --gold: #d5a52a; --gold-2: #f4d477; --gold-soft: #fff6dc; --ink: #16252b;
+      --mut: #64767d; --line: #e3e9ec; --gray-bg: #eef2f4; }
+
+    .cc-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .cc-top h1 { margin: 0; color: var(--navy); }
+    .cc-top p { margin: 2px 0 0; color: var(--mut); font-size: 13px; }
+    .cc-units { display: inline-flex; padding: 3px; border-radius: 10px; background: #fff; border: 1px solid var(--line); }
+    .cc-units button { padding: 7px 14px; border: 0; border-radius: 7px; background: none; color: var(--mut); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .cc-units button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+
+    .cc-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+    .cc-steps { display: grid; gap: 14px; }
+
+    /* A numbered step card */
+    .cc-step { padding: 18px 20px; border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .03); }
+    .cc-step-h { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .cc-num { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 50%; background: var(--navy); color: var(--gold-2); font-weight: 800; }
+    .cc-step-h h2 { margin: 0; color: var(--ink); font-size: 16px; }
+    .cc-step-h small { display: block; color: var(--mut); font-size: 12.5px; font-weight: 500; }
+    .cc-step-h .cc-help { margin-left: auto; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--navy);
+      font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .cc-step-h .cc-help:hover { border-color: var(--gold); }
+
+    .cc-pair { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 10px; }
+    .cc-times { padding-bottom: 12px; color: var(--mut); font-weight: 800; }
+    .cc-field { display: block; }
+    .cc-field > span:first-child { display: block; margin-bottom: 6px; color: var(--ink); font-size: 13.5px; font-weight: 700; }
+    .cc-box { position: relative; display: block; }
+    .cc-box input { width: 100%; height: 48px; padding: 0 44px 0 14px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink);
+      font: inherit; font-size: 18px; font-weight: 700; }
+    .cc-box input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(213, 165, 42, .2); }
+    .cc-box input::placeholder { color: #b3bec3; font-weight: 600; }
+    .cc-box em { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--mut); font-style: normal; font-weight: 700; pointer-events: none; }
+    .cc-area { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: var(--mut); font-size: 13px; }
+    .cc-area b { padding: 3px 10px; border-radius: 99px; background: var(--gray-bg); color: var(--navy); font-size: 13px; }
+
+    /* Sun exposure: two choice tiles */
+    .cc-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .cc-tile { display: grid; grid-template-columns: 40px 1fr; align-items: center; gap: 12px; padding: 12px 14px; border: 2px solid var(--line); border-radius: 12px;
+      background: #fff; color: var(--ink); font: inherit; text-align: left; cursor: pointer; transition: border-color .15s, background .15s; }
+    .cc-tile:hover { border-color: #cfd9de; }
+    .cc-tile i { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--gray-bg); color: var(--mut); font-size: 17px; }
+    .cc-tile b { display: block; font-size: 14px; }
+    .cc-tile small { display: block; color: var(--mut); font-size: 12px; line-height: 1.35; }
+    .cc-tile[aria-pressed="true"] { border-color: var(--navy); background: #f6f8fc; }
+    .cc-tile[aria-pressed="true"] i { background: var(--navy); color: var(--gold-2); }
+
+    .cc-note { margin: 10px 0 0; color: var(--mut); font-size: 12.5px; line-height: 1.5; }
+
+    /* Result panel */
+    .cc-result { position: sticky; top: 16px; overflow: hidden; border: 1px solid rgba(213, 165, 42, .45); border-radius: 16px; color: #fff;
+      background: linear-gradient(160deg, rgba(7, 29, 73, .97) 0%, rgba(7, 29, 73, .88) 55%, rgba(11, 42, 99, .8) 100%), url("BACKGROUND.png?v=2") center / cover;
+      box-shadow: 0 8px 22px rgba(7, 29, 73, .25); }
+    .cc-result-in { padding: 20px; }
+    .cc-result h3 { margin: 0; padding: 0; border: 0; color: #c9d4ea; font-size: 12.5px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; }
+    .cc-big { display: flex; align-items: baseline; gap: 8px; margin: 6px 0 2px; }
+    .cc-big b { color: var(--gold-2); font-size: 40px; font-weight: 800; line-height: 1.1; }
+    .cc-big span { color: #c9d4ea; font-size: 16px; font-weight: 700; }
+    .cc-sub { margin: 0; color: #c9d4ea; font-size: 13px; }
+
+    /* Room preview drawn to scale */
+    .cc-plan { display: grid; place-items: center; height: 150px; margin: 16px 0; border-radius: 12px; background: rgba(255, 255, 255, .06); }
+    .cc-room { position: relative; display: grid; place-items: center; border: 2px solid var(--gold-2); border-radius: 4px; background: rgba(244, 212, 119, .1);
+      color: #fff; font-size: 13px; font-weight: 700; transition: width .2s, height .2s; }
+    .cc-room.sun { box-shadow: 6px 0 0 -1px rgba(244, 212, 119, .55); }
+    .cc-room .l, .cc-room .w { position: absolute; color: #c9d4ea; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .cc-room .l { bottom: -20px; left: 50%; transform: translateX(-50%); }
+    .cc-room .w { right: -8px; top: 50%; transform: translate(100%, -50%); }
+    .cc-plan-empty { color: #8fa0bd; font-size: 13px; text-align: center; }
+
+    .cc-break { display: grid; gap: 6px; margin: 0; padding: 14px 0 0; border-top: 1px solid rgba(255, 255, 255, .14); list-style: none; font-size: 13px; }
+    .cc-break li { display: flex; justify-content: space-between; gap: 10px; color: #dbe3f2; }
+    .cc-break li b { color: #fff; white-space: nowrap; }
+    .cc-break li.off { color: #8fa0bd; } .cc-break li.off b { color: #8fa0bd; font-weight: 600; }
+    .cc-reset { width: 100%; margin-top: 16px; padding: 10px; border: 1px solid rgba(255, 255, 255, .25); border-radius: 10px; background: none; color: #fff;
+      font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .cc-reset:hover { border-color: var(--gold-2); color: var(--gold-2); }
+
+    /* How-to-measure pop-up */
+    .cc-modal { position: fixed; inset: 0; z-index: 9500; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(15, 23, 42, .55); }
+    .cc-modal[hidden] { display: none; }
+    .cc-modal-box { width: min(620px, 100%); max-height: calc(100vh - 32px); overflow: auto; border-radius: 14px; background: #fff; box-shadow: 0 12px 40px rgba(0, 0, 0, .3); }
+    .cc-modal-h { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 3px solid var(--gold);
+      background: var(--navy); color: #fff; font-weight: 700; }
+    .cc-modal-h i { color: var(--gold); margin-right: 8px; }
+    .cc-modal-h button { width: 34px; height: 34px; border: 0; border-radius: 8px; background: rgba(255, 255, 255, .12); color: #fff; font-size: 20px; cursor: pointer; }
+    .cc-guide { padding: 16px 20px 22px; color: var(--ink); font-size: 14px; line-height: 1.6; }
+    .cc-guide h4 { margin: 18px 0 6px; color: var(--navy); font-size: 15px; }
+    .cc-guide h4:first-child { margin-top: 0; }
+    .cc-guide ul { margin: 0; padding-left: 20px; }
+    .cc-guide svg { display: block; width: 100%; height: auto; margin: 4px 0; }
+
+    /* Recommended size (inside the result panel) */
+    .cc-size { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 12px 14px; border: 1px solid rgba(244, 212, 119, .4);
+      border-radius: 12px; background: rgba(244, 212, 119, .08); }
+    .cc-size[hidden] { display: none; }
+    .cc-size > i { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--gold-2); color: var(--navy); font-size: 17px; }
+    .cc-size small { display: block; color: #c9d4ea; font-size: 11.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
+    .cc-size b { display: block; color: #fff; font-size: 22px; font-weight: 800; line-height: 1.2; }
+    .cc-size span { display: block; color: #c9d4ea; font-size: 12px; }
+
+    /* Running cost */
+    .cc-cost-in { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1.2fr; gap: 10px; }
+    .cc-box select { width: 100%; height: 48px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink);
+      font: inherit; font-size: 15px; font-weight: 700; }
+    .cc-box select:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(213, 165, 42, .2); }
+    .cc-cost-in .cc-box input { font-size: 16px; padding-right: 58px; }
+    .cc-cost-out { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 10px; margin-top: 14px; }
+    .cc-cost-out > div { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--gray-bg); }
+    .cc-cost-out small { display: block; color: var(--mut); font-size: 12px; font-weight: 700; }
+    .cc-cost-out b { display: block; margin-top: 2px; color: var(--navy); font-size: 18px; font-weight: 800; }
+    .cc-cost-out .month { border-color: rgba(213, 165, 42, .45); background: linear-gradient(135deg, var(--navy), var(--navy-2)); }
+    .cc-cost-out .month small { color: #c9d4ea; }
+    .cc-cost-out .month b { color: var(--gold-2); font-size: 24px; }
+
+    @media (max-width: 1000px) {
+      .cc-grid { grid-template-columns: 1fr; }
+      .cc-result { position: static; }
+    }
+    @media (max-width: 600px) {
+      .cc-step { padding: 16px 14px; }
+      .cc-pair { grid-template-columns: 1fr 1fr; }
+      .cc-times { display: none; }
+      .cc-tiles { grid-template-columns: 1fr; }
+      .cc-cost-in { grid-template-columns: 1fr 1fr; }
+      .cc-cost-out { grid-template-columns: 1fr 1fr; }
+      .cc-cost-out .month { grid-column: 1 / -1; }
+      .cc-big b { font-size: 34px; }
+    }
+  </style>
+</head>
+<body class="app">
+
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) window.location.href = "index.html";
+  </script>
+
+  <aside class="side">
+    <div class="side-brand">
+      <img src="AIRCON.png" alt="Logo">
+      <span>AIRCON G.O.D</span>
+    </div>
+    <nav aria-label="Main menu"><!-- filled in by sidebar.js --></nav>
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <main class="content cc">
+    <div class="cc-top">
+      <div>
+        <h1>Room Measurement</h1>
+        <p>Estimate the cooling capacity a room needs.</p>
+      </div>
+      <div class="cc-units" role="group" aria-label="Units">
+        <button type="button" data-unit="m" aria-pressed="true">Meters</button>
+        <button type="button" data-unit="ft" aria-pressed="false">Feet</button>
+      </div>
+    </div>
+
+    <div class="cc-grid">
+      <div class="cc-steps">
+
+        <!-- STEP 1: room size -->
+        <section class="cc-step">
+          <div class="cc-step-h">
+            <span class="cc-num">1</span>
+            <h2>How big is the room?<small>Floor size, wall to wall</small></h2>
+            <button type="button" class="cc-help" data-guide><i class="far fa-question-circle"></i> How to measure</button>
+          </div>
+          <div class="cc-pair">
+            <label class="cc-field"><span>Length <span class="uw">(meters)</span></span>
+              <span class="cc-box"><input id="len" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g. 4"><em class="u">m</em></span></label>
+            <span class="cc-times">×</span>
+            <label class="cc-field"><span>Width <span class="uw">(meters)</span></span>
+              <span class="cc-box"><input id="wid" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g. 3"><em class="u">m</em></span></label>
+          </div>
+          <div class="cc-area"><i class="fas fa-vector-square"></i> Floor area <b id="area">0 m²</b></div>
+        </section>
+
+        <!-- STEP 2: sun -->
+        <section class="cc-step">
+          <div class="cc-step-h">
+            <span class="cc-num">2</span>
+            <h2>How much sun does it get?<small>Think of the hottest part of the day</small></h2>
+          </div>
+          <div class="cc-tiles" role="group" aria-label="Sun exposure">
+            <button type="button" class="cc-tile" data-sun="0" aria-pressed="true"><i class="fas fa-cloud-sun"></i>
+              <span><b>Shaded / normal</b><small>Covered by trees, buildings or other rooms</small></span></button>
+            <button type="button" class="cc-tile" data-sun="1" aria-pressed="false"><i class="fas fa-sun"></i>
+              <span><b>Strong sun</b><small>West-facing wall, big window or top floor under the roof</small></span></button>
+          </div>
+        </section>
+
+        <!-- STEP 3: ceiling -->
+        <section class="cc-step">
+          <div class="cc-step-h">
+            <span class="cc-num">3</span>
+            <h2>How high is the ceiling?<small>Floor to ceiling, optional</small></h2>
+          </div>
+          <label class="cc-field" style="max-width:260px"><span>Ceiling height <span class="uw">(meters)</span></span>
+            <span class="cc-box"><input id="ceil" type="number" inputmode="decimal" min="0" step="0.01" placeholder="2.9"><em class="u">m</em></span></label>
+          <p class="cc-note"><i class="fas fa-info-circle"></i> Leave it empty for a normal ceiling (<span id="stdCeil">2.9 m</span> or lower). Higher ceilings mean more air to cool.</p>
+        </section>
+
+        <!-- STEP 4: running cost -->
+        <section class="cc-step">
+          <div class="cc-step-h">
+            <span class="cc-num">4</span>
+            <h2>What will it cost to run?<small>Rough electricity cost for an inverter aircon</small></h2>
+          </div>
+          <div class="cc-cost-in">
+            <label class="cc-field"><span>Aircon size</span>
+              <span class="cc-box"><select id="hp"></select></span></label>
+            <label class="cc-field"><span>Hours a day</span>
+              <span class="cc-box"><input id="hours" type="number" inputmode="decimal" min="0" max="24" step="0.5" placeholder="e.g. 8"><em>hrs</em></span></label>
+            <label class="cc-field"><span>Days a month</span>
+              <span class="cc-box"><input id="days" type="number" inputmode="numeric" min="0" max="31" step="1" placeholder="e.g. 30"><em>days</em></span></label>
+            <label class="cc-field"><span>Electricity rate</span>
+              <span class="cc-box"><input id="kwh" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g. 13.00"><em>₱/kWh</em></span></label>
+          </div>
+          <div class="cc-cost-out">
+            <div><small>Per hour</small><b id="cHour">—</b></div>
+            <div><small>Per day</small><b id="cDay">—</b></div>
+            <div class="month"><small>Per month</small><b id="cMonth">—</b></div>
+          </div>
+          <p class="cc-note"><i class="fas fa-info-circle"></i> Fill in all four boxes to see the cost. Copy the <b>rate per kWh</b> from your latest electric bill (Meralco shows it on the bill).
+            The cost is an estimate: real use depends on the brand, insulation, temperature setting and how often doors and windows are opened.</p>
+        </section>
+      </div>
+
+      <!-- RESULT -->
+      <aside class="cc-result" aria-live="polite">
+        <div class="cc-result-in">
+          <h3><i class="fas fa-snowflake"></i> Estimated cooling needed</h3>
+          <div class="cc-big"><b id="btu">0</b><span>BTU/hr</span></div>
+          <p class="cc-sub" id="summary">Enter the room size to start.</p>
+          <div class="cc-size" id="sizeBox" hidden>
+            <i class="fas fa-wind"></i>
+            <div><small>Recommended aircon size</small><b id="sizeHp">—</b><span id="sizeNote"></span></div>
+          </div>
+          <div class="cc-plan" id="plan"><div class="cc-plan-empty"><i class="fas fa-ruler-combined"></i><br>Room preview</div></div>
+          <ul class="cc-break">
+            <li id="bBase"><span>Floor area × <span id="rate">600</span> BTU</span><b>0</b></li>
+            <li id="bSun" class="off"><span>Strong sun (+10%)</span><b>—</b></li>
+            <li id="bCeil" class="off"><span>Higher ceiling</span><b>—</b></li>
+          </ul>
+          <button type="button" class="cc-reset" id="reset"><i class="fas fa-redo"></i> Start over</button>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- How to measure -->
+  <div class="cc-modal" id="guide" hidden>
+    <div class="cc-modal-box" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+      <div class="cc-modal-h"><span id="guideTitle"><i class="fas fa-ruler-combined"></i>How to measure a room</span><button type="button" id="guideClose" aria-label="Close">&times;</button></div>
+      <div class="cc-guide">
+        <h4>Floor size</h4>
+        <svg viewBox="0 0 520 230" role="img" aria-label="Room seen from above with its length and width marked">
+          <rect x="70" y="30" width="380" height="150" rx="4" fill="#f4f7f8" stroke="#071d49" stroke-width="3"/>
+          <rect x="250" y="24" width="110" height="12" fill="#cfe3f5" stroke="#071d49" stroke-width="2"/>
+          <text x="305" y="17" text-anchor="middle" font-size="12" fill="#64767d">window</text>
+          <line x1="70" y1="204" x2="450" y2="204" stroke="#d5a52a" stroke-width="2.5" marker-start="url(#g)" marker-end="url(#g)"/>
+          <text x="260" y="224" text-anchor="middle" font-size="14" font-weight="700" fill="#071d49">length</text>
+          <line x1="474" y1="30" x2="474" y2="180" stroke="#d5a52a" stroke-width="2.5" marker-start="url(#g)" marker-end="url(#g)"/>
+          <text x="492" y="105" font-size="14" font-weight="700" fill="#071d49" transform="rotate(90 492 105)" text-anchor="middle">width</text>
+          <text x="260" y="110" text-anchor="middle" font-size="15" fill="#071d49">area = length × width</text>
+          <defs><marker id="g" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#d5a52a"/></marker></defs>
+        </svg>
+        <ul>
+          <li>Run the tape along the floor from one wall to the wall facing it, then do the same the other way.</li>
+          <li>Include space under beds and cabinets. Skip closets with doors and attached bathrooms.</li>
+          <li>Odd-shaped room (like an L)? Measure it as two boxes and add both areas.</li>
+          <li>Using a tape in feet? Switch the calculator to <b>Feet</b> at the top.</li>
+        </ul>
+        <h4>Sun</h4>
+        <ul>
+          <li>Pick <b>Strong sun</b> when the room heats up in the afternoon: a wall or big window facing west, or a top-floor room right under the roof.</li>
+        </ul>
+        <h4>Ceiling</h4>
+        <ul>
+          <li>Measure from the floor straight up to the ceiling. Most homes are about 2.4–2.9 m; leave the box empty for those.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function logout() { sessionStorage.clear(); window.location.href = "index.html"; }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+
+  <script>
+    // ---------- The shop's rule (change these numbers to adjust the estimate) ----------
+    const BTU_PER_SQM = 600;      // cooling per square meter of floor, for a normal ceiling
+    const SUN_EXTRA = 0.10;       // strong sun adds 10%
+    const NORMAL_CEILING = 2.9;   // meters; a higher ceiling adds cooling in proportion to the extra height
+    const FT = 3.28084;           // feet in a meter
+
+    // Aircon sizes: [HP, cooling it gives (BTU/hr), average power use of an inverter unit while running (kW)].
+    // Power is a rough average (about 0.3 kW per HP once the room is cool); change it to match your brands.
+    const SIZES = [
+      [0.5, 5000, 0.15], [0.8, 7500, 0.24], [1.0, 9000, 0.30], [1.5, 12000, 0.45], [2.0, 18000, 0.60],
+      [2.5, 22000, 0.75], [3.0, 28000, 0.90], [4.0, 36000, 1.20], [5.0, 48000, 1.50], [6.0, 60000, 1.80],
+    ];
+    const hpLabel = (hp) => `${hp.toFixed(1)} HP`;
+    // The smallest size that gives at least the cooling needed
+    const recommend = (btu) => btu > 0 ? (SIZES.find(([, b]) => b >= btu) || null) : undefined;
+
+    const $ = (id) => document.getElementById(id);
+    let unit = "m", sunny = false;
+    const val = (id) => Math.max(0, parseFloat($(id).value) || 0);
+    const toM = (v) => (unit === "ft" ? v / FT : v);
+    const fmt = (n, d = 0) => n.toLocaleString("en-PH", { minimumFractionDigits: d, maximumFractionDigits: d });
+    $("rate").textContent = fmt(BTU_PER_SQM);
+
+    function calc() {
+      const L = toM(val("len")), W = toM(val("wid"));
+      const area = L * W;
+      const ceiling = Math.max(NORMAL_CEILING, toM(val("ceil")) || NORMAL_CEILING);
+      const base = area * BTU_PER_SQM;
+      const sun = sunny ? base * SUN_EXTRA : 0;
+      const ceilPct = ceiling / NORMAL_CEILING - 1;
+      const ceilAdd = (base + sun) * ceilPct;
+      const total = Math.round(base + sun + ceilAdd);
+
+      $("area").textContent = unit === "ft" ? `${fmt(area * FT * FT, 1)} ft² (${fmt(area, 1)} m²)` : `${fmt(area, 1)} m²`;
+      $("btu").textContent = fmt(total);
+      $("summary").textContent = area
+        ? `For a ${fmt(area, 1)} m² room${sunny ? " with strong sun" : ""}${ceilPct > 0 ? `, ${fmt(ceiling, 1)} m ceiling` : ""}.`
+        : "Enter the room size to start.";
+      $("bBase").querySelector("b").textContent = fmt(Math.round(base));
+      $("bSun").className = sunny ? "" : "off";
+      $("bSun").querySelector("b").textContent = sunny ? "+" + fmt(Math.round(sun)) : "—";
+      $("bCeil").className = ceilPct > 0 ? "" : "off";
+      $("bCeil").querySelector("span").textContent = ceilPct > 0 ? `Higher ceiling (+${fmt(ceilPct * 100)}%)` : "Higher ceiling";
+      $("bCeil").querySelector("b").textContent = ceilPct > 0 ? "+" + fmt(Math.round(ceilAdd)) : "—";
+      drawPlan(L, W);
+
+      // Recommended size
+      const rec = recommend(total);
+      $("sizeBox").hidden = rec === undefined;
+      if (rec === null) {
+        $("sizeHp").textContent = "More than 6 HP";
+        $("sizeNote").textContent = "Use two or more units, or a ducted / floor-mounted system.";
+      } else if (rec) {
+        $("sizeHp").textContent = hpLabel(rec[0]);
+        $("sizeNote").textContent = `A ${fmt(rec[1])} BTU unit covers the ${fmt(total)} BTU needed.`;
+      }
+      if (rec && !hpChosenByHand) $("hp").value = String(rec[0]);
+      cost();
+    }
+
+    // ---------- Running cost ----------
+    let hpChosenByHand = false;
+    $("hp").innerHTML = '<option value="">Choose a size</option>' + SIZES.map(([hp, btu]) => `<option value="${hp}">${hpLabel(hp)} · ${fmt(btu)} BTU</option>`).join("");
+    $("hp").value = "";
+
+    function cost() {
+      const size = SIZES.find(([hp]) => String(hp) === $("hp").value);
+      const rec = recommend(Math.round(parseFloat(String($("btu").textContent).replace(/,/g, "")) || 0));
+      [...$("hp").options].forEach((o) => {
+        const s = SIZES.find(([hp]) => String(hp) === o.value);
+        if (!s) return;
+        o.textContent = `${hpLabel(s[0])} · ${fmt(s[1])} BTU${rec && rec[0] === s[0] ? "  (recommended)" : ""}`;
+      });
+      // Nothing is shown until all four boxes are filled in
+      if (!size || !val("hours") || !val("days") || !val("kwh")) {
+        ["cHour", "cDay", "cMonth"].forEach((id) => ($(id).textContent = "—"));
+        return;
+      }
+      const perHour = size[2] * val("kwh");
+      const perDay = perHour * Math.min(24, val("hours"));
+      const perMonth = perDay * Math.min(31, val("days"));
+      $("cHour").textContent = "₱" + fmt(perHour, 2);
+      $("cDay").textContent = "₱" + fmt(perDay, 2);
+      $("cMonth").textContent = "₱" + fmt(Math.round(perMonth));
+    }
+    $("hp").addEventListener("change", () => { hpChosenByHand = true; cost(); });
+    ["hours", "days"].forEach((id) => $(id).addEventListener("input", cost));
+    $("kwh").addEventListener("input", cost);
+
+    // The room drawn to scale inside the result panel
+    function drawPlan(L, W) {
+      const plan = $("plan");
+      if (!L || !W) { plan.innerHTML = '<div class="cc-plan-empty"><i class="fas fa-ruler-combined"></i><br>Room preview</div>'; return; }
+      const long = Math.max(L, W), short = Math.min(L, W);
+      const maxW = Math.min(200, plan.clientWidth - 90), maxH = 96;
+      const scale = Math.min(maxW / long, maxH / short);
+      const show = (m) => (unit === "ft" ? fmt(m * FT, 1) + " ft" : fmt(m, 2) + " m");
+      plan.innerHTML = `<div class="cc-room${sunny ? " sun" : ""}" style="width:${long * scale}px;height:${short * scale}px">
+        ${fmt(L * W, 1)} m²<span class="l">${show(long)}</span><span class="w">${show(short)}</span></div>`;
+    }
+
+    ["len", "wid", "ceil"].forEach((id) => $(id).addEventListener("input", calc));
+    document.querySelectorAll("[data-sun]").forEach((b) => b.addEventListener("click", () => {
+      sunny = b.dataset.sun === "1";
+      document.querySelectorAll("[data-sun]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      calc();
+    }));
+
+    // Meters / feet: the numbers already typed are converted
+    document.querySelectorAll("[data-unit]").forEach((b) => b.addEventListener("click", () => {
+      if (b.dataset.unit === unit) return;
+      const factor = b.dataset.unit === "ft" ? FT : 1 / FT;
+      ["len", "wid", "ceil"].forEach((id) => { if ($(id).value) $(id).value = +(parseFloat($(id).value) * factor).toFixed(2); });
+      unit = b.dataset.unit;
+      document.querySelectorAll("[data-unit]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      document.querySelectorAll(".cc-box .u").forEach((u) => (u.textContent = unit));
+      document.querySelectorAll(".uw").forEach((w) => (w.textContent = unit === "ft" ? "(feet)" : "(meters)"));
+      $("ceil").placeholder = unit === "ft" ? fmt(NORMAL_CEILING * FT, 1) : String(NORMAL_CEILING);
+      $("stdCeil").textContent = unit === "ft" ? fmt(NORMAL_CEILING * FT, 1) + " ft" : NORMAL_CEILING + " m";
+      calc();
+    }));
+
+    $("reset").onclick = () => {
+      ["len", "wid", "ceil"].forEach((id) => ($(id).value = ""));
+      hpChosenByHand = false;   // the size follows the recommendation again
+      document.querySelector('[data-sun="0"]').click();
+      $("len").focus();
+    };
+
+    // How to measure
+    const guide = $("guide");
+    let opener = null;
+    document.querySelectorAll("[data-guide]").forEach((b) => b.onclick = () => { opener = b; guide.hidden = false; $("guideClose").focus(); });
+    const closeGuide = () => { guide.hidden = true; if (opener) opener.focus(); };
+    $("guideClose").onclick = closeGuide;
+    guide.addEventListener("click", (e) => { if (e.target === guide) closeGuide(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !guide.hidden) closeGuide(); });
+    window.addEventListener("resize", calc);
+
+    calc();
+  </script>
+</body>
+</html>

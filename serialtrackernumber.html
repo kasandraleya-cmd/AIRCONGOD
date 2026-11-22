@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Serial Number Tracking</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    /* One color per weekday: a header "MONDAY (Nov 17, 2026)" and the units scanned that day tinted the same */
+    .day-0 { --dc: #b42318; --dt: #fdf1f0; }   /* Sunday */
+    .day-1 { --dc: #1d4ed8; --dt: #eef3ff; }   /* Monday */
+    .day-2 { --dc: #15803d; --dt: #edf8f1; }   /* Tuesday */
+    .day-3 { --dc: #b45309; --dt: #fff6e8; }   /* Wednesday */
+    .day-4 { --dc: #7c3aed; --dt: #f4effe; }   /* Thursday */
+    .day-5 { --dc: #be185d; --dt: #fdeef5; }   /* Friday */
+    .day-6 { --dc: #0f766e; --dt: #e9f7f5; }   /* Saturday */
+    .day-none { --dc: #64748b; --dt: #f3f5f7; }
+    tr.day-head td { padding: 9px 14px; background: var(--dc); color: #fff; font-size: 13px; font-weight: 800; letter-spacing: .06em; border: 0; }
+    tr.day-head td span { font-weight: 600; letter-spacing: 0; opacity: .92; }
+    /* a wide table scrolls sideways: the day name and the count stay in view */
+    tr.day-head td .dh-l { position: sticky; left: 14px; display: inline-block; font-weight: 800; letter-spacing: .06em; opacity: 1; }
+    tr.day-head td small { position: sticky; right: 14px; }
+    tr.day-head td small { float: right; font-size: 12px; font-weight: 600; letter-spacing: 0; opacity: .9; }
+    tr.day-row > td { background: var(--dt); }
+    tr.day-row > td:first-child { box-shadow: inset 4px 0 0 var(--dc); }
+    tr.day-row:hover > td { filter: brightness(.97); }
+    /* INDOOR / OUTDOOR / SINGLE tag */
+    .utype { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 800; letter-spacing: .05em; background: #eef2f4; color: #475569; }
+    .utype.indoor { background: #e0e9ff; color: #1d4ed8; }
+    .utype.outdoor { background: #fff0d6; color: #b45309; }
+    .utype.single { background: #e5f6ee; color: #15803d; }
+    /* Phones: rows are cards (style.css .ptable), so the day header is a colored bar and the cards carry the day color */
+    @media screen and (max-width: 800px) {
+      .ptable > tbody > tr.day-head { margin: 14px 0 8px; padding: 0; border: 0; border-radius: 10px; background: var(--dc); box-shadow: none; }
+      .ptable > tbody > tr.day-head > td { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; padding: 10px 14px !important; border: 0 !important; color: #fff; text-align: left !important; }
+      .ptable > tbody > tr.day-head > td small { float: none; margin-left: auto; }
+      .ptable > tbody > tr.day-row { background: var(--dt); border-left: 5px solid var(--dc); }
+      .ptable > tbody > tr.day-row > td { box-shadow: none; filter: none; }
+    }
+  </style>
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+</head>
+<body class="app">
+
+  <!-- SECURITY GUARD -->
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) window.location.href = "index.html";
+  </script>
+
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="side-brand">
+      <img src="AIRCON.png" alt="Logo">
+      <span>AIRCON G.O.D</span>
+    </div>
+
+    <nav aria-label="Main menu"><!-- filled in by sidebar.js --></nav>
+
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="content">
+
+    <div class="page-header">
+      <div>
+        <h1>Serial Number Tracking</h1>
+        <p class="subtitle">Track each aircon unit by serial number.</p>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="btn-outline" id="exportCsv"><i class="fas fa-file-download"></i> CSV</button>
+        <button type="button" class="btn-outline" id="exportXls"><i class="fas fa-file-excel"></i> Excel</button>
+      </div>
+    </div>
+
+    <!-- SEARCH + FILTER -->
+    <div class="filter-bar">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Search serial, SKU, brand, customer...">
+      </div>
+      <div class="status-filter">
+        <select>
+          <option value="">All Status</option>
+          <option value="Available">Available</option>
+          <option value="Sold">Sold</option>
+        </select>
+      </div>
+      <div class="status-filter">
+        <select id="typeFilter" aria-label="Indoor or outdoor">
+          <option value="">All types</option>
+          <option value="Indoor">Indoor</option>
+          <option value="Outdoor">Outdoor</option>
+          <option value="Single">Single</option>
+        </select>
+      </div>
+      <div class="status-filter">
+        <select id="weekFilter" aria-label="Show a week">
+          <option value="">All dates</option>
+          <option value="this">This week</option>
+          <option value="last">Last week</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Serial Number</th>
+            <th>SKU</th>
+            <th>Brand &amp; Model</th>
+            <th>Type</th>
+            <th>Supplier</th>
+            <th>Date Scanned</th>
+            <th>Date Release</th>
+            <th style="text-align: right;">Cost from Supplier</th>
+            <th style="text-align: center;">SRP</th>
+            <th>Status</th>
+            <th>Customer</th>
+            <th style="text-align: center;">Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot></tfoot>
+      </table>
+    </div>
+
+  </main>
+
+  <!-- ADD / EDIT SERIAL POPUP -->
+  <div class="modal" id="serialModal" hidden>
+    <div class="modal-box" role="dialog" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <h3 id="modalTitle">Add Serial</h3>
+        <button type="button" class="modal-x" id="closeModal" aria-label="Close">&times;</button>
+      </div>
+
+      <form id="serialForm" autocomplete="off">
+        <div class="modal-grid">
+          <div class="full-width">
+            <label>Serial Number</label>
+            <input type="text" name="serial" placeholder="Enter serial number" required>
+          </div>
+          <div>
+            <label>SKU</label>
+            <input type="text" name="sku" placeholder="Enter SKU" required>
+          </div>
+          <div>
+            <label>Brand &amp; Model</label>
+            <input type="text" name="model" placeholder="e.g. Daikin FTKC25">
+          </div>
+          <div>
+            <label>Type</label>
+            <select name="type">
+              <option value="">Select</option>
+              <option>Indoor</option>
+              <option>Outdoor</option>
+              <option>Single</option>
+            </select>
+          </div>
+          <div>
+            <label>Supplier</label>
+            <!-- Same suppliers as the Scanner page -->
+            <select name="supplier">
+              <option value="">Select supplier…</option>
+              <option>Firstar Inc</option>
+              <option>SAGA</option>
+              <option>CQ</option>
+              <option>Ray &amp; J's</option>
+              <option>Tyric</option>
+              <option>Samcee</option>
+              <option>Rosarito</option>
+              <option>Sir J</option>
+            </select>
+          </div>
+          <div>
+            <label>Date Scanned</label>
+            <input type="date" name="dateScanned">
+          </div>
+          <div>
+            <label>Date Release</label>
+            <input type="date" name="dateRelease">
+          </div>
+          <div class="full-width">
+            <label>Cost from Supplier (₱)</label>
+            <input type="number" name="cost" min="0" step="0.01" inputmode="decimal" placeholder="How much we paid the supplier">
+          </div>
+          <div class="full-width">
+            <label>SRP (₱) <span style="font-weight: 400; text-transform: none;">(our selling price, set from the Price List by the model name)</span></label>
+            <input type="number" name="srp" min="0" step="0.01" inputmode="decimal" placeholder="Fills in when the model is on the Price List">
+          </div>
+          <div class="full-width">
+            <label>Customer Name <span style="font-weight: 400; text-transform: none;">(optional)</span></label>
+            <input type="text" name="customer" placeholder="Leave empty if not sold yet">
+          </div>
+          <div class="full-width">
+            <label>Status</label>
+            <select name="status">
+              <option>Available</option>
+              <option>Sold</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-outline" id="cancelModal">Cancel</button>
+          <button type="submit" class="btn-pri">Save Serial</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = "index.html";
+    }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+  <script src="pricelist.js?v=4"></script>
+  <script src="pricepicker.js?v=4"></script>
+  <script src="jo-autoassign.js?v=1"></script>
+
+  <script>
+    const SERIAL_KEY = "aircon_serials";
+    const DELETED_SERIALS_KEY = "aircon_deleted_serials";
+    const FIELDS = ["serial", "sku", "model", "type", "supplier", "dateScanned", "dateRelease", "cost", "srp", "customer", "status"];
+    const HEADERS = ["Serial Number", "SKU", "Brand & Model", "Type", "Supplier", "Date Scanned", "Date Release", "Cost from Supplier", "SRP", "Customer", "Status"];
+    const peso = (n) => "₱" + (+n || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const hasCost = (s) => String(s.cost ?? "").trim() !== "" && !isNaN(+s.cost);
+    const $ = (s) => document.querySelector(s);
+
+    // ---------- SRP: our selling price, from the Price List (pricelist.js) ----------
+    // The unit's Brand & Model is matched to a Price List aircon name (spaces, case and symbols ignored),
+    // e.g. "Midea MIDEA CELEST PRO FULL DC SPLIT TYPE INVERTER 1.0 HP" → ₱25,000. The longest name found wins.
+    // A model that isn't on the Price List keeps the SRP typed in by hand.
+    const priceKey = (t) => String(t || "").toUpperCase().replace(/[^A-Z0-9.]+/g, "");
+    const PRICE_UNITS = [];
+    if (typeof PRICE_SHEET !== "undefined") {
+      const firstService = PRICE_SHEET.findIndex((s) => s.color === "service");
+      PRICE_SHEET.slice(0, firstService < 0 ? undefined : firstService)
+        .forEach((s) => s.rows.forEach(([name, , srp]) => PRICE_UNITS.push({ key: priceKey(name), srp: +srp || 0 })));
+      PRICE_UNITS.sort((a, b) => b.key.length - a.key.length);
+    }
+    const listSrp = (model) => {
+      const k = priceKey(model);
+      const hit = k && PRICE_UNITS.find((p) => p.srp && k.includes(p.key));
+      return hit ? hit.srp : null;
+    };
+    const hasSrp = (s) => String(s.srp ?? "").trim() !== "" && !isNaN(+s.srp);
+    const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const load = () => JSON.parse(localStorage.getItem(SERIAL_KEY) || "[]");
+    const save = (list) => localStorage.setItem(SERIAL_KEY, JSON.stringify(list));
+    const loadDeletedSerials = () => {
+      try { return new Set((JSON.parse(localStorage.getItem(DELETED_SERIALS_KEY) || "[]") || []).map((s) => String(s).trim().toLowerCase())); }
+      catch (e) { return new Set(); }
+    };
+    const saveDeletedSerials = (set) => localStorage.setItem(DELETED_SERIALS_KEY, JSON.stringify([...set]));
+
+    const modal = $("#serialModal");
+    const form = $("#serialForm");
+    const tbody = $("tbody");
+    let editIndex = null; // null = adding a new serial, a number = editing that row
+
+    // ---------- Open / close the popup ----------
+    function openModal(index = null) {
+      editIndex = index;
+      const editing = index !== null;
+
+      form.reset();
+      form.querySelectorAll('select[name="supplier"] option[data-old]').forEach((o) => o.remove());
+      $("#modalTitle").textContent = editing ? "Edit Serial" : "Add Serial";
+      form.querySelector('[type="submit"]').textContent = editing ? "Save Changes" : "Save Serial";
+
+      if (editing) {
+        const item = load()[index];
+        // A supplier saved before that isn't in the dropdown stays as its own choice
+        const sup = String(item.supplier ?? "").trim();
+        if (sup && ![...form.supplier.options].some((o) => o.value === sup)) {
+          const o = new Option(sup, sup);
+          o.dataset.old = "1";
+          form.supplier.add(o);
+        }
+        FIELDS.forEach((f) => (form[f].value = item[f] ?? ""));
+      } else {
+        form.status.value = "Available";
+        form.dateScanned.value = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+      }
+
+      modal.hidden = false;
+      form.serial.focus();
+    }
+    function closeModal() { modal.hidden = true; }
+
+    $("#closeModal").onclick = closeModal;
+    $("#cancelModal").onclick = closeModal;
+    modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+
+    // Typing a customer name marks the unit as Sold
+    form.customer.addEventListener("input", () => {
+      if (form.customer.value.trim() && form.status.value === "Available") form.status.value = "Sold";
+    });
+
+    // ---------- Save (new or edited) ----------
+    // Typing the Brand & Model fills in its SRP when it's on the Price List
+    form.model.addEventListener("input", () => {
+      const srp = listSrp(form.model.value);
+      if (srp !== null) form.srp.value = srp;
+    });
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form));
+      FIELDS.forEach((f) => (data[f] = (data[f] || "").trim()));
+
+      const list = load();
+      const duplicate = list.some((s, i) => i !== editIndex && s.serial.toLowerCase() === data.serial.toLowerCase());
+      if (duplicate) return alert("This serial number already exists.");
+
+      const previous = editIndex !== null ? list[editIndex] : null;
+      if (data.status === "Sold" && !data.dateRelease) data.dateRelease = previous && previous.status === "Sold" ? previous.dateRelease || "" : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+      if (data.status !== "Sold" && !(previous && previous.fromStock)) data.dateRelease = "";
+
+      if (editIndex !== null) list[editIndex] = { ...list[editIndex], ...data };
+      else list.push(data);
+
+      save(list);
+      closeModal();
+      render();
+    });
+
+    // ---------- Show the rows (search + status filter) ----------
+    // Weeks run Monday to Sunday; a unit belongs to the day it was scanned in (Date Scanned)
+    const ymd = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    function weekRange(which) {
+      const d = new Date();
+      d.setDate(d.getDate() - ((d.getDay() + 6) % 7) - (which === "last" ? 7 : 0));   // that week's Monday
+      const from = ymd(d);
+      d.setDate(d.getDate() + 6);
+      return [from, ymd(d)];
+    }
+    function visibleRows() {
+      const q = $(".search-box input").value.toLowerCase();
+      const filter = $(".status-filter select").value;
+      const week = $("#weekFilter").value, range = week ? weekRange(week) : null;
+      return load()
+        .map((s, i) => ({ ...s, i }))
+        .filter((s) => !q || [...FIELDS.map((f) => s[f]), s.jo].join(" ").toLowerCase().includes(q))
+        .filter((s) => !filter || s.status === filter)
+        .filter((s) => !$("#typeFilter").value || s.type === $("#typeFilter").value)
+        .filter((s) => !range || (String(s.dateScanned || "").slice(0, 10) >= range[0] && String(s.dateScanned || "").slice(0, 10) <= range[1]));
+    }
+
+    // Each day has its own color (Sunday = 0 … Saturday = 6); the day header reads "MONDAY (Nov 17, 2026)"
+    const DAY_NAMES = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+    function dayHeader(date, count) {
+      const d = new Date(String(date).slice(0, 10) + "T00:00");
+      if (!date || isNaN(d)) return `<tr class="day-head day-none"><td colspan="12">NO DATE SCANNED <small>${count} unit${count === 1 ? "" : "s"}</small></td></tr>`;
+      return `<tr class="day-head day-${d.getDay()}"><td colspan="12"><span class="dh-l">${DAY_NAMES[d.getDay()]} <span>(${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })})</span></span><small>${count} unit${count === 1 ? "" : "s"} scanned</small></td></tr>`;
+    }
+    const dayClass = (date) => { const d = new Date(String(date || "").slice(0, 10) + "T00:00"); return date && !isNaN(d) ? "day-" + d.getDay() : "day-none"; };
+
+    // ---------- Status follows Inventory automatically ----------
+    // Every scanned unit (aircon_stock) is listed here. A unit that was bought (stocked out on the
+    // Scanner, or picked on a Purchase job order) shows "Sold" with the customer who got it; a unit
+    // back in stock shows "Available". Serials typed in here by hand, with no scanned unit, are left as they are.
+    const STOCK_KEY = "aircon_stock";
+    function syncFromInventory() {
+      let stock = [];
+      try { stock = JSON.parse(localStorage.getItem(STOCK_KEY) || "[]") || []; } catch (e) {}
+      if (!stock.length) return;
+      const list = load();
+      const deleted = loadDeletedSerials();
+      const before = JSON.stringify(list);
+      stock.forEach((u) => {
+        const serial = String(u.barcode || "").trim();
+        if (!serial || deleted.has(serial.toLowerCase())) return;
+        let row = list.find((s) => String(s.serial || "").trim().toLowerCase() === serial.toLowerCase());
+        if (!row) {
+          row = { serial, sku: u.sku || serial, model: [u.brand, u.specs || u.name].filter(Boolean).join(" "), supplier: u.supplier || "", dateScanned: u.scannedDate || u.date || "", dateRelease: "", customer: "", status: "Available", type: u.unit || "" };
+          list.push(row);
+        }
+        if (!row.dateScanned) row.dateScanned = u.scannedDate || u.date || "";
+        if (u.unit) row.type = u.unit;   // Indoor / Outdoor / Single, as scanned
+        // SRP: from the Price List by the unit's model name (kept up to date when the Price List changes)
+        const srp = listSrp(row.model || [u.brand, u.specs || u.name].filter(Boolean).join(" "));
+        if (srp !== null) row.srp = String(srp);
+        // Cost from supplier: the one typed on the Scanner, unless one was already typed here
+        if (!hasCost(row) && hasCost(u)) row.cost = String(u.cost).trim();
+        if (u.status === "out") {
+          row.status = "Sold";
+          row.dateRelease = u.outDate || row.dateRelease || "";
+          if (u.customer) row.customer = u.customer;
+          if (u.jo) row.jo = u.jo; else delete row.jo;
+          row.fromStock = true;   // this sale came from Inventory, so a return to stock can undo it
+        } else if (row.fromStock) {
+          // Back in stock (taken off a job order, or the JO deleted): available again
+          row.status = "Available";
+          row.dateRelease = "";
+          row.customer = "";
+          delete row.jo;
+          delete row.fromStock;
+        }
+        // A unit marked Sold by hand here while it's still in stock in Inventory is left as it is
+      });
+      if (JSON.stringify(list) !== before) save(list);
+    }
+
+    // Every unit with a model name on the Price List gets its SRP (also serials typed in by hand)
+    function fillSrp() {
+      const list = load();
+      let changed = false;
+      list.forEach((s) => {
+        const srp = listSrp(s.model);
+        if (srp !== null && String(s.srp ?? "") !== String(srp)) { s.srp = String(srp); changed = true; }
+      });
+      if (changed) save(list);
+    }
+
+    function render() {
+      if (typeof JoAuto !== "undefined") JoAuto.run();   // units go to the customer of their job order, automatically
+      syncFromInventory();
+      fillSrp();
+      // Newest scanned day first; each day gets its own colored header and its rows are tinted the same color
+      const rows = visibleRows().sort((a, b) => String(b.dateScanned || "").localeCompare(String(a.dateScanned || "")) || a.i - b.i);
+      const counts = {};
+      rows.forEach((s) => { const k = String(s.dateScanned || "").slice(0, 10); counts[k] = (counts[k] || 0) + 1; });
+      let lastDay = null;
+      const dayBreak = (s) => { const k = String(s.dateScanned || "").slice(0, 10); if (k === lastDay) return ""; lastDay = k; return dayHeader(k, counts[k]); };
+      tbody.innerHTML = rows.length
+        ? rows.map((s) => dayBreak(s) + `
+            <tr class="day-row ${dayClass(s.dateScanned)}">
+              <td class="mono">${esc(s.serial)}</td>
+              <td class="mono">${esc(s.sku)}</td>
+              <td>${esc(s.model) || "—"}</td>
+              <td>${s.type ? `<span class="utype ${esc(String(s.type).toLowerCase())}">${esc(String(s.type).toUpperCase())}</span>` : "—"}</td>
+              <td>${esc(s.supplier) || "—"}</td>
+              <td>${esc(s.dateScanned) || "—"}</td>
+              <td>${esc(s.dateRelease) || "—"}</td>
+              <td style="text-align:right;white-space:nowrap">${hasCost(s) ? peso(s.cost) : "—"}</td>
+              <td style="text-align:center;white-space:nowrap">${hasSrp(s) ? peso(s.srp) : "—"}</td>
+              <td><span class="status ${s.status === "Sold" ? "sold" : "available"}">${esc(s.status)}</span></td>
+              <td>${esc(s.customer) || "—"}${s.jo ? `<small style="display:block;color:#64767d">${esc(s.jo)}</small>` : ""}</td>
+              <td class="actions">
+                <button class="icon-btn" data-edit="${s.i}" title="Edit"><i class="fas fa-pen"></i></button>
+                <button class="icon-btn" data-del="${s.i}" title="Delete"><i class="fas fa-trash"></i></button>
+              </td>
+            </tr>`).join("")
+        : `<tr><td colspan="12" class="empty"><i class="fas fa-barcode" style="display:block;margin-bottom:6px;font-size:22px;opacity:.5"></i>${load().length
+            ? "No serial numbers match your search or filter."
+            : 'No serial numbers yet. Scan units in Stock In on the <a href="scanner.html">Scanner</a>, or add one here.'}</td></tr>`;
+
+      // Total paid to suppliers for the units shown (follows the search and filter)
+      const priced = rows.filter(hasCost);
+      $("tfoot").innerHTML = priced.length || rows.some(hasSrp)
+        ? `<tr><td colspan="7" style="text-align:right;font-weight:700">Total cost from supplier <small style="font-weight:400;color:#64767d">(${priced.length} of ${rows.length} unit${rows.length === 1 ? "" : "s"} with a cost)</small></td>
+            <td style="text-align:right;font-weight:800;white-space:nowrap">${peso(priced.reduce((t, s) => t + +s.cost, 0))}</td>
+            <td style="text-align:center;font-weight:800;white-space:nowrap">${peso(rows.filter(hasSrp).reduce((t, s) => t + +s.srp, 0))}</td><td colspan="3"></td></tr>`
+        : "";
+    }
+
+    tbody.addEventListener("click", (e) => {
+      const edit = e.target.closest("[data-edit]");
+      if (edit) return openModal(+edit.dataset.edit);
+
+      const del = e.target.closest("[data-del]");
+      if (!del || !confirm("Delete this serial number?")) return;
+      const list = load();
+      const index = +del.dataset.del;
+      const serial = String(list[index]?.serial || "").trim();
+      list.splice(index, 1);
+      save(list);
+      if (serial) {
+        const deleted = loadDeletedSerials();
+        deleted.add(serial.toLowerCase());
+        saveDeletedSerials(deleted);
+      }
+      render();
+    });
+
+    $(".search-box input").addEventListener("input", render);
+    $(".status-filter select").addEventListener("change", render);
+    $("#weekFilter").addEventListener("change", render);
+    $("#typeFilter").addEventListener("change", render);
+
+    // ---------- Export (exports whatever is currently shown) ----------
+    function download(filename, content, type) {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(new Blob([content], { type }));
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+    const stamp = () => new Date().toISOString().slice(0, 10);
+
+    $("#exportCsv").onclick = () => {
+      const rows = visibleRows();
+      if (!rows.length) return alert("Nothing to export.");
+      const cell = (v) => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+      const csv = [HEADERS.map(cell).join(",")]
+        .concat(rows.map((s) => FIELDS.map((f) => cell(s[f])).join(",")))
+        .join("\r\n");
+      download("serial-numbers-" + stamp() + ".csv", "\ufeff" + csv, "text/csv;charset=utf-8");
+    };
+
+    $("#exportXls").onclick = () => {
+      const rows = visibleRows();
+      if (!rows.length) return alert("Nothing to export.");
+      const html = "<table><tr>" + HEADERS.map((h) => `<th>${h}</th>`).join("") + "</tr>"
+        + rows.map((s) => "<tr>" + FIELDS.map((f) => `<td>${esc(s[f])}</td>`).join("") + "</tr>").join("")
+        + "</table>";
+      download("serial-numbers-" + stamp() + ".xls", html, "application/vnd.ms-excel");
+    };
+
+    render();
+    // Redraw when a unit is sold or restocked (another tab, or another computer through the online data)
+    window.addEventListener("storage", (e) => { if (e.key === SERIAL_KEY || e.key === STOCK_KEY || e.key === "aircon_jobs") render(); });
+    (window.cloudReady || Promise.resolve()).then(render);
+  </script>
+</body>
+</html>

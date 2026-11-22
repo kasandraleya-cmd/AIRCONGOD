@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Expenses</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="inventory.css">
+  <link rel="stylesheet" href="cashvoucher.css?v=11">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+</head>
+<body class="app cv-page">
+
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) window.location.href = "index.html";
+  </script>
+
+  <aside class="side">
+    <div class="side-brand">
+      <img src="AIRCON.png" alt="Logo">
+      <span>AIRCON G.O.D</span>
+    </div>
+    <nav aria-label="Main menu"><!-- filled in by sidebar.js --></nav>
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <main class="content inv cv">
+    <div class="inv-header">
+      <div>
+        <h1>Expenses</h1>
+        <p>Supplier payments and expenses, with VAT and withholding tax.</p>
+      </div>
+    </div>
+
+    <div class="cv-bar">
+      <p class="cv-status" id="status"></p>
+      <span class="grow"></span>
+      <button type="button" class="inv-btn light" id="newBtn"><i class="fas fa-file"></i> New Expense</button>
+      <button type="button" class="inv-btn light" id="searchBtn"><i class="fas fa-search"></i> Search Expenses</button>
+      <button type="button" class="inv-btn light" id="importBtn"><i class="fas fa-file-excel"></i> Import from Excel</button>
+      <button type="button" class="inv-btn light" id="editBtn"><i class="fas fa-pen"></i> Edit Expense</button>
+      <button type="button" class="inv-btn light" id="clearBtn"><i class="fas fa-eraser"></i> Clear</button>
+      <button type="button" class="inv-btn light danger" id="deleteBtn"><i class="fas fa-trash-alt"></i> Delete Expense</button>
+      <button type="button" class="inv-btn light" id="printBtn"><i class="fas fa-print"></i> Print</button>
+      <button type="button" class="inv-btn navy" id="submitBtn"><i class="fas fa-check"></i> Submit Expense</button>
+    </div>
+
+    <div class="cv-wrap">
+      <div class="cv-sheet" id="sheet">
+
+        <!-- Title band -->
+        <div class="cv-band">
+          <div class="cv-brand">
+            <span class="cv-logo"><img src="AIRCON.png" alt=""></span>
+            <span><small>AIRCON G.O.D. PH</small><b>EXPENSES</b></span>
+          </div>
+          <div class="cv-no">
+            <label><span>Expense No.</span><b id="cvNo"></b></label>
+            <label><span>Date</span><input class="cv-in" data-f="date" placeholder="mm/dd/yyyy" maxlength="10"></label>
+          </div>
+        </div>
+
+        <!-- Supplier + reference -->
+        <div class="cv-sup">
+          <div class="cv-box">
+            <h3><i class="fas fa-store"></i> Supplier</h3>
+            <label class="cv-f"><span>Supplier name</span><input class="cv-in" data-f="supplier"></label>
+            <label class="cv-f"><span>Address</span><input class="cv-in" data-f="address"></label>
+            <label class="cv-f"><span>TIN#</span><input class="cv-in" data-f="tin" placeholder="000-000-000-000"></label>
+          </div>
+          <div class="cv-box">
+            <h3><i class="fas fa-receipt"></i> Reference</h3>
+            <label class="cv-f"><span>Reference</span><input class="cv-in" data-f="reference" placeholder="e.g. SI / OR / DR no."></label>
+            <label class="cv-tick"><input type="checkbox" data-f="vat"><span><b>VAT</b><small>Amounts include 12% VAT</small></span></label>
+            <label class="cv-tick"><input type="checkbox" data-f="withheld"><span><b>Withheld</b><small>Withholding tax (EWT) is deducted</small></span></label>
+          </div>
+        </div>
+
+        <!-- Account lines -->
+        <div class="cv-lines-wrap">
+          <div class="cv-grid cv-lines" id="lines">
+            <span class="h" title="Unit No. from the Scanner: on Submit Expense, this line's amount becomes that unit's price in Inventory">UNIT NO.</span><span class="h">ACCOUNT TITLE</span><span class="h">AMOUNT</span><span class="h">EXPENSE AMOUNT</span>
+            <span class="h">INPUT VAT</span><span class="h">ATC CODE</span><span class="h">AMOUNT WITHHELD</span>
+            <!-- rows are added by the script -->
+          </div>
+        </div>
+
+        <!-- Particulars (attached under the lines, like the sheet), then receiver -->
+        <div class="cv-sheetgrid-wrap">
+          <div class="cv-sg cv-part">
+            <span class="cv-sg-l">PARTICULARS</span><span class="cv-sg-v"><textarea class="cv-in" data-f="particulars" rows="2"></textarea></span>
+          </div>
+          <div class="cv-sg cv-rec">
+            <span class="cv-sg-l">RECEIVER'S NAME</span><span class="cv-sg-v"><input class="cv-in" data-f="receiver"></span>
+            <span class="cv-sg-l">MODE OF PAYMENT</span><span class="cv-sg-v"><select class="cv-in" data-f="mop">
+              <option value=""></option><option>Cash</option><option>CASH - PCF REPLENISHMENT</option><option>Check</option><option>Bank Transfer</option><option>GCash</option><option>Maya</option><option>Credit Card</option>
+            </select></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- SEARCH EXPENSES: the expenses database (one row per account line) -->
+  <div class="cv-modal" id="searchModal" hidden>
+    <div class="cv-modal-box cv-db" role="dialog" aria-modal="true" aria-label="Expenses Database">
+      <div class="cv-db-h">
+        <h2><i class="fas fa-table"></i> Expenses Database</h2>
+        <input type="search" id="dbFind" placeholder="Search expense no., supplier, particulars, account…">
+        <select id="dbMonth" title="Month"><option value="">All months</option></select>
+        <span class="cv-db-sum" id="dbSum"></span>
+        <button type="button" class="inv-btn light" id="dbExport"><i class="fas fa-file-csv"></i> Export</button>
+        <button type="button" class="cv-db-x" id="findClose" title="Close">&times;</button>
+      </div>
+      <p class="cv-db-tip"><i class="fas fa-hand-pointer"></i> Click a row to open that expense record.</p>
+      <div class="cv-db-wrap">
+        <table class="cv-db-table">
+          <thead><tr>
+            <th>EXPENSE #</th><th>DATE</th><th>SUPPLIER NAME</th><th>ADDRESS</th><th>TIN#</th><th>PARTICULARS</th><th class="num">AMOUNT</th>
+            <th>VAT / Non-VAT</th><th>REFERENCE</th><th>ACCOUNT TITLE</th><th class="num">EXPENSE AMOUNT</th><th class="num">INPUT VAT</th>
+            <th>ATC CODE</th><th class="num">AMOUNT WITHHELD</th><th>RECEIVER'S NAME</th><th>MODE OF PAYMENT</th><th>Month</th>
+          </tr></thead>
+          <tbody id="dbRows"></tbody>
+          <tfoot id="dbFoot"></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function logout() { sessionStorage.clear(); window.location.href = "index.html"; }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+
+  <script>
+    // ---------- Cash Voucher ----------
+    // Saved under "aircon_cv" (shared online by cloud.js). Each voucher:
+    //   { id, no: "CV-2026-0001", date, supplier, address, tin, reference, vat, withheld, lines: [{ account, amount, atc }],
+    //     particulars, receiver, mop, created_by, created_at, updated_by, updated_at, deleted_at?, deleted_by? }
+    // "Deleting" only hides a voucher (deleted_at), so it can be recovered.
+    // VAT ticked: amounts include 12% VAT → expense = amount ÷ 1.12, input VAT = the rest.
+    // WITHHELD ticked: pick an ATC code per line → amount withheld = expense amount × its rate.
+    const KEY = "aircon_cv";
+    const ROWS = 11;
+    const $ = (s) => document.querySelector(s);
+    const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const r2 = (n) => Math.round((+n || 0) * 100) / 100;
+    const money = (n) => r2(n).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const num = (v) => { const n = parseFloat(String(v ?? "").replace(/,/g, "")); return isFinite(n) && n > 0 ? n : 0; };
+    const pad = (n) => String(n).padStart(2, "0");
+    const today = () => { const d = new Date(); return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`; };
+    const me = () => sessionStorage.getItem("aircon_name") || sessionStorage.getItem("aircon_user") || "";
+
+    const ACCOUNTS = [
+      "Inventory - Unit", "Inventory - Materials", "Accounts Payable", "Freight-In", "Travel & Transportation Expense",
+      "Fuel, Gas & Oil Expense", "Advertising & Marketing Expense", "Office & Packaging Supplies Expense", "Repair & Maintenance",
+      "Communications Expense", "Utilities Expense", "Rent Expense", "Salaries & Wages", "SSS / PhilHealth / Pag-IBIG Contributions",
+      "Meals & Representation", "Taxes & Licenses", "Professional Fees", "Commission Expense", "Tools & Small Equipment",
+      "Bank Charges", "Cash on Hand", "Cash in Bank", "Advances to Employees", "Advances to Suppliers", "Miscellaneous Expense",
+    ];
+    // ATC codes for expanded withholding tax (EWT): [code, label, rate]
+    const ATC = [
+      ["NO EWT", "NO EWT", 0],
+      ["WI158", "WI158 · 1% goods (individual)", .01], ["WC158", "WC158 · 1% goods (corporate)", .01],
+      ["WI160", "WI160 · 2% services (individual)", .02], ["WC160", "WC160 · 2% services (corporate)", .02],
+      ["WI120", "WI120 · 2% contractors (individual)", .02], ["WC120", "WC120 · 2% contractors (corporate)", .02],
+      ["WI100", "WI100 · 5% rentals (individual)", .05], ["WC100", "WC100 · 5% rentals (corporate)", .05],
+      ["WI010", "WI010 · 5% professional fees (individual)", .05], ["WC010", "WC010 · 10% professional fees (corporate)", .10],
+    ];
+    const rateOf = (code) => (ATC.find(([c]) => c === code) || [, , 0])[2];
+
+    // ---------- The account lines ----------
+    const lines = $("#lines");
+    const lineHtml = (i) => `
+      <span class="cv-v"><input class="cv-in unit" data-l="${i}" data-k="unitNo" inputmode="numeric" placeholder="—" autocomplete="off"></span>
+      <span class="acct"><select class="cv-in" data-l="${i}" data-k="account">
+        <option value="">-- Select Account Title --</option>${ACCOUNTS.map((a) => `<option>${esc(a)}</option>`).join("")}</select></span>
+      <span class="cv-v"><input class="cv-in num" data-l="${i}" data-k="amount" inputmode="decimal"></span>
+      <span class="cv-v"><input class="cv-in num" data-l="${i}" data-k="expense" inputmode="decimal"></span>
+      <span class="cv-v"><input class="cv-in num" data-l="${i}" data-k="vat" inputmode="decimal"></span>
+      <span class="cv-v atc"><select class="cv-in" data-l="${i}" data-k="atc">${ATC.map(([c]) => `<option value="${c}">${c}</option>`).join("")}</select></span>
+      <span class="cv-v"><input class="cv-in num" data-l="${i}" data-k="wt" inputmode="decimal"></span>`;
+    lines.insertAdjacentHTML("beforeend", Array.from({ length: ROWS }, (_, i) => lineHtml(i)).join("") + `
+      <span class="tot-l">TOTAL</span>
+      <span class="tot" id="tAmount">0.00</span><span class="tot" id="tExpense">0.00</span><span class="tot" id="tVat">0.00</span>
+      <span class="tot blank"></span><span class="tot" id="tWt">0.00</span>`);
+    // Show the full ATC description when picking, the short code once picked
+    lines.querySelectorAll('select[data-k="atc"]').forEach((s) => s.querySelectorAll("option").forEach((o, i) => (o.title = ATC[i][1])));
+
+    // ---------- Reading / filling the form ----------
+    const field = (f) => $(`[data-f="${f}"]`);
+    const lineEl = (i, k) => lines.querySelector(`[data-l="${i}"][data-k="${k}"]`);
+    // ---------- UNIT NO.: the number the Scanner gave each unit (any brand) ----------
+    // Typing it finds the unit in Inventory; SUBMIT CV saves the line's amount as that unit's price.
+    const STOCK_KEY = "aircon_stock";
+    const stockAll = () => { try { return JSON.parse(localStorage.getItem(STOCK_KEY) || "[]") || []; } catch (e) { return []; } };
+    const findUnit = (no, stock = stockAll()) => (String(no || "").trim() ? stock.find((s) => String(s.unitNo || "") === String(+no || no).trim()) : null);
+    const unitText = (u) => `Unit No. ${u.unitNo} · ${[u.brand, u.barcode].filter(Boolean).join(" ")}${+u.price ? " · current price ₱" + money(u.price) : " · no price yet"}`;
+    function markUnit(i) {
+      const el = lineEl(i, "unitNo"), v = el.value.trim(), u = findUnit(v);
+      el.classList.toggle("found", !!u);
+      el.classList.toggle("missing", !!v && !u);
+      el.title = !v ? "Type a Unit No. from the Scanner" : u ? unitText(u) : `No unit with Unit No. ${v} in Inventory`;
+      return u;
+    }
+    lines.addEventListener("input", (e) => {
+      if (e.target.dataset.k !== "unitNo") return;
+      const i = +e.target.dataset.l;
+      e.target.value = e.target.value.replace(/\D/g, "");
+      const u = markUnit(i);
+      if (!e.target.value) return;
+      if (!u) return status(`No unit with Unit No. ${e.target.value} in Inventory.`, "bad");
+      status(unitText(u) + ". Its price will be set to this line's amount when you SUBMIT CV.");
+      if (!lineEl(i, "account").value) lineEl(i, "account").value = "Inventory - Unit";
+      if (!lineEl(i, "amount").value && +u.price) lineEl(i, "amount").value = money(u.price);
+    });
+
+    function read() {
+      const v = {};
+      document.querySelectorAll("[data-f]").forEach((el) => (v[el.dataset.f] = el.type === "checkbox" ? el.checked : el.value.trim()));
+      const typed = (i, k) => { const el = lineEl(i, k); return el.dataset.o === "1" ? el.value.trim() : ""; };
+      v.lines = Array.from({ length: ROWS }, (_, i) => ({ unitNo: lineEl(i, "unitNo").value.trim(), account: lineEl(i, "account").value, amount: lineEl(i, "amount").value.trim(), atc: lineEl(i, "atc").value,
+        expense: typed(i, "expense"), vat: typed(i, "vat"), wt: typed(i, "wt") }));
+      return v;
+    }
+    function fill(v) {
+      document.querySelectorAll("[data-f]").forEach((el) => {
+        const x = v[el.dataset.f];
+        if (el.type === "checkbox") el.checked = !!x; else el.value = x ?? "";
+      });
+      for (let i = 0; i < ROWS; i++) {
+        const l = (v.lines || [])[i] || {};
+        const acc = lineEl(i, "account");
+        if (l.account && ![...acc.options].some((o) => o.value === l.account)) acc.insertAdjacentHTML("beforeend", `<option>${esc(l.account)}</option>`);
+        acc.value = l.account || "";
+        lineEl(i, "unitNo").value = l.unitNo || "";
+        markUnit(i);
+        lineEl(i, "amount").value = l.amount ? money(num(l.amount)) : "";
+        lineEl(i, "atc").value = l.atc || "NO EWT";
+        TYPED.forEach((k) => {
+          const el = lineEl(i, k), own = has(l[k]);
+          el.dataset.o = own ? "1" : "";
+          el.classList.toggle("typed", own);
+          el.value = own ? money(num(l[k])) : "";
+        });
+      }
+      compute();
+    }
+
+    // ---------- Totals ----------
+    // Expense, Input VAT and Amount Withheld are worked out from the Amount, unless someone typed their own
+    const TYPED = ["expense", "vat", "wt"];
+    const has = (x) => x !== undefined && x !== null && String(x).trim() !== "";
+    function lineCalc(l, vat, withheld) {
+      const amount = num(l.amount);
+      const expense = has(l.expense) ? num(l.expense) : vat ? amount / 1.12 : amount;
+      const inputVat = has(l.vat) ? num(l.vat) : vat ? Math.max(0, amount - expense) : 0;
+      const wt = has(l.wt) ? num(l.wt) : withheld ? expense * rateOf(l.atc) : 0;
+      return { amount, expense: r2(expense), vat: r2(inputVat), wt: r2(wt) };
+    }
+    function compute() {
+      const v = read();
+      let t = { amount: 0, expense: 0, vat: 0, wt: 0 };
+      v.lines.forEach((l, i) => {
+        const c = lineCalc(l, v.vat, v.withheld);
+        const auto = { expense: c.amount ? money(c.expense) : "", vat: c.amount && v.vat ? money(c.vat) : "", wt: c.wt ? money(c.wt) : "" };
+        TYPED.forEach((k) => {
+          const el = lineEl(i, k);
+          if (el.dataset.o !== "1" && el !== document.activeElement) el.value = auto[k];
+        });
+        // Withheld not ticked: every line is NO EWT
+        const atc = lineEl(i, "atc");
+        if (!v.withheld) atc.value = "NO EWT";
+        atc.disabled = locked;
+        t.amount += c.amount; t.expense += c.expense; t.vat += c.vat; t.wt += c.wt;
+      });
+      $("#tAmount").textContent = money(t.amount);
+      $("#tExpense").textContent = money(t.expense);
+      $("#tVat").textContent = money(t.vat);
+      $("#tWt").textContent = money(t.wt);
+      return t;
+    }
+    document.addEventListener("input", (e) => { if (e.target.closest(".cv-sheet")) { dirty = true; compute(); } });
+    document.addEventListener("change", (e) => { if (e.target.closest(".cv-sheet")) { dirty = true; compute(); } });
+    lines.addEventListener("input", (e) => {
+      const k = e.target.dataset.k;
+      if (!TYPED.includes(k)) return;
+      const own = !!e.target.value.trim();
+      e.target.dataset.o = own ? "1" : "";
+      e.target.classList.toggle("typed", own);
+    });
+    // Picking an ATC code ticks Withheld (on "input", which comes before the page recalculates)
+    const atcTicks = (e) => { if (e.target.dataset.k === "atc" && e.target.value !== "NO EWT" && !field("withheld").checked) field("withheld").checked = true; };
+    lines.addEventListener("input", atcTicks);
+    lines.addEventListener("change", atcTicks);
+    // Amounts: 1500 → 1,500.00 when leaving the box
+    const MONEY_BOXES = ["amount", ...TYPED];
+    lines.addEventListener("focusout", (e) => {
+      if (!MONEY_BOXES.includes(e.target.dataset.k)) return;
+      if (e.target.value.trim()) e.target.value = num(e.target.value) || e.target.value.trim() === "0" ? money(num(e.target.value)) : "";
+      if (TYPED.includes(e.target.dataset.k)) compute();   // an empty box gets the automatic figure back
+    });
+    lines.addEventListener("focusin", (e) => {
+      if (MONEY_BOXES.includes(e.target.dataset.k) && e.target.value && (e.target.dataset.k === "amount" || e.target.dataset.o === "1"))
+        e.target.value = String(num(e.target.value) || "");
+    });
+    // Date: typing 11152026 becomes 11/15/2026
+    field("date").addEventListener("input", (e) => {
+      const d = e.target.value.replace(/\D/g, "").slice(0, 8);
+      e.target.value = d.length > 4 ? `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}` : d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
+    });
+
+    // ---------- Saved vouchers ----------
+    const all = () => { try { return JSON.parse(localStorage.getItem(KEY) || "[]") || []; } catch (e) { return []; } };
+    const saveAll = (list) => localStorage.setItem(KEY, JSON.stringify(list));
+    // Next number for the year: CV-2026-0001, CV-2026-0002, …
+    // Next number, like the CV database sheet: CV#00001, CV#00002, … (never reused, even after a delete)
+    function nextNo() {
+      const used = all().map((c) => String(c.no || "").match(/(\d+)$/)).filter(Boolean).map((m) => +m[1]);
+      return "Expense #" + String((used.length ? Math.max(...used) : 0) + 1).padStart(5, "0");
+    }
+
+    let current = null;   // the saved voucher on screen (null = a new one)
+    let locked = false;   // a saved voucher is view-only until EDIT CV
+    let dirty = false;
+
+    function setLocked(on) {
+      locked = on;
+      document.querySelectorAll(".cv-sheet .cv-in, .cv-sheet [data-f]").forEach((el) => (el.disabled = on));
+      $("#submitBtn").disabled = on;
+      $("#clearBtn").disabled = on;
+      $("#editBtn").disabled = !current || !on;
+      $("#deleteBtn").disabled = !current;
+      compute();
+    }
+    function status(text, kind) { const s = $("#status"); s.textContent = text; s.className = "cv-status" + (kind ? " " + kind : ""); }
+
+    function newCv() {
+      current = null;
+      fill({ date: today() });
+      $("#cvNo").textContent = nextNo();
+      dirty = false;
+      setLocked(false);
+      status("New expense record. Fill it in, then SUBMIT EXPENSE.");
+    }
+    function show(cv) {
+      current = cv;
+      fill(cv);
+      $("#cvNo").textContent = cv.no;
+      dirty = false;
+      setLocked(true);
+      status(`${cv.no} · saved by ${cv.updated_by || cv.created_by || "—"}${cv.updated_at ? " on " + new Date(cv.updated_at).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }) : ""}. Click EDIT EXPENSE to change it.`, "ok");
+    }
+    const leaveOk = () => !dirty || confirm("This expense record has changes that aren't submitted. Leave them?");
+
+    // ---------- Buttons ----------
+    $("#newBtn").onclick = () => { if (leaveOk()) newCv(); };
+
+    $("#submitBtn").onclick = () => {
+      if (locked) return alert("Click EDIT EXPENSE first to change this record.");
+      const v = read();
+      const used = v.lines.filter((l) => l.account || num(l.amount));
+      if (!v.supplier) { alert("Please type the supplier name."); return field("supplier").focus(); }
+      if (!/^\d{2}\/\d{2}\/\d{4}$/.test(v.date)) { alert("Please type the date as mm/dd/yyyy."); return field("date").focus(); }
+      if (!used.length) return alert("Please add at least one account title with an amount.");
+      if (used.some((l) => !l.account)) return alert("Every line with an amount needs an account title.");
+      if (!used.some((l) => num(l.amount))) return alert("Please type at least one amount.");
+      // Unit No. lines: the unit must exist, appear once, and have an amount (that becomes its price)
+      const stock = stockAll();
+      const unitLines = v.lines.filter((l) => l.unitNo);
+      const missing = unitLines.find((l) => !findUnit(l.unitNo, stock));
+      if (missing) return alert(`There's no unit with Unit No. ${missing.unitNo} in Inventory. Check the number on the Scanner.`);
+      const twice = unitLines.find((l, i) => unitLines.findIndex((x) => +x.unitNo === +l.unitNo) !== i);
+      if (twice) return alert(`Unit No. ${twice.unitNo} is on more than one line. Each unit can be on one line only.`);
+      const noAmount = unitLines.find((l) => !num(l.amount));
+      if (noAmount) return alert(`Please type the amount for Unit No. ${noAmount.unitNo}. It becomes that unit's price in Inventory.`);
+      const t = compute();
+      const list = all();
+      const now = new Date().toISOString();
+      const data = { ...v, lines: v.lines.filter((l) => l.account || num(l.amount)).map((l) => ({ ...l, amount: num(l.amount), expense: has(l.expense) ? num(l.expense) : "", vat: has(l.vat) ? num(l.vat) : "", wt: has(l.wt) ? num(l.wt) : "" })),
+        total: r2(t.amount), expense: r2(t.expense), input_vat: r2(t.vat), withheld_total: r2(t.wt) };
+      let saved;
+      if (current) {
+        const i = list.findIndex((c) => c.id === current.id);
+        saved = { ...list[i], ...data, updated_by: me(), updated_at: now };
+        list[i] = saved;
+      } else {
+        saved = { id: Date.now(), no: nextNo(), ...data, created_by: me(), created_at: now, updated_by: me(), updated_at: now };
+        list.push(saved);
+      }
+      saveAll(list);
+      // Each Unit No. line's amount becomes that unit's price in Inventory
+      unitLines.forEach((l) => { const u = findUnit(l.unitNo, stock); if (u) u.price = String(r2(num(l.amount))); });
+      if (unitLines.length) localStorage.setItem(STOCK_KEY, JSON.stringify(stock));
+      show(saved);
+      renderDb();
+      if (unitLines.length) status(`${saved.no} saved. Inventory price set for Unit No. ${unitLines.map((l) => l.unitNo).join(", ")}.`, "ok");
+      typeof notify === "function" && notify(`${saved.no} saved.`, "good");
+    };
+
+    $("#editBtn").onclick = () => {
+      if (!current) return alert("Open an expense record first with SEARCH EXPENSES.");
+      setLocked(false);
+      status(`Editing ${current.no}. Make your changes, then SUBMIT EXPENSE.`);
+    };
+
+    $("#deleteBtn").onclick = () => {
+      if (!current) return alert("Open an expense record first with SEARCH EXPENSES.");
+      if (!confirm(`Delete ${current.no} (${current.supplier})?\n\nIt will be hidden from the list. A Developer can still recover it.`)) return;
+      const list = all();
+      const i = list.findIndex((c) => c.id === current.id);
+      if (i >= 0) { list[i] = { ...list[i], deleted_at: new Date().toISOString(), deleted_by: me() }; saveAll(list); }
+      const no = current.no;
+      newCv();
+      renderDb();
+      status(`${no} was deleted.`, "bad");
+    };
+
+    $("#clearBtn").onclick = () => {
+      if (locked) return;
+      if (dirty && !confirm("Clear everything typed on this voucher?")) return;
+      const keepDate = field("date").value;
+      fill({ date: keepDate || today() });
+      dirty = false;
+      compute();
+    };
+
+    $("#printBtn").onclick = () => window.print();
+
+    // ---------- SEARCH CV: opens the Expenses Database ----------
+    const modal = $("#searchModal");
+    $("#searchBtn").onclick = () => {
+      if (!leaveOk()) return;
+      modal.hidden = false;
+      $("#dbFind").value = "";
+      renderDb();
+      $("#dbFind").focus();
+    };
+    $("#findClose").onclick = () => (modal.hidden = true);
+    modal.addEventListener("click", (e) => { if (e.target === modal) modal.hidden = true; });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") modal.hidden = true; });
+    window.addEventListener("beforeunload", (e) => { if (dirty && !locked) { e.preventDefault(); e.returnValue = ""; } });
+
+    // Another computer saved or deleted a voucher: refresh the open one (unless it's being edited)
+    window.addEventListener("storage", (e) => {
+      if (e.key !== KEY) return;
+      renderDb();
+      if (current && locked) {
+        const fresh = all().find((c) => c.id === current.id);
+        if (!fresh || fresh.deleted_at) { newCv(); status(`${current.no} was deleted on another computer.`, "bad"); }
+        else show(fresh);
+      } else if (!current) $("#cvNo").textContent = nextNo();
+    });
+
+    // ---------- CV DATABASE ----------
+    // One row per account line; deleted vouchers aren't listed. Click a row to open its voucher.
+    const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const monthOf = (date) => { const m = String(date || "").match(/^(\d{2})\/\d{2}\/(\d{4})$/); return m ? { key: m[2] + "-" + m[1], name: MONTHS[+m[1] - 1], year: m[2] } : null; };
+    const sortKey = (c) => { const m = String(c.date || "").match(/^(\d{2})\/(\d{2})\/(\d{4})$/); return (m ? m[3] + m[1] + m[2] : "") + "|" + String(c.no).padStart(12, "0"); };
+    function dbRowsData() {
+      const out = [];
+      all().filter((c) => !c.deleted_at).sort((a, b) => sortKey(a).localeCompare(sortKey(b))).forEach((c) => {
+        (c.lines || []).filter((l) => l.account || num(l.amount)).forEach((l) => {
+          const k = lineCalc(l, c.vat, c.withheld);
+          out.push({ cv: c, l, k, month: monthOf(c.date) });
+        });
+      });
+      return out;
+    }
+    function fillMonths() {
+      const sel = $("#dbMonth"), keep = sel.value;
+      const seen = new Map();
+      all().filter((c) => !c.deleted_at).forEach((c) => { const m = monthOf(c.date); if (m) seen.set(m.key, m.name + " " + m.year); });
+      sel.innerHTML = '<option value="">All months</option>' + [...seen].sort((a, b) => b[0].localeCompare(a[0])).map(([k, n]) => `<option value="${k}">${n}</option>`).join("");
+      sel.value = seen.has(keep) ? keep : "";
+    }
+    function dbFiltered() {
+      const q = $("#dbFind").value.trim().toLowerCase(), mk = $("#dbMonth").value;
+      return dbRowsData().filter((r) => (!mk || (r.month && r.month.key === mk)) &&
+        (!q || [r.cv.no, r.cv.date, r.cv.supplier, r.cv.address, r.cv.tin, r.cv.particulars, r.cv.reference, r.l.account, r.l.atc, r.cv.receiver, r.cv.mop, r.l.unitNo ? "unit " + r.l.unitNo : ""].join(" ").toLowerCase().includes(q)));
+    }
+    function renderDb() {
+      fillMonths();
+      const rows = dbFiltered();
+      $("#dbRows").innerHTML = rows.length ? rows.map((r) => `<tr data-id="${r.cv.id}"${current && current.id === r.cv.id ? ' class="on"' : ""}>
+          <td class="no">${esc(r.cv.no)}</td><td class="date">${esc(r.cv.date)}</td><td>${esc(r.cv.supplier)}</td><td>${esc(r.cv.address || "")}</td>
+          <td>${esc(r.cv.tin || "")}</td><td class="wide" title="${esc(r.cv.particulars || "")}">${esc(r.cv.particulars || "")}</td>
+          <td class="num">${money(r.k.amount)}</td><td>${r.cv.vat ? "VAT" : "Non-VAT"}</td><td>${esc(r.cv.reference || "")}</td>
+          <td>${esc(r.l.account || "")}</td><td class="num">${money(r.k.expense)}</td><td class="num">${money(r.k.vat)}</td>
+          <td>${esc(r.cv.withheld ? r.l.atc || "NO EWT" : "NO EWT")}</td><td class="num">${money(r.k.wt)}</td>
+          <td>${esc(r.cv.receiver || "")}</td><td>${esc(r.cv.mop || "")}</td><td class="month">${r.month ? r.month.name : ""}</td></tr>`).join("")
+        : `<tr class="empty"><td colspan="17"><div class="cv-db-empty"><i class="fas ${all().some((c) => !c.deleted_at) ? "fa-search" : "fa-file-invoice-dollar"}"></i><b>${all().some((c) => !c.deleted_at) ? "No lines match your search" : "No expense records yet"}</b><span>${all().some((c) => !c.deleted_at) ? "Try another word or choose All months." : "Fill in an expense record and click Submit Expense. Each account line then shows here as one row."}</span></div></td></tr>`;
+      const t = rows.reduce((s, r) => ({ a: s.a + r.k.amount, e: s.e + r.k.expense, v: s.v + r.k.vat, w: s.w + r.k.wt }), { a: 0, e: 0, v: 0, w: 0 });
+      const cvs = new Set(rows.map((r) => r.cv.id)).size;
+      $("#dbFoot").innerHTML = rows.length ? `<tr><td colspan="6">TOTAL · ${cvs} voucher${cvs === 1 ? "" : "s"}, ${rows.length} line${rows.length === 1 ? "" : "s"}</td>
+          <td class="num">${money(t.a)}</td><td colspan="3"></td><td class="num">${money(t.e)}</td><td class="num">${money(t.v)}</td><td></td>
+          <td class="num">${money(t.w)}</td><td colspan="3"></td></tr>` : "";
+      $("#dbSum").textContent = rows.length ? `₱${money(t.a)}` : "";
+    }
+    $("#dbFind").addEventListener("input", renderDb);
+    $("#dbMonth").addEventListener("change", renderDb);
+    $("#dbRows").addEventListener("click", (e) => {
+      const tr = e.target.closest("tr[data-id]");
+      if (!tr || !leaveOk()) return;
+      const cv = all().find((c) => String(c.id) === tr.dataset.id);
+      modal.hidden = true;
+      if (cv) { show(cv); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    });
+    // Export: the rows on screen as a spreadsheet (CSV), same columns as the sheet
+    $("#dbExport").onclick = () => {
+      const rows = dbFiltered();
+      if (!rows.length) return alert("Nothing to export yet.");
+      const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+      const head = ["Expense #", "DATE", "SUPPLIER NAME", "ADDRESS", "TIN#", "PARTICULARS", "AMOUNT", "VAT / Non-VAT", "REFERENCE", "ACCOUNT TITLE",
+        "EXPENSE AMOUNT", "INPUT VAT", "ATC CODE", "AMOUNT WITHHELD", "RECEIVER'S NAME", "MODE OF PAYMENT", "Month"];
+      const body = rows.map((r) => [r.cv.no, r.cv.date, r.cv.supplier, r.cv.address, r.cv.tin, r.cv.particulars, r2(r.k.amount), r.cv.vat ? "VAT" : "Non-VAT",
+        r.cv.reference, r.l.account, r2(r.k.expense), r2(r.k.vat), r.cv.withheld ? r.l.atc || "NO EWT" : "NO EWT", r2(r.k.wt), r.cv.receiver, r.cv.mop,
+        r.month ? r.month.name : ""].map(q).join(","));
+      const blob = new Blob(["\ufeff" + [head.map(q).join(","), ...body].join("\r\n")], { type: "text/csv" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "cv-database" + ($("#dbMonth").value ? "-" + $("#dbMonth").value : "") + ".csv";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    };
+
+    // For "Import from Excel" (cv-import.js)
+    window.CV = {
+      ACCOUNTS, ATC, all, saveAll, nextNo, lineCalc, me, r2, money, esc, renderDb,
+      refreshNo: () => { if (!current && !dirty) $("#cvNo").textContent = nextNo(); },
+      status,
+    };
+
+    // Start with a new voucher (after the online data has loaded, so the number is right)
+    newCv();
+    renderDb();
+    (window.cloudReady || Promise.resolve()).then(() => { if (!current && !dirty) $("#cvNo").textContent = nextNo(); renderDb(); });
+  </script>
+  <script src="cv-import.js?v=4"></script>
+</body>
+</html>

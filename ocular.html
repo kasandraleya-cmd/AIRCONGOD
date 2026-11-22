@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Ocular Survey</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <!-- Same toolbar and paper look as the Formal Quotation -->
+  <link rel="stylesheet" href="aftersales.css?v=9">
+  <link rel="stylesheet" href="formalquotation.css?v=6">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&family=Montserrat:wght@800;900&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+  <style>
+    /* A4 paper: 210 × 297 mm, like the printed page. Each row's three small tools (+ add a row below, row type, × remove) sit in the
+       paper's right margin and show only while pointing at / typing in that row; they never print. */
+    .fq-sheet.oc-sheet { box-sizing: border-box; width: 210mm; min-height: 297mm; padding: 12mm 18mm 14mm 12mm; margin: 0 auto; }
+    .oc-sheet .fq-items, .oc-sheet .fq-info { width: 100%; margin-right: 0; }
+    .oc-paper { padding: 24px 20px; }
+    .oc-sheet .fq-items tbody tr { position: relative; }
+    .oc-sheet .fq-items td.oc-tools { position: absolute; top: 0; bottom: 0; right: -62px; width: 60px; height: auto; padding: 0;
+      border: 0; background: none !important; display: flex; align-items: center; justify-content: flex-end; gap: 2px; opacity: 0; transition: opacity .12s; }
+    .oc-sheet .fq-items tr:hover td.oc-tools, .oc-sheet .fq-items tr:focus-within td.oc-tools { opacity: 1; }
+    .oc-tools button { display: grid; place-items: center; width: 19px; height: 19px; padding: 0; border: 1px solid #cfd8dc; border-radius: 4px;
+      background: #fff; color: #475569; font-size: 11px; line-height: 1; cursor: pointer; }
+    .oc-tools button:hover { border-color: #071d49; color: #071d49; }
+    .oc-tools .x:hover { border-color: #dc2626; color: #dc2626; }
+    .oc-tools .oc-add { border-color: #15803d; color: #15803d; font-size: 12px; }
+    .oc-tools .oc-add:hover { background: #15803d; color: #fff; border-color: #15803d; }
+    @media (hover: none) { .oc-sheet .fq-items td.oc-tools { opacity: 1; } }
+    .oc-short { display: none; }
+    /* The toolbar (New, Add row, Print, Submit) stays at the top while scrolling, so Add row can be clicked
+       again and again even after the page scrolls down to the new rows. Phones: under the menu bar (64px). */
+    .q-bar { position: sticky; top: 0; z-index: 55; margin: -24px -20px 18px; padding: 16px 20px 12px; background: var(--bg, #f4f7f8); }
+    .q-bar.oc-stuck { box-shadow: 0 6px 12px -8px rgba(7, 29, 73, .35); }
+    @media (max-width: 800px) { .q-bar { top: 64px; margin: 0 0 12px; padding: 10px 12px; } }
+    /* Phones: New / Add row / History share one line, Submit to office gets the whole line under them */
+    @media screen and (max-width: 800px) {
+      .q-bar-actions { display: flex; flex-wrap: wrap; }
+      .q-bar-actions .q-btn { flex: 1 1 0; min-width: 0; white-space: nowrap; }
+      .q-bar-actions .q-btn[hidden], .q-bar-actions #printBtn { display: none; }
+      .q-bar-actions #submitBtn { flex: 1 1 100%; padding: 12px; font-size: 14px; }
+    }
+    @media print { .q-bar { position: static; } }
+    /* A row just added flashes yellow, and a small note says "Row 15 added" */
+    @keyframes ocFlash { from { background: #fde68a; } to { background: transparent; } }
+    .oc-sheet .fq-items tr.oc-new td:not(.oc-tools) { animation: ocFlash 1.6s ease-out; }
+    .oc-toast { position: fixed; left: 50%; bottom: 24px; z-index: 3000; transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+      padding: 10px 16px; border-radius: 10px; background: #071d49; color: #fff; font-weight: 700; font-size: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.25); transition: opacity .18s, transform .18s; }
+    .oc-toast.on { opacity: 1; transform: translate(-50%, 0); }
+    .oc-toast i { color: #f5c542; margin-right: 6px; }
+    @media print { .oc-toast { display: none !important; } }
+    /* Description: a box that wraps long names onto more lines (grows as you type) */
+    .oc-sheet textarea.d { display: block; width: 100%; min-width: 0; min-height: 16px; margin: 0; padding: 1px 4px; border: 0; outline: 0;
+      background: transparent; color: inherit; font: inherit; line-height: 1.3; resize: none; overflow: hidden; }
+    .oc-sheet textarea.d:focus { background: #fff8d6; }
+    .oc-sheet textarea.d::placeholder, .oc-sheet .fq-items input::placeholder { color: transparent; }   /* labels for phones only */
+    .oc-sheet .fq-items tr.type-section .dc textarea { color: #1a1aff; font-weight: 900; text-align: center; }
+    .oc-sheet .fq-items tr.type-note .dc textarea { color: #e01010; text-align: center; }
+    .oc-sheet .fq-items tr.type-note .dc textarea:focus { background: #7ff7f7; }
+
+    /* PHONES: exactly the same A4 sheet as on a computer (same columns, same look), shrunk to fit the
+       screen width (--pz, set by the script under the sheet). Pinch to zoom in; tapping a box zooms in to type.
+       The + / type / × tools stay in the right margin and are always shown (no mouse to point with). */
+    @media screen and (max-width: 800px) {
+      .q-paper.oc-paper:not(.show) { display: block; }
+      .oc-paper { padding: 8px; overflow: hidden; }
+      .fq-sheet.oc-sheet { zoom: var(--pz, 0.45); }
+    }
+
+    @media print {
+      .fq-sheet.oc-sheet { width: auto; min-height: 0; padding: 0; margin: 0; }
+      .oc-paper { padding: 0; }
+      .oc-tools { display: none !important; }
+    }
+    /* No prices: Description, Quantity, Unit, and the row Type tools */
+    .oc-sheet .fq-items td:nth-child(2) input, .oc-sheet .fq-items td:nth-child(3) input { text-align: center; }
+    .oc-sheet .fq-items td:nth-child(4) input, .oc-sheet .fq-items td:nth-child(5) input { text-align: left; }
+    .oc-notes-box { margin-top: 14px; }
+    .oc-notes-box label { display: block; font: 800 12px Montserrat, system-ui, sans-serif; letter-spacing: .4px; margin-bottom: 4px; }
+    .oc-notes-box textarea { width: 100%; min-height: 70px; padding: 8px; border: 1px solid #c9d3d6; border-radius: 6px; font: inherit; resize: vertical; }
+    .oc-done { margin: 0 0 14px; padding: 10px 14px; border: 1px solid #9fd9b7; border-radius: 10px; background: #e5f6ea; color: #15803d; font-weight: 700; }
+    .oc-mine { margin-top: 18px; }
+    .oc-mine h3 { font-size: 15px; margin: 0 0 8px; }
+    .oc-mine li { margin: 4px 0; color: #475569; font-size: 13.5px; }
+    .oc-mine .st { font-weight: 700; }
+    .oc-mine .st.quoted { color: #15803d; }
+    .oc-mine .st.new { color: #b45309; }
+    @media print { .oc-notes-box textarea { border: 0; } .oc-mine, .oc-done { display: none !important; } }
+  </style>
+</head>
+<body class="app">
+
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) window.location.href = "index.html";
+  </script>
+
+  <aside class="side">
+    <div class="side-brand">
+      <img src="AIRCON.png" alt="Logo">
+      <span>AIRCON G.O.D</span>
+    </div>
+    <nav aria-label="Main menu"><!-- filled in by sidebar.js --></nav>
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <main class="content">
+
+    <div class="q-bar">
+      <div>
+        <a class="fq-back" id="backLink" href="aftersales.html" hidden><i class="fas fa-arrow-left"></i> Back to Warranty</a>
+        <h1>Ocular Survey</h1>
+        <p>List the units, materials and work required on site. Pricing is added by the office.</p>
+      </div>
+      <div class="q-bar-actions">
+        <button type="button" class="q-btn" id="newBtn"><i class="fas fa-file"></i> New</button>
+        <button type="button" class="q-btn" id="addBtn"><i class="fas fa-plus"></i> Add row</button>
+        <button type="button" class="q-btn" id="historyBtn" hidden><i class="fas fa-history"></i> History</button>
+        <button type="button" class="q-btn" id="printBtn"><i class="fas fa-print"></i> Print</button>
+        <button type="button" class="q-btn gold" id="submitBtn"><i class="fas fa-paper-plane"></i> Submit to office</button>
+      </div>
+    </div>
+
+    <div id="doneNote" class="oc-done" hidden></div>
+
+    <div class="q-paper oc-paper">
+      <div class="fq-sheet oc-sheet" id="sheet">
+
+        <header class="fq-head">
+          <div class="q-logo" role="img" aria-label="AIRCON G.O.D Guardian of Degrees">
+            <span class="q-logo-mark"><img src="AIRCON.png" alt=""></span>
+            <span class="q-logo-text">
+              <b>AIRCON<em>G.O.D</em></b>
+              <small>GUARDIAN OF DEGREES</small>
+            </span>
+          </div>
+          <p>028 Real St. Brgy Zapote Las Piñas City</p>
+          <p>09772604127/09612379892</p>
+          <p>ej.coolingcare@gmail.com</p>
+        </header>
+
+        <h2 class="fq-title">OCULAR SURVEY</h2>
+
+        <div class="fq-info">
+          <span class="lbl">CLIENT</span><span class="val"><input data-f="client" autocomplete="off"></span>
+          <span class="lbl">DATE</span><span class="val"><input data-f="date" autocomplete="off"></span>
+          <span class="lbl">ADDRESS</span><span class="val"><input data-f="address" autocomplete="off"></span>
+          <span class="lbl">CONTACT NO.</span><span class="val"><input data-f="contact" autocomplete="off"></span>
+          <span class="lbl">SURVEYED BY</span><span class="val wide"><input data-f="surveyor" autocomplete="off"></span>
+        </div>
+
+        <h3 class="fq-sub">UNITS, MATERIALS &amp; WORK NEEDED</h3>
+
+        <table class="fq-items">
+          <colgroup><col style="width:64%"><col style="width:16%"><col style="width:20%"></colgroup>
+          <thead>
+            <tr><th>DESCRIPTION</th><th><span class="oc-long">QUANTITY</span><span class="oc-short">QTY</span></th><th>UNIT</th></tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+
+        <div class="oc-notes-box">
+          <label for="notes">NOTES (site condition, wall type, distance of outdoor unit, etc.)</label>
+          <textarea id="notes" data-f="notes" placeholder="e.g. concrete wall, 5 ft. copper pipe run, 2nd floor, needs bracket"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Phones: shrink the A4 sheet to the screen width, so it looks exactly like it does on a computer
+      (function fitSheet() {
+        const paper = document.querySelector(".oc-paper"), sheet = document.getElementById("sheet");
+        const fit = () => {
+          if (!matchMedia("screen and (max-width: 800px)").matches) return sheet.style.removeProperty("--pz");
+          const a4 = 793.7;   // 210 mm in CSS pixels
+          const room = paper.clientWidth - 16;   // minus the paper's 8px padding on each side
+          sheet.style.setProperty("--pz", Math.min(1, room / a4).toFixed(3));
+        };
+        fit();
+        addEventListener("resize", fit);
+        addEventListener("orientationchange", fit);
+      })();
+    </script>
+
+    <div class="panel oc-mine" id="mine" hidden></div>
+  </main>
+
+  <script>
+    function logout() { sessionStorage.clear(); window.location.href = "index.html"; }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+  <script src="pricelist.js?v=4"></script>
+  <script src="pricepicker.js?v=4"></script>
+  <script src="copper.js?v=4"></script>
+  <script src="ocular.js?v=12"></script>
+
+  <script>
+    const DRAFT = "aircon_ocular_draft";   // kept on this device until submitted
+    const START_ROWS = 14;
+    const $ = (s) => document.querySelector(s);
+    const body = $("#rows");
+    const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const UNIT_WORD = { UNIT: "unit", FT: "ft.", SET: "sets", PC: "pc." };
+    const TYPES = { item: "Item", section: "Area (blue)", note: "Note (cyan)" };
+    const info = () => [...document.querySelectorAll("[data-f]")];
+    const me = sessionStorage.getItem("aircon_name") || sessionStorage.getItem("aircon_user") || "";
+    const todayText = () => new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+
+    // The office can go back to Warranty; installers don't have that page
+    if (Roles.me().manager || Roles.me().fieldOffice) $("#backLink").hidden = false;
+
+    // Description wraps onto more lines when the name is long (phones especially), instead of being cut off
+    function grow(t) {
+      if (!t || t.tagName !== "TEXTAREA") return;
+      t.style.height = "auto";
+      t.style.height = t.scrollHeight + "px";
+    }
+
+    // ---------- Rows ----------
+    function addRow(r = {}) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="dc"><textarea class="d" rows="1" autocomplete="off" placeholder="Description"></textarea></td>
+        <td><input class="q" inputmode="decimal" autocomplete="off" placeholder="Qty"></td>
+        <td><input class="u" autocomplete="off" placeholder="Unit"></td>
+        <td class="oc-tools">
+          <button type="button" class="oc-add" title="Add a row below this one"><i class="fas fa-plus"></i></button>
+          <button type="button" class="ty" title="Row type: Item → Area (blue) → Note (cyan)"></button>
+          <button type="button" class="x" title="Remove this row"><i class="fas fa-times"></i></button>
+        </td>`;
+      tr.querySelector(".d").value = r.d ?? "";
+      tr.querySelector(".q").value = r.q ?? "";
+      tr.querySelector(".u").value = r.u ?? "";
+      tr.dataset.src = r.src || "";   // copper tube: the Price List item it came from (its price per ft, for the quotation)
+      setType(tr, r.type || "item");
+      body.appendChild(tr);
+      grow(tr.querySelector(".d"));
+      return tr;
+    }
+    // The row-type button shows what the row is now: a tag = item, a pin = area / room title, a note = note
+    const TYPE_ICON = { item: "fas fa-tag", section: "fas fa-map-marker-alt", note: "fas fa-sticky-note" };
+    function setType(tr, type) {
+      tr.dataset.type = type;
+      const b = tr.querySelector(".ty");
+      b.innerHTML = `<i class="${TYPE_ICON[type]}"></i>`;
+      b.title = `${TYPES[type]}: click to change (Item → Area → Note)`;
+      Object.keys(TYPES).forEach((t) => tr.classList.toggle("type-" + t, t === type));
+    }
+    const readRows = () => [...body.rows].map((tr) => ({
+      type: tr.dataset.type, d: tr.querySelector(".d").value.trim(), q: tr.querySelector(".q").value.trim(), u: tr.querySelector(".u").value.trim(),
+      ...(tr.dataset.src ? { src: tr.dataset.src } : {}),
+    }));
+    const values = () => ({ ...Object.fromEntries(info().map((i) => [i.dataset.f, i.value.trim()])), rows: readRows() });
+
+    function save() { try { localStorage.setItem(DRAFT, JSON.stringify(values())); } catch (e) {} }
+    function load(data) {
+      data = data || {};
+      info().forEach((i) => (i.value = data[i.dataset.f] || ""));
+      if (!$('[data-f="date"]').value) $('[data-f="date"]').value = todayText();
+      if (!$('[data-f="surveyor"]').value) $('[data-f="surveyor"]').value = me;
+      body.innerHTML = "";
+      (data.rows || []).filter((r) => r.d || r.q || r.u).forEach(addRow);
+      while (body.rows.length < START_ROWS) addRow();
+    }
+    let draft = null;
+    try { draft = JSON.parse(localStorage.getItem(DRAFT)); } catch (e) {}
+    load(draft);
+
+    // The pinned toolbar gets a soft shadow once the page is scrolled under it
+    addEventListener("scroll", () => document.querySelector(".q-bar").classList.toggle("oc-stuck", scrollY > 10), { passive: true });
+
+    // A row just added: scroll to it, flash it yellow, put the cursor in it and say so (a blank row is easy to miss)
+    function showNewRow(tr) {
+      tr.scrollIntoView({ block: "center", behavior: "smooth" });
+      tr.querySelector(".d").focus({ preventScroll: true });
+      tr.classList.remove("oc-new");
+      void tr.offsetWidth;   // restart the flash if the same row flashes again
+      tr.classList.add("oc-new");
+      const n = [...body.rows].indexOf(tr) + 1;
+      let t = document.getElementById("ocToast");
+      if (!t) { t = document.createElement("div"); t.id = "ocToast"; t.className = "oc-toast"; document.body.appendChild(t); }
+      t.innerHTML = `<i class="fas fa-plus-circle"></i> Row ${n} added`;
+      t.classList.add("on");
+      clearTimeout(showNewRow.timer);
+      showNewRow.timer = setTimeout(() => t.classList.remove("on"), 1800);
+    }
+
+    // ---------- Typing ----------
+    $("#sheet").addEventListener("input", (e) => { $("#doneNote").hidden = true; grow(e.target); save(); });
+    addEventListener("resize", () => body.querySelectorAll("textarea.d").forEach(grow));
+    // Enter moves down to the same box on the next row, like a spreadsheet
+    body.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" || !e.target.matches("input, textarea.d") || e.defaultPrevented) return;   // Enter never adds a new line in Description
+      e.preventDefault();
+      const tr = e.target.closest("tr");
+      (tr.nextElementSibling || addRow()).querySelector("." + e.target.className).focus();
+    });
+    // Units and materials from the Price List fill in their name and unit (no price on this sheet)
+    PricePicker.attach(body, "tr.type-item .d", (input, item) => {
+      const tr = input.closest("tr");
+      input.value = item.name;
+      grow(input);
+      tr.querySelector(".u").value = UNIT_WORD[item.unit] || item.unit.toLowerCase();
+      if (!tr.querySelector(".q").value) tr.querySelector(".q").value = 1;
+      // A copper tube: "COPPER TUBE 10FT. - 10FT. FREE = FREE" with the 10 highlighted to type the real length (copper.js)
+      if (Copper.isItem(item.name)) { if (PricePicker.find(item.name)) tr.dataset.src = item.name; copperSet(tr, Copper.FREE); copperSelectLength(tr); }
+      save();
+    }, {
+      // Copper tube: ONE "COPPER TUBE" choice, priced by the HP of the aircon above this row (copper.js)
+      copperFor: (input) => {
+        const rows = [...body.rows], at = rows.indexOf(input.closest("tr"));
+        return Copper.priceItemFor(rows.slice(0, at).map((r) => (r.querySelector(".d") || {}).value));
+      },
+    });
+
+    // ---------- Copper tube: first 10 ft free (copper.js) ----------
+    // "COPPER TUBE 35FT. - 10FT. FREE = 25FT. EXCESS" with QTY 25 (the excess). Both numbers are editable:
+    // the length in the description sets QTY, and QTY sets the length.
+    function copperSet(tr, length) {
+      const c = Copper.write(length);
+      tr.querySelector(".d").value = c.d;
+      grow(tr.querySelector(".d"));
+      tr.querySelector(".q").value = c.q;
+      tr.querySelector(".u").value = "ft.";
+      // Typed by hand ("copper tube 20ft"): the copper tube for the aircon above it, for the quotation's price per ft
+      if (!tr.dataset.src) {
+        const above = [...body.rows].slice(0, [...body.rows].indexOf(tr)).map((r) => r.querySelector(".d").value);
+        const item = Copper.priceItemFor(above);
+        if (item) tr.dataset.src = item.name;
+      }
+    }
+    function copperSelectLength(tr) {
+      const d = tr.querySelector(".d"), m = d.value.match(/^(COPPER TUBE )(\d+(?:\.\d+)?)/i);
+      if (m) setTimeout(() => { d.focus(); d.setSelectionRange(m[1].length, m[1].length + m[2].length); }, 0);
+    }
+    // The whole length when someone starts editing the description, to tell which feet number they changed
+    body.addEventListener("focusin", (e) => {
+      if (!e.target.matches(".d")) return;
+      const len = Copper.lengthOf(e.target.value);
+      e.target.closest("tr").dataset.cuBefore = len === null ? "" : String(len);
+    });
+    const copperBefore = (tr) => (tr.dataset.cuBefore ? +tr.dataset.cuBefore : null);
+    body.addEventListener("change", (e) => {
+      const tr = e.target.closest("tr");
+      if (!tr) return;
+      const d = tr.querySelector(".d").value;
+      if (e.target.matches(".q") && Copper.isWritten(d)) copperSet(tr, Copper.lengthOf(Copper.fromExcess(e.target.value, Copper.lengthOf(d)).d));
+      else if (e.target.matches(".d") && Copper.isWritten(d)) copperSet(tr, Copper.resolve(d, copperBefore(tr)));   // either feet number may have been edited
+      else if (e.target.matches(".d") && Copper.isItem(d)) { tr.dataset.src = tr.dataset.src || d; copperSet(tr, Copper.FREE); copperSelectLength(tr); }
+      else return;
+      save();
+    });
+    body.addEventListener("click", (e) => {
+      const add = e.target.closest(".oc-add");
+      if (add) {   // + : a new empty row right below this one
+        const tr = add.closest("tr"), row = addRow();
+        tr.after(row);
+        showNewRow(row);
+        save();
+        return;
+      }
+      const ty = e.target.closest(".ty");
+      if (ty) {   // Item → Area → Note → Item
+        const tr = ty.closest("tr"), order = Object.keys(TYPES);
+        const next = order[(order.indexOf(tr.dataset.type) + 1) % order.length];
+        setType(tr, next);
+        if (next !== "item") tr.querySelectorAll(".q, .u").forEach((i) => (i.value = ""));
+        tr.querySelector(".d").focus();
+        save();
+        return;
+      }
+      if (!e.target.closest(".x")) return;
+      e.target.closest("tr").remove();
+      if (body.rows.length < 8) addRow();
+      save();
+    });
+
+    // ---------- Buttons ----------
+    // Add row: always adds a new row at the bottom (even when there are empty rows), and shows it
+    $("#addBtn").onclick = () => { showNewRow(addRow()); save(); };
+    $("#newBtn").onclick = () => {
+      if (!confirm("Clear this survey and start a new one?")) return;
+      localStorage.removeItem(DRAFT);
+      load({});
+    };
+    $("#printBtn").onclick = () => window.print();
+    // Ocular history: Admin / Office Staff, Supervisors, HR / Manager, Owner, Developer (ocular.js)
+    if (Ocular.canHistory()) { $("#historyBtn").hidden = false; $("#historyBtn").onclick = Ocular.showHistory; }
+
+    $("#submitBtn").onclick = async () => {
+      const v = values();
+      if (!v.client) { alert("Please type the client's name."); return $('[data-f="client"]').focus(); }
+      const items = v.rows.filter((r) => r.type === "item" && r.d);
+      if (!items.length) { alert("Please list at least one unit or material."); return body.querySelector(".d").focus(); }
+      if (!confirm(`Send the ocular survey for ${v.client} (${items.length} item${items.length === 1 ? "" : "s"}) to the office?`)) return;
+      const btn = $("#submitBtn");
+      btn.disabled = true;
+      Ocular.submit({ client: v.client, date: v.date, address: v.address, contact: v.contact, surveyor: v.surveyor, notes: v.notes,
+        rows: v.rows.filter((r) => r.d) });
+      btn.disabled = false;
+      localStorage.removeItem(DRAFT);
+      load({});
+      $("#doneNote").innerHTML = `<i class="fas fa-check-circle"></i> Sent: ${esc(v.client)}. HR and the Supervisor will see it on their Dashboard and make the quotation.`;
+      $("#doneNote").hidden = false;
+      scrollTo({ top: 0, behavior: "smooth" });
+      drawMine();
+    };
+
+    // ---------- My surveys: what I sent and whether it has been quoted ----------
+    function drawMine() {
+      const user = sessionStorage.getItem("aircon_user") || "";
+      const mine = Ocular.read().filter((s) => s.by === user).slice(0, 10);
+      $("#mine").hidden = !mine.length;
+      $("#mine").innerHTML = `<h3><i class="fas fa-history"></i> My ocular surveys</h3><ul>${mine.map((s) =>
+        `<li><b>${esc(s.client)}</b> · ${Ocular.items(s).length} item(s) · sent ${esc(new Date(s.submitted).toLocaleDateString("en-PH", { month: "short", day: "numeric" }))} ·
+          <span class="st ${s.status === "Quoted" ? "quoted" : "new"}">${s.status === "Quoted" ? "Quoted by " + esc(s.quotedBy || "the office") : "Waiting for quotation"}</span></li>`).join("")}</ul>`;
+    }
+    addEventListener("storage", (e) => { if (e.key === Ocular.KEY) drawMine(); });
+    (window.cloudReady || Promise.resolve()).then(drawMine);
+    drawMine();
+  </script>
+</body>
+</html>

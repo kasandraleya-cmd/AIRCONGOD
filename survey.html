@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Survey</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <!-- Toolbar styles are in survey.css (aftersales.css is not loaded: its 8 mm print margin would shrink the pages) -->
+  <link rel="stylesheet" href="survey.css?v=9">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Open+Sans:wght@400;500;600;700;800&family=Oswald:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+  <!-- For saving the signed copy as a PDF (signedforms.js) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="app">
+
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) window.location.href = "index.html";
+  </script>
+
+  <!-- Survey is opened from the Warranty page, so Warranty stays highlighted here -->
+  <aside class="side">
+    <div class="side-brand">
+      <img src="AIRCON.png" alt="Logo">
+      <span>AIRCON G.O.D</span>
+    </div>
+    <nav aria-label="Main menu"><!-- filled in by sidebar.js --></nav>
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <main class="content sv">
+
+    <div class="q-bar">
+      <div>
+        <a class="fq-back" id="backLink" href="aftersales.html"><i class="fas fa-arrow-left"></i> Back to Warranty</a>
+        <h1>Survey</h1>
+        <p>Installation Acceptance &amp; Agreement and Ocular Inspection terms.</p>
+      </div>
+      <div class="q-bar-actions">
+        <button type="button" class="q-btn" id="newBtn"><i class="fas fa-file"></i> New</button>
+        <button type="button" class="q-btn" id="signedBtn"><i class="fas fa-folder-open"></i> Signed Forms</button>
+        <button type="button" class="q-btn" id="printBtn"><i class="fas fa-print"></i> Print</button>
+        <button type="button" class="q-btn gold" id="saveSignedBtn"><i class="fas fa-save"></i> Save</button>
+      </div>
+    </div>
+
+    <div class="sv-paper" id="sheet">
+
+      <!-- ================= PAGE 1 ================= -->
+      <section class="sv-page pdf-page">
+        <div class="sv-banner">
+          <div class="sv-logo" role="img" aria-label="AIRCON G.O.D PH, Guardian of Degrees">
+            <span class="sv-logo-mark"><img src="AIRCON.png" alt=""></span>
+            <span class="sv-logo-text"><b>AIRCON</b><em>G.O.D</em><span>PH</span><small>GUARDIAN OF DEGREES</small></span>
+          </div>
+          <span class="sv-swoosh"></span>
+        </div>
+
+        <div class="sv-body">
+          <h2 class="sv-title">INSTALLATION ACCEPTANCE &amp; AGREEMENT</h2>
+          <div class="sv-title-line"></div>
+
+          <div class="sv-appt">Appointment date: <input class="sv-in line" data-k="appointment" placeholder="mm/dd/yyyy" style="max-width:240px"></div>
+
+          <div class="sv-tab">CLIENT INFORMATION</div>
+          <div class="sv-fields">
+            <label><span>Full Name:</span><input class="sv-in" data-k="name"></label>
+            <label><span>Address:</span><input class="sv-in" data-k="address"></label>
+            <label><span>Contact Number :</span><input class="sv-in" data-k="contact"></label>
+            <label><span>Brand , Model&nbsp; and Horse Power:</span><input class="sv-in" data-k="unit"></label>
+          </div>
+
+          <div class="sv-tab">INSTALLATION AGREEMENT</div>
+          <p class="sv-agree-line">I, <input class="sv-in line" data-k="agree_name"> hereby authorize and agree to the installation of my air conditioning unit.</p>
+
+          <div class="sv-box">
+            <h4>I understand and acknowledge the following:</h4>
+            <p class="indent">I confirm that I have personally selected and approved the installation locations for the indoor and outdoor air conditioning units before installation commenced.</p>
+
+            <h4>I understand and agree that:</h4>
+            <ul>
+              <li>The installation locations, requirements, and scope of work were explained to me, and I approved the final placement of the indoor and outdoor units.</li>
+              <li>I have inspected the completed installation and found the workmanship to be satisfactory.</li>
+              <li>Any relocation of the indoor unit, outdoor unit, refrigerant piping, drainage line, electrical wiring, or related accessories after installation shall be considered additional work and will be subject to a relocation/service fee and any applicable material costs.</li>
+              <li>Any repair, modification, relocation, maintenance, or service performed by persons or companies other than <b>AIRCON GOD PH</b>, without our written authorization, shall void the installation warranty.</li>
+              <li>Damage or malfunction resulting from misuse, negligence, unauthorized alterations, power fluctuations, natural disasters, or other causes beyond the Contractor's control is not covered by the installation warranty.</li>
+              <li>Change of plan will be charged separately.</li>
+            </ul>
+
+            <h4>WARRANTY will be VOID if:</h4>
+            <ul>
+              <li>The causes of the malfunction or damage include improper maintenance, using electrical supply at the wrong voltage or frequency, overuse, and abuse, whether deliberate or not.</li>
+              <li>Damage is caused by unpredictable events such as pest infestations, fires, floods, accidents, and Natural Disaster.</li>
+              <li>NO FREE cleaning, aircon cleaning ranges from 1,500.00 to 4,500.00.</li>
+              <li><b>AIRCON GOD PH</b> or <b>AUTHORIZED SERVICE CENTER</b> are allowed to provide services to the purchased AC unit/s, otherwise, <b>WARRANTY</b> will be <b>VOID</b>.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="sv-foot"></div>
+      </section>
+
+      <!-- ================= PAGE 2 ================= -->
+      <section class="sv-page pdf-page">
+        <div class="sv-banner">
+          <div class="sv-logo" role="img" aria-label="AIRCON G.O.D PH, Guardian of Degrees">
+            <span class="sv-logo-mark"><img src="AIRCON.png" alt=""></span>
+            <span class="sv-logo-text"><b>AIRCON</b><em>G.O.D</em><span>PH</span><small>GUARDIAN OF DEGREES</small></span>
+          </div>
+          <span class="sv-swoosh"></span>
+        </div>
+
+        <div class="sv-body">
+          <div class="sv-card">
+            <div class="sv-card-h"><i class="fas fa-clipboard-list"></i><b>OCULAR INSPECTION FEE TERMS</b><small>AIRCON GOD PH</small></div>
+            <div class="sv-card-b">
+              <h4>I understand and agree that:</h4>
+              <ul>
+                <li>The Ocular Inspection Fee is ₱1,000.00/₱500.00 (fees vary depending on the location) which is non-refundable under any circumstances.</li>
+                <li>If I proceed with the installation or project within one (1) month from the date of the ocular inspection, ₱500.00/₱300.00 of the ocular inspection fee will be credited as a discount and deducted from the total project cost.</li>
+                <li>The ₱500.00/₱300.00 credit is valid only for one (1) month from the date of the ocular inspection.</li>
+                <li>If I decide to proceed after the one (1) month validity period, the ocular inspection fee shall be considered expired, and no portion of the fee will be credited or discounted from the project cost.</li>
+                <li>Any new site assessment or additional ocular inspection requested after the validity period may be subject to a new ocular inspection fee.</li>
+                <li>In the event that the installation is canceled on or before the scheduled date, a cancellation fee of ₱1,000 will be charged, as the schedule is reserved exclusively for you.</li>
+                <li>Re-scheduling is allowed up to two (2) times only. Beyond this, the same cancellation policy may apply.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="sv-card">
+            <div class="sv-card-h"><i class="fas fa-file-invoice"></i><b class="long">ADDITIONAL TERMS FOR COMMERCIAL &amp; LARGE-SCALE PROJECTS</b><small>AIRCON GOD PH</small></div>
+            <div class="sv-card-b">
+              <h4>I understand and agree that:</h4>
+              <ul>
+                <li>This quotation is based on the current cost of air conditioning units, materials, and related supplies. If there are manufacturer price adjustments, supplier cost increases, material shortages, import cost changes, or other circumstances beyond <b>AIRCON GOD PH</b>'s control before procurement, <b>AIRCON GOD PH</b> reserves the right to revise the quoted price. Any price adjustment will be communicated to the Client for approval before procurement or installation proceeds.</li>
+                <li>Any change in the approved scope of work, installation location, equipment specifications, quantities, or client requested modifications after quotation approval shall be treated as a Variation Order and may result in additional charges and/or adjustments to the project schedule.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="sv-card">
+            <div class="sv-card-h"><i class="fas fa-user"></i><b>CUSTOMER CONFIRMATION</b><small>AIRCON GOD PH</small></div>
+            <div class="sv-card-b">
+              <p style="margin:0">By signing below, I confirm that I have read, understood, and agree to the terms and conditions stated above.</p>
+              <div class="sv-sign-row">
+                <label>Client Signature:
+                  <button type="button" class="sv-sig" data-sig="client"><img alt=""><span class="hint"><i class="fas fa-pen"></i> Tap to sign</span></button>
+                </label>
+                <label>Date:
+                  <input class="sv-in line" data-k="client_date" placeholder="mm/dd/yyyy">
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="sv-card">
+            <div class="sv-card-h"><i class="fas fa-tools"></i><b>INSTALLER INFORMATION</b><small>AIRCON GOD PH</small></div>
+            <div class="sv-card-b sv-installer">
+              <label><span>Installer's Name &amp; Signature:</span><input class="sv-in" data-k="installer">
+                <button type="button" class="sv-sig" data-sig="installer"><img alt=""><span class="hint"><i class="fas fa-pen"></i> Tap to sign</span></button></label>
+              <label><span>Company:</span><input class="sv-in" data-k="company"></label>
+              <label><span>Date:</span><input class="sv-in" data-k="installer_date" placeholder="mm/dd/yyyy"></label>
+            </div>
+          </div>
+        </div>
+        <div class="sv-foot"></div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    function logout() { sessionStorage.clear(); window.location.href = "index.html"; }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+  <script src="signedforms.js?v=3"></script>
+  <script src="history.js?v=3"></script>
+
+  <script>
+    // ---------- Survey form ----------
+    // Typed details are kept as a draft in this browser until "New". Signatures are only kept on this
+    // page until the signed copy is saved (like the Warranty quotation).
+    const $ = (s) => document.querySelector(s);
+    const DRAFT_KEY = "aircon_survey_draft";
+    const PREFILL_KEY = "aircon_survey_prefill";   // set by Warranty (Survey button) and Customer Records
+    const inPopup = new URLSearchParams(location.search).get("popup") === "1";
+    if (inPopup) $("#backLink").hidden = true;
+
+    const fields = () => [...document.querySelectorAll("[data-k]")];
+    const values = () => Object.fromEntries(fields().map((el) => [el.dataset.k, el.value.trim()]));
+    const isEmpty = (v) => !Object.entries(v).some(([k, x]) => x && k !== "company");
+    const pad = (n) => String(n).padStart(2, "0");
+    const todayText = () => { const d = new Date(); return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`; };
+    // "2026-11-18" → "11/18/2026"; anything else stays as written
+    const niceDate = (v) => { const m = String(v || "").match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? `${m[2]}/${m[3]}/${m[1]}` : String(v || ""); };
+
+    function fill(v) {
+      fields().forEach((el) => (el.value = v[el.dataset.k] || ""));
+      if (!$('[data-k="company"]').value) $('[data-k="company"]').value = "AIRCON GOD PH";
+    }
+    const saveDraft = () => { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(values())); } catch (e) {} };
+
+    // The "I, ____" line follows the full name until someone types in it
+    let agreeTyped = false;
+    document.addEventListener("input", (e) => {
+      if (!e.target.matches("[data-k]")) return;
+      if (e.target.dataset.k === "agree_name") agreeTyped = !!e.target.value.trim();
+      if (e.target.dataset.k === "name" && !agreeTyped) $('[data-k="agree_name"]').value = e.target.value;
+      saveDraft();
+    });
+
+    // Start: details sent from Warranty / Customer Records, otherwise the saved draft
+    (function start() {
+      let draft = {}, pre = null;
+      try { draft = JSON.parse(localStorage.getItem(DRAFT_KEY)) || {}; } catch (e) {}
+      try { pre = JSON.parse(sessionStorage.getItem(PREFILL_KEY)); } catch (e) {}
+      sessionStorage.removeItem(PREFILL_KEY);
+      if (pre && (pre.name || pre.address || pre.contact)) {
+        if (inPopup || isEmpty(draft) || confirm(`Start a new survey for ${pre.name || "this client"}? (The survey you were filling in will be cleared.)`)) {
+          fill({ name: pre.name, agree_name: pre.name, address: pre.address, contact: pre.contact, unit: pre.unit,
+            appointment: niceDate(pre.date), client_date: todayText(), installer_date: todayText() });
+          saveDraft();
+          return;
+        }
+      }
+      fill(draft);
+      agreeTyped = !!draft.agree_name && draft.agree_name !== draft.name;
+    })();
+
+    // ---------- Signatures ----------
+    const signatures = { client: "", installer: "" };
+    let savedAs = null;
+    function showSignature(who) {
+      const box = $(`.sv-sig[data-sig="${who}"]`);
+      const img = box.querySelector("img");
+      if (signatures[who]) img.src = signatures[who]; else img.removeAttribute("src");
+      box.classList.toggle("signed", !!signatures[who]);
+    }
+    document.querySelectorAll(".sv-sig").forEach((box) => box.addEventListener("click", async () => {
+      const who = box.dataset.sig;
+      const sig = await SignedForms.signaturePad(who === "client" ? "Client's signature" : "Installer's signature");
+      if (!sig) return;
+      signatures[who] = sig;
+      showSignature(who);
+    }));
+
+    // ---------- Buttons ----------
+    $("#newBtn").onclick = () => {
+      if (!isEmpty(values()) && !confirm("Clear this survey and start a new one?")) return;
+      fill({});
+      agreeTyped = false;
+      signatures.client = signatures.installer = "";
+      showSignature("client"); showSignature("installer");
+      savedAs = null;
+      saveDraft();
+      formHist.reset();
+    };
+    $("#printBtn").onclick = () => window.print();
+
+    // ---------- History records (history.js): every agreement made, can be opened again ----------
+    const formHist = FormHistory.attach({
+      key: "aircon_hist_agreement",
+      title: "Agreement",
+      button: $("#signedBtn"),
+      get: () => Object.fromEntries(fields().map((el) => [el.dataset.k, el.value])),
+      set: (v) => {
+        fill(v);
+        agreeTyped = !!v.agree_name && v.agree_name !== v.name;
+        signatures.client = signatures.installer = "";
+        showSignature("client"); showSignature("installer");
+        savedAs = null;
+        saveDraft();
+      },
+      empty: (v) => isEmpty(Object.fromEntries(Object.entries(v).map(([k, x]) => [k, String(x || "").trim()]))),
+      summary: (v) => ({ client: (v.name || "").trim(), date: (v.appointment || v.client_date || "").trim(), total: null,
+        sub: [v.unit, v.address].map((x) => String(x || "").trim()).filter(Boolean).join(" · ") }),
+    });
+    $("#signedBtn").onclick = () => SignedForms.showList();
+
+    // Save: keeps the agreement in the History records (saving again updates the same record)
+    $("#saveSignedBtn").onclick = () => {
+      const v = values();
+      if (!v.name) { alert("Please type the client's full name first."); return $('[data-k="name"]').focus(); }
+      if (!v.agree_name) { $('[data-k="agree_name"]').value = v.name; saveDraft(); }
+      const r = formHist.record("saved");
+      if (!r) return alert("The form is empty, so there's nothing to save.");
+      // Close the survey (a clean form, like "New") and go to the History records, showing this client
+      fill({});
+      agreeTyped = false;
+      signatures.client = signatures.installer = "";
+      showSignature("client"); showSignature("installer");
+      savedAs = null;
+      saveDraft();
+      formHist.reset();
+      formHist.show(v.name);
+    };
+  </script>
+</body>
+</html>

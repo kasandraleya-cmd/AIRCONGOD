@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b1f44">
+  <title>AIRCON G.O.D · AIRCON CLEANING FORM</title>
+    <link rel="icon" type="image/png" href="logo.png?v=2" />
+    <link rel="apple-touch-icon" href="logo.png?v=2" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="base-style.css?v=12">
+  <link rel="stylesheet" href="style.css?v=8">
+</head>
+<body>
+  <main class="card">
+    <header class="brand">
+      <img src="logo.png" alt="AIRCON G.O.D Guardian of Degrees">
+      <h1>AIRCON CLEANING FORM</h1>
+      <p>Please complete the form below so we can schedule your aircon cleaning.</p>
+      <div class="benefits" aria-label="Benefits of aircon cleaning">
+        <div><span class="benefit-icon">✓</span><p><b>LONGER LIFE</b><small>For your aircon</small></p></div>
+        <div><span class="benefit-icon snow">❄</span><p><b>BETTER COOLING</b><small>Consistent performance</small></p></div>
+        <div><span class="benefit-icon leaf">◒</span><p><b>CLEAN &amp; SAFE AIR</b><small>For your family</small></p></div>
+      </div>
+    </header>
+
+    <form id="cleaningForm">
+      <div class="grid">
+        <div class="field">
+          <label for="name">Name</label>
+          <input type="text" id="name" name="name" autocomplete="name" placeholder="Full name" required>
+        </div>
+        <div class="field">
+          <label for="date">Date of cleaning</label>
+          <div class="date-control">
+            <input type="text" id="date" name="date" placeholder="mm/dd/yyyy" inputmode="numeric" maxlength="10" autocomplete="off" required>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18"></path></svg>
+            <input type="date" id="datePicker" class="date-picker-native" aria-label="Choose cleaning date">
+          </div>
+          <small class="error"></small>
+        </div>
+        <div class="field wide">
+          <label for="address">Complete address</label>
+          <input type="text" id="address" name="address" autocomplete="street-address" placeholder="House no., street, barangay, city" required>
+        </div>
+        <div class="field wide location-field">
+          <label>Pin your exact location <span>(optional, helps our cleaners find you)</span></label>
+          <p class="location-help">Tap <b>Use my current location</b> or tap the map to place a pin. You can drag the pin to your home.</p>
+          <div class="location-actions">
+            <button type="button" class="location-button" id="locateBtn">◎ Use my current location</button>
+            <button type="button" class="location-clear" id="clearPinBtn" hidden>Remove pin</button>
+          </div>
+          <div id="locationMap" class="location-map" role="application" aria-label="Map: tap to place the cleaning location pin"></div>
+          <small class="location-status" id="locationStatus" aria-live="polite">Loading map…</small>
+          <input type="hidden" id="latitude" name="latitude">
+          <input type="hidden" id="longitude" name="longitude">
+          <input type="hidden" id="locationAccuracy" name="location_accuracy">
+        </div>
+        <div class="field wide">
+          <label for="landmark">Landmark</label>
+          <input type="text" id="landmark" name="landmark" placeholder="Nearby landmark">
+        </div>
+        <div class="field">
+          <label for="brandHp">Brand / HP</label>
+          <input type="text" id="brandHp" name="brandHp" placeholder="e.g. Daikin / 1.5 HP" required>
+        </div>
+        <div class="field">
+          <label for="contact">Contact number</label>
+          <input type="tel" id="contact" name="contact" autocomplete="tel" placeholder="09XX XXX XXXX" required>
+        </div>
+        <div class="field">
+          <label for="payment">Mode of payment</label>
+          <select id="payment" name="payment" required>
+            <option value="">Select</option><option>Cash</option><option>GCash</option><option>Bank transfer</option><option>Credit card</option>
+          </select>
+        </div>
+        <div class="field wide">
+          <label for="note">Special note</label>
+          <textarea id="note" name="note" rows="2" placeholder="Anything we should know before the cleaning"></textarea>
+        </div>
+        <!-- Office pop-up only (Cleaning Records): same batch buttons as the Customer Records form -->
+        <div class="field wide batch-field schedule-batch-field" id="scheduleBatchField" hidden>
+          <label>Batch <span>(sets the Daily Schedule time and the Weekly Schedule AM / PM / Pahabol slot)</span></label>
+          <div class="batches" role="radiogroup" aria-label="Batch">
+            <button type="button" class="batch b1" role="radio" aria-checked="false" data-batch="1ST BATCH">1ST BATCH<small>AM</small></button>
+            <button type="button" class="batch b2" role="radio" aria-checked="false" data-batch="2ND BATCH">2ND BATCH<small>PM</small></button>
+            <button type="button" class="batch b3" role="radio" aria-checked="false" data-batch="3RD BATCH">3RD BATCH<small>PAHABOL</small></button>
+          </div>
+          <input type="hidden" id="batch" name="batch" value="">
+          <small class="error" id="batchError"></small>
+        </div>
+      </div>
+
+      <div class="reminder">
+        <h2>Reminder</h2>
+        <p>If you have plans on the day of your scheduled cleaning, we kindly recommend rescheduling them or having someone stay at home. Our team may occasionally be delayed.</p>
+        <b>Thank you for your understanding.</b>
+      </div>
+      <p class="submitted" id="submitted" role="status" hidden>Form details are ready to print.</p>
+      <button class="submit" type="submit">SUBMIT REQUEST</button>
+    </form>
+
+    <section class="cleaning-done" id="doneScreen" role="status" aria-live="polite" hidden>
+      <span class="cleaning-done-icon" aria-hidden="true">✓</span>
+      <h2>CLEANING FORM COMPLETED</h2>
+      <p class="cleaning-done-lead">Your cleaning request has been submitted.</p>
+      <div class="cleaning-done-number">Request number <b id="doneRequestNo"></b></div>
+      <div class="cleaning-done-instruction">
+        <b>Next step</b>
+        <p>Please take a screenshot of this confirmation and send it to AIRCON G.O.D.</p>
+      </div>
+      <p class="cleaning-done-status" id="doneStatus"></p>
+    </section>
+
+    <footer class="contact"><b>AIRCON G.O.D. PH</b>028 Real St. Brgy Zapote, Las Piñas City · 09772604127 / 09612379892 · ej.coolingcare@gmail.com</footer>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="script.js?v=7"></script>
+</body>
+</html>

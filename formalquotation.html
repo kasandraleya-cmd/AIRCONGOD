@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Formal Quotation</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <!-- Toolbar and paper styles are shared with the Warranty page -->
+  <link rel="stylesheet" href="aftersales.css?v=9">
+  <link rel="stylesheet" href="formalquotation.css?v=6">
+  <style>
+    /* PHONES: the same quotation sheet as on a computer, shrunk to fit the screen width (--pz, set by the
+       script at the end of the page). Pinch to zoom in; tapping a box zooms in to type. New / Add row /
+       History share one line, Print / Save PDF gets the whole line under them. */
+    @media screen and (max-width: 800px) {
+      .q-paper:not(.show) { display: block; }
+      .q-paper { padding: 8px; overflow: hidden; }
+      .fq-sheet { zoom: var(--pz, 0.38); }
+      .q-bar-actions { display: flex; flex-wrap: wrap; }
+      .q-bar-actions .q-btn { flex: 1 1 0; min-width: 0; white-space: nowrap; }
+      .q-bar-actions .q-btn[hidden] { display: none; }
+      .q-bar-actions #printBtn { display: flex; flex: 1 1 100%; order: 9; padding: 12px; font-size: 14px; }
+    }
+  </style>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&family=Montserrat:wght@800;900&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+</head>
+<body class="app">
+
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) window.location.href = "index.html";
+  </script>
+
+  <!-- Formal Quotation is opened from the Warranty page, so Warranty stays highlighted here -->
+  <aside class="side">
+    <div class="side-brand">
+      <img src="AIRCON.png" alt="Logo">
+      <span>AIRCON G.O.D</span>
+    </div>
+    <nav aria-label="Main menu"><!-- filled in by sidebar.js --></nav>
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <main class="content">
+
+    <div class="q-bar">
+      <div>
+        <a class="fq-back" href="aftersales.html"><i class="fas fa-arrow-left"></i> Back to Warranty</a>
+        <h1>Formal Quotation</h1>
+        <p>Prepare a formal quotation. Prices are filled in from the Price List.</p>
+      </div>
+      <div class="q-bar-actions">
+        <button type="button" class="q-btn" id="newBtn"><i class="fas fa-file"></i> New</button>
+        <button type="button" class="q-btn" id="addBtn"><i class="fas fa-plus"></i> Add row</button>
+        <button type="button" class="q-btn gold" id="printBtn"><i class="fas fa-print"></i> Print / Save PDF</button>
+      </div>
+    </div>
+
+    <div class="q-paper">
+      <div class="fq-sheet" id="sheet">
+
+        <header class="fq-head">
+          <!-- Same logo as the Warranty quotation: text + the emblem from AIRCON.png, crisp on screen and in print -->
+          <div class="q-logo" role="img" aria-label="AIRCON G.O.D Guardian of Degrees">
+            <span class="q-logo-mark"><img src="AIRCON.png" alt=""></span>
+            <span class="q-logo-text">
+              <b>AIRCON<em>G.O.D</em></b>
+              <small>GUARDIAN OF DEGREES</small>
+            </span>
+          </div>
+          <p>028 Real St. Brgy Zapote Las Piñas City</p>
+          <p>09772604127/09612379892</p>
+          <p>ej.coolingcare@gmail.com</p>
+          <p>TIN: 383-793-00000</p>
+          <p class="small">Non-VAT Registered</p>
+        </header>
+
+        <h2 class="fq-title">FORMAL QUOTATION</h2>
+
+        <!-- Client details: label cell + value cell, Mode of Payment on its own row -->
+        <div class="fq-info">
+          <span class="lbl">CLIENT</span><span class="val"><input data-f="client" autocomplete="off"></span>
+          <span class="lbl">DATE</span><span class="val"><input data-f="date" autocomplete="off"></span>
+          <span class="lbl">ADDRESS</span><span class="val"><input data-f="address" autocomplete="off"></span>
+          <span class="lbl">CONTACT NO.</span><span class="val"><input data-f="contact" autocomplete="off"></span>
+          <span class="lbl">MODE OF PAYMENT</span>
+          <span class="val wide fq-pick"><input data-f="mop" autocomplete="off" placeholder="Select mode of payment"><i class="fas fa-chevron-down"></i></span>
+        </div>
+
+        <h3 class="fq-sub">SUMMARY OF PRODUCTS AND SERVICES</h3>
+
+        <table class="fq-items">
+          <colgroup>
+            <col style="width:46%"><col style="width:10%"><col style="width:9%"><col style="width:17.5%"><col style="width:17.5%"><col class="tools-col">
+          </colgroup>
+          <thead>
+            <tr><th>DESCRIPTION</th><th>QUANTITY</th><th>UNIT</th><th>PRICE PER UNIT</th><th>TOTAL PRICE</th><th class="tools">Type</th></tr>
+          </thead>
+          <tbody id="rows"></tbody>
+          <!-- TOTAL of the items, minus the OCULAR fee already paid = TOTAL AMOUNT TO PAY -->
+          <tfoot>
+            <tr class="sub">
+              <td colspan="3" class="blank"></td>
+              <td class="tl">TOTAL</td>
+              <td class="tsub" id="subTotal">0.00</td>
+              <td class="tools"></td>
+            </tr>
+            <tr class="sub">
+              <td colspan="3" class="blank"></td>
+              <td class="tl" title="The ocular (survey) fee the client already paid; it's taken off the total">OCULAR</td>
+              <td class="tsub"><input data-f="ocular" inputmode="decimal" autocomplete="off" placeholder="0.00" title="Ocular fee already paid (taken off the total)"></td>
+              <td class="tools"></td>
+            </tr>
+            <tr class="pay">
+              <td colspan="3" class="tl">TOTAL AMOUNT TO PAY</td>
+              <td colspan="2" class="tv" id="grand">0.00</td>
+              <td class="tools"></td>
+            </tr>
+          </tfoot>
+        </table>
+
+      </div>
+    </div>
+    <script>
+      // Phones: shrink the quotation sheet to the screen width, so it looks exactly like it does on a computer
+      (function fitSheet() {
+        const paper = document.querySelector(".q-paper"), sheet = document.getElementById("sheet");
+        const fit = () => {
+          if (!matchMedia("screen and (max-width: 800px)").matches) return sheet.style.removeProperty("--pz");
+          const full = 960;   // the sheet's width on a computer (formalquotation.css)
+          sheet.style.setProperty("--pz", Math.min(1, (paper.clientWidth - 16) / full).toFixed(3));
+        };
+        fit();
+        addEventListener("resize", fit);
+        addEventListener("orientationchange", fit);
+      })();
+    </script>
+  </main>
+
+  <script>
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = "index.html";
+    }
+  </script>
+  <div class="opt-menu" id="optMenu" hidden role="listbox"></div>
+
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+  <script src="pricelist.js?v=4"></script>
+  <script src="pricepicker.js?v=4"></script>
+  <script src="copper.js?v=4"></script>
+  <script src="history.js?v=3"></script>
+  <script src="printwrap.js?v=1"></script>
+  <script>PrintWrap.attach("#rows .d, .fq-info input");</script>
+
+  <script>
+    const DRAFT = "aircon_formal_quote_draft";   // kept on this PC, like the Warranty quotation
+    const START_ROWS = 28;
+    const $ = (s) => document.querySelector(s);
+    const body = $("#rows");
+    const num = (v) => parseFloat(String(v ?? "").replace(/[^0-9.\-]/g, "")) || 0;
+    const money = (n) => Number(n || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const UNIT_WORD = { UNIT: "unit", FT: "ft.", SET: "sets", PC: "pc." };
+    const TYPES = { item: "Item", section: "Area (blue)", group: "Title (pink)", note: "Note (cyan)" };
+    // Client details, plus the OCULAR fee at the bottom (saved with the quotation too)
+    const info = () => [...document.querySelectorAll(".fq-info [data-f], #sheet tfoot [data-f]")];
+
+    // ---------- Rows ----------
+    function addRow(r = {}) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="dc"><input class="d" autocomplete="off"></td>
+        <td><input class="q" inputmode="decimal" autocomplete="off"></td>
+        <td><input class="u" autocomplete="off"></td>
+        <td><input class="p" inputmode="decimal" autocomplete="off"></td>
+        <td><input class="t" inputmode="decimal" autocomplete="off" title="Filled in automatically (quantity × price). Type to change it; clear it to go back to automatic."></td>
+        <td class="tools">
+          <select class="ty" title="Row type">${Object.entries(TYPES).map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>
+          <button type="button" class="rd" title="Red text (for add-ons)">A</button>
+          <button type="button" class="x" title="Remove this row">&times;</button>
+        </td>`;
+      tr.querySelector(".d").value = r.d ?? "";
+      tr.querySelector(".q").value = r.q ?? "";
+      tr.querySelector(".u").value = r.u ?? "";
+      tr.querySelector(".p").value = r.p ?? "";
+      tr.querySelector(".t").value = r.tm ? r.t ?? "" : "";
+      tr.dataset.tm = r.tm ? "1" : "";
+      setType(tr, r.type || "item");
+      tr.classList.toggle("red", !!r.red);
+      body.appendChild(tr);
+      return tr;
+    }
+
+    function setType(tr, type) {
+      tr.dataset.type = type;
+      tr.querySelector(".ty").value = type;
+      Object.keys(TYPES).forEach((t) => tr.classList.toggle("type-" + t, t === type));
+    }
+
+    function readRows() {
+      return [...body.rows].map((tr) => ({
+        type: tr.dataset.type, red: tr.classList.contains("red"),
+        d: tr.querySelector(".d").value, q: tr.querySelector(".q").value, u: tr.querySelector(".u").value,
+        p: tr.querySelector(".p").value, t: tr.querySelector(".t").value, tm: tr.dataset.tm === "1",
+      }));
+    }
+
+    // Long descriptions get a smaller font so the whole name fits in its box (also when printed)
+    function fitText(input) {
+      input.style.fontSize = "";
+      let size = parseFloat(getComputedStyle(input).fontSize);
+      while (input.scrollWidth > input.clientWidth && size > 6.5) {
+        size -= 0.5;
+        input.style.fontSize = size + "px";
+      }
+    }
+    const fitAll = () => { body.querySelectorAll(".d").forEach(fitText); info().forEach(fitText); };
+
+    // ---------- Totals ----------
+    function calc() {
+      let grand = 0;
+      [...body.rows].forEach((tr) => {
+        if (tr.dataset.type !== "item") return;
+        const t = tr.querySelector(".t");
+        if (tr.dataset.tm !== "1") {
+          const d = tr.querySelector(".d").value, q = num(tr.querySelector(".q").value), p = num(tr.querySelector(".p").value);
+          // Copper tube within the free 10 ft ("… FREE = FREE"): 0.00 (copper.js)
+          t.value = q && p ? money(q * p) : Copper.isWritten(d) && !q ? "0.00" : "";
+        }
+        grand += num(t.value);
+      });
+      // TOTAL of the items − OCULAR fee already paid = TOTAL AMOUNT TO PAY
+      $("#subTotal").textContent = money(grand);
+      $("#grand").textContent = money(grand - num($('[data-f="ocular"]').value));
+    }
+
+    // ---------- Saving (this PC) ----------
+    function save() {
+      const data = { info: Object.fromEntries(info().map((i) => [i.dataset.f, i.value])), rows: readRows() };
+      localStorage.setItem(DRAFT, JSON.stringify(data));
+    }
+    function load(data) {
+      info().forEach((i) => (i.value = (data.info && data.info[i.dataset.f]) || ""));
+      body.innerHTML = "";
+      (data.rows || []).forEach(addRow);
+      while (body.rows.length < START_ROWS) addRow();
+      calc();
+      fitAll();
+    }
+    const isEmpty = (data) => !data || (!Object.values(data.info || {}).some((v) => String(v).trim()) &&
+      !(data.rows || []).some((r) => r.d || r.q || r.p || r.t));
+
+    let draft = null;
+    try { draft = JSON.parse(localStorage.getItem(DRAFT)); } catch (e) {}
+    load(draft || {});
+
+    // Opened from the Warranty page: bring its quotation over
+    (function fromWarranty() {
+      let w = null;
+      try { w = JSON.parse(sessionStorage.getItem("aircon_formal_from_warranty")); } catch (e) {}
+      sessionStorage.removeItem("aircon_formal_from_warranty");
+      if (!w || isEmpty(w)) return;
+      if (!isEmpty(draft) && !confirm("Replace this formal quotation with the one from the Warranty page" + (w.info.client ? " (" + w.info.client + ")" : "") + "?")) return;
+      load(w);
+      save();
+    })();
+
+    // ---------- Typing ----------
+    $("#sheet").addEventListener("input", (e) => {
+      const tr = e.target.closest("tr");
+      // A typed Total Price stays as typed; clearing it goes back to quantity × price
+      if (tr && e.target.matches(".t")) tr.dataset.tm = e.target.value.trim() ? "1" : "";
+      if (e.target.matches(".d, .fq-info input")) fitText(e.target);
+      if (e.target.matches(".q, .p, .t, [data-f='ocular']")) calc();
+      save();
+    });
+
+    // ---------- Copper tube: first 10 ft free (copper.js) ----------
+    // "COPPER TUBE 35FT. - 10FT. FREE = 25FT. EXCESS" with QUANTITY 25 (the excess), ft., price per ft
+    // A new copper tube row: highlight the length ("10" in "COPPER TUBE 10FT. …") so the real length can be typed over it
+    function copperSelectLength(tr) {
+      const d = tr.querySelector(".d"), m = d.value.match(/^(COPPER TUBE )(\d+(?:\.\d+)?)/i);
+      if (!m) return;
+      setTimeout(() => { d.focus(); d.setSelectionRange(m[1].length, m[1].length + m[2].length); }, 0);
+    }
+    function copperSet(tr, length) {
+      const c = Copper.write(length), d = tr.querySelector(".d");
+      d.value = c.d;
+      tr.querySelector(".q").value = c.q;
+      if (!tr.querySelector(".u").value) tr.querySelector(".u").value = "ft.";
+      // No price yet (typed by hand, e.g. "copper tube 20ft"): the copper tube price for the aircon above it
+      if (!num(tr.querySelector(".p").value)) {
+        const above = [...body.rows].slice(0, [...body.rows].indexOf(tr)).map((r) => r.querySelector(".d").value);
+        const item = Copper.priceItemFor(above);
+        if (item) tr.querySelector(".p").value = money(item.srp);
+      }
+      tr.dataset.tm = "";
+      fitText(d);
+    }
+    // The whole length when someone starts editing the description, to tell which feet number they changed
+    body.addEventListener("focusin", (e) => {
+      if (!e.target.matches(".d")) return;
+      const len = Copper.lengthOf(e.target.value);
+      e.target.closest("tr").dataset.cuBefore = len === null ? "" : String(len);
+    });
+    const copperBefore = (tr) => (tr.dataset.cuBefore ? +tr.dataset.cuBefore : null);
+    body.addEventListener("change", (e) => {
+      const tr = e.target.closest("tr");
+      if (!tr) return;
+      const d = tr.querySelector(".d").value;
+      // QUANTITY (the excess) changed → the description's length follows
+      if (e.target.matches(".q") && Copper.isWritten(d)) { const c = Copper.fromExcess(e.target.value, Copper.lengthOf(d)); copperSet(tr, Copper.lengthOf(c.d)); }
+      // The description changed: its length → QUANTITY; a copper tube typed by hand → ask for the whole length
+      else if (e.target.matches(".d") && Copper.isWritten(d)) copperSet(tr, Copper.resolve(d, copperBefore(tr)));   // either feet number may have been edited
+      else if (e.target.matches(".d") && Copper.isItem(d)) { copperSet(tr, Copper.FREE); copperSelectLength(tr); }
+      else return;
+      calc();
+      save();
+    });
+    // Rows written the earlier way ("… — 20FT - 10FT FREE …"): rewrite them in this format
+    [...body.rows].forEach((tr) => { const d = tr.querySelector(".d").value; if (/\s—\s\d/.test(d) && Copper.isWritten(d)) copperSet(tr, Copper.lengthOf(d)); });
+    calc(); save();
+    // Enter moves down to the same box on the next row, like a spreadsheet (a new row is added at the end)
+    body.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" || !e.target.matches("input") || e.defaultPrevented) return;
+      e.preventDefault();
+      const cls = e.target.className;
+      const tr = e.target.closest("tr");
+      const next = tr.nextElementSibling || addRow();
+      next.querySelector("." + cls).focus();
+    });
+
+    // The OCULAR fee shows as 300.00 once you leave its box
+    document.querySelector("#sheet tfoot").addEventListener("focusout", (e) => {
+      if (!e.target.matches("[data-f='ocular']") || !e.target.value.trim()) return;
+      e.target.value = money(num(e.target.value));
+      calc();
+      save();
+    });
+    // Prices show as 42,927.00 once you leave the box
+    body.addEventListener("focusout", (e) => {
+      if (!e.target.matches(".p, .t") || !e.target.value.trim()) return;
+      e.target.value = money(num(e.target.value));
+      calc();
+      save();
+    });
+
+    // Units and materials on the Price List fill in their unit and price (still editable)
+    PricePicker.attach(body, "tr.type-item .d", (input, item) => {
+      const tr = input.closest("tr");
+      input.value = item.name;
+      fitText(input);
+      tr.querySelector(".u").value = UNIT_WORD[item.unit] || item.unit.toLowerCase();
+      tr.querySelector(".p").value = money(item.srp);
+      if (!tr.querySelector(".q").value) tr.querySelector(".q").value = 1;
+      tr.dataset.tm = "";
+      // A copper tube: ask for the whole length → "COPPER TUBE 35FT. - 10FT. FREE = 25FT. EXCESS", QUANTITY 25
+      if (Copper.isItem(item.name)) { copperSet(tr, Copper.FREE); copperSelectLength(tr); }
+      calc();
+      save();
+    }, {
+      // Copper tube: ONE "COPPER TUBE" choice, priced by the HP of the aircon above this row (copper.js)
+      copperFor: (input) => {
+        const rows = [...body.rows], at = rows.indexOf(input.closest("tr"));
+        return Copper.priceItemFor(rows.slice(0, at).map((r) => (r.querySelector(".d") || {}).value));
+      },
+    });
+
+    // Row type, red text, remove
+    body.addEventListener("change", (e) => {
+      if (!e.target.matches(".ty")) return;
+      const tr = e.target.closest("tr");
+      setType(tr, e.target.value);
+      fitText(tr.querySelector(".d"));
+      // Areas, titles and notes have no quantity or price
+      if (e.target.value !== "item") { tr.querySelectorAll(".q, .u, .p, .t").forEach((i) => (i.value = "")); tr.dataset.tm = ""; }
+      calc();
+      save();
+    });
+    body.addEventListener("click", (e) => {
+      const tr = e.target.closest("tr");
+      if (e.target.closest(".rd")) { tr.classList.toggle("red"); save(); }
+      if (e.target.closest(".x")) {
+        tr.remove();
+        if (body.rows.length < 12) addRow();
+        calc();
+        save();
+      }
+    });
+
+    // ---------- Mode of payment: formal pick list ----------
+    const MOP = ["Cash", "Bank Transfer", "Credit Card - Straight", "Credit Card - 6 months", "Credit Card - 12 months",
+      "Debit Card", "G-Cash", "PayMaya", "GoTyme", "Salmon", "Check / Cheque"];
+    const MOP_ICON = (o) => /credit|debit/i.test(o) ? "fa-credit-card" : /cash$/i.test(o) ? "fa-money-bill-wave" : /bank/i.test(o) ? "fa-university"
+      : /check/i.test(o) ? "fa-money-check" : /salmon/i.test(o) ? "fa-hand-holding-usd" : "fa-mobile-alt";
+    const menu = $("#optMenu");
+    const mop = $('[data-f="mop"]');
+    let shown = [], pickIndex = -1;
+    function openMop(all) {
+      const q = mop.value.trim().toLowerCase();
+      shown = all || !q ? MOP : MOP.filter((o) => o.toLowerCase().includes(q));
+      if (!shown.length) return closeMop();
+      pickIndex = shown.indexOf(mop.value);
+      menu.innerHTML = '<div class="opt-title">Mode of payment</div>' + shown.map((o, i) => `
+        <button type="button" role="option" data-i="${i}" class="${i === pickIndex ? "on" : ""}">
+          <i class="fas ${MOP_ICON(o)}"></i><span>${o}</span>${o === mop.value ? '<i class="fas fa-check opt-tick"></i>' : ""}
+        </button>`).join("");
+      const r = mop.closest(".val").getBoundingClientRect();
+      menu.style.left = r.left + scrollX + "px";
+      menu.style.top = r.bottom + scrollY + 4 + "px";
+      menu.style.width = Math.max(r.width, 240) + "px";
+      menu.hidden = false;
+    }
+    function closeMop() { menu.hidden = true; }
+    function pickMop(i) { mop.value = shown[i]; closeMop(); fitText(mop); save(); }
+    menu.addEventListener("mousedown", (e) => { const b = e.target.closest("button"); if (b) { e.preventDefault(); pickMop(+b.dataset.i); } });
+    mop.addEventListener("click", () => openMop(true));
+    mop.addEventListener("input", () => openMop(false));
+    mop.addEventListener("blur", () => setTimeout(closeMop, 120));
+    mop.addEventListener("keydown", (e) => {
+      if (menu.hidden) { if (e.key === "ArrowDown") { e.preventDefault(); openMop(true); } return; }
+      const btns = menu.querySelectorAll("button");
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        pickIndex = (pickIndex + (e.key === "ArrowDown" ? 1 : -1) + btns.length) % btns.length;
+        btns.forEach((b, i) => b.classList.toggle("on", i === pickIndex));
+        btns[pickIndex].scrollIntoView({ block: "nearest" });
+      } else if (e.key === "Enter" && pickIndex >= 0) { e.preventDefault(); pickMop(pickIndex); }
+      else if (e.key === "Escape") closeMop();
+    });
+    document.querySelector(".fq-pick > i").addEventListener("mousedown", (e) => { e.preventDefault(); mop.focus(); openMop(true); });
+    window.addEventListener("resize", closeMop);
+
+    // ---------- Buttons ----------
+    // Add row: always adds a new row at the bottom (even when there are empty rows), and shows it
+    $("#addBtn").onclick = () => {
+      const tr = addRow();
+      tr.scrollIntoView({ block: "center", behavior: "smooth" });
+      tr.querySelector(".d").focus({ preventScroll: true });
+      save();
+    };
+    $("#newBtn").onclick = () => {
+      if (!confirm("Clear this formal quotation and start a new one?")) return;
+      localStorage.removeItem(DRAFT);
+      load({});
+      formHist.reset();
+    };
+    $("#printBtn").onclick = () => window.print();
+
+    // ---------- History records (history.js): every formal quotation made, can be opened again ----------
+    const formHist = FormHistory.attach({
+      key: "aircon_hist_formal",
+      title: "Formal Quotation",
+      button: $("#addBtn"),
+      get: () => ({ info: Object.fromEntries(info().map((i) => [i.dataset.f, i.value])), rows: readRows() }),
+      set: (data) => { load(data); save(); },
+      empty: isEmpty,
+      summary: (data) => {
+        const items = (data.rows || []).filter((r) => r.type === "item" && r.d.trim());
+        return { client: (data.info.client || "").trim(), date: (data.info.date || "").trim(), total: num($("#grand").textContent),
+          sub: items.slice(0, 3).map((r) => r.d.trim()).join(", ") + (items.length > 3 ? ` +${items.length - 3} more` : "") };
+      },
+    });
+    window.addEventListener("beforeprint", fitAll);
+    window.addEventListener("afterprint", fitAll);
+    document.fonts && document.fonts.ready.then(fitAll);
+  </script>
+</body>
+</html>

@@ -1,0 +1,518 @@
+/* =========================================
+   DAILY SCHEDULE (dailysched.html only)
+   Looks like the office's Google Sheet: monospace text, orange headers, coloured ▼ chips
+   ========================================= */
+
+/* ---------- Toolbar above the sheet ---------- */
+.ds-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.ds-nav { display: flex; align-items: center; gap: 6px; }
+
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ds-btn:hover { background: var(--bg); }
+.ds-btn.dark { border-color: #1e293b; background: #1e293b; color: #fff; }
+
+/* Date: shown as MM/DD/YYYY; the real date box sits invisibly underneath to open the calendar */
+.ds-pick {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ds-pick i { color: #071d49; }
+.ds-pick input[type="date"] {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;   /* the label opens the calendar */
+}
+.ds-pick:focus-within { outline: 2px solid #1a73e8; outline-offset: 1px; }
+
+/* ---------- The sheet ---------- */
+.ds-sheet {
+  --mono: "Courier New", Courier, Consolas, monospace;
+  overflow: hidden;
+  border: 1px solid #c9d3dc;
+  background: #fff;
+}
+
+.ds-title {
+  padding: 3px;
+  background: #c9daf8;
+  color: #3c78d8;
+  font: 13px var(--mono);
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+.ds-date {
+  padding: 3px;
+  background: #0000ff;
+  color: #fff;
+  font: 13px var(--mono);
+  text-align: center;
+}
+
+.ds-scroll { overflow-x: auto; }
+
+.ds-table {
+  width: 100%;
+  min-width: 1876px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font: 13px var(--mono);
+  color: #111;
+}
+
+/* Column widths */
+.ds-table .c-jo { width: 96px; }
+.ds-table .c-time { width: 112px; }
+.ds-table .c-name { width: 200px; }
+.ds-table .c-loc { width: 132px; }
+.ds-table .c-model { width: 192px; }
+.ds-table .c-hp { width: 72px; }
+.ds-table .c-qty { width: 66px; }
+.ds-table .c-status { width: 126px; }
+.ds-table .c-proj { width: 84px; }
+.ds-table .c-park { width: 92px; }
+.ds-table .c-mop { width: 126px; }
+.ds-table .c-assign { width: 132px; }
+.ds-table .c-notes { width: 252px; }
+.ds-table .c-x { width: 42px; }
+
+.ds-table th {
+  padding: 2px 4px;
+  background: #f6b26b;
+  color: #783f04;
+  font: 700 13px system-ui, "Segoe UI", Arial, sans-serif;
+  letter-spacing: 0.4px;
+  text-align: center;
+}
+
+.ds-table td {
+  height: 19px;
+  padding: 0 2px;
+  border-bottom: 1px solid #e3e3e3;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* "INSTALLER" / "SERVICE" label rows */
+.ds-table .lab td {
+  height: 17px;
+  padding: 0 3px;
+  background: #c9daf8;
+  border-bottom: 1px solid #a4c2f4;
+  color: #783f04;
+  font-size: 12px;
+}
+
+.ds-table .lab .lab-name,
+.ds-table .lab .lab-pad {
+  background: #fff;
+  text-align: right;
+}
+
+/* Crew names typed beside INSTALLER / SERVICE */
+.ds-table .lab-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ds-table .lab input.crew {
+  flex: 0 0 auto;     /* as wide as its names (size= set by the page), so the dropdown follows them */
+  width: auto;
+  max-width: 70%;
+  height: 17px;
+  padding: 0 4px;
+  background: transparent;
+  color: #3c78d8;
+  font: 15px var(--mono);
+  text-transform: uppercase;
+}
+
+.ds-table .lab input.crew::placeholder {
+  color: #8fb0e3;
+  font-size: 12px;
+  text-transform: none;
+}
+
+.ds-table .lab input.crew:focus { background: #fff; }
+
+/* Dropdown beside the crew box: pick a staff member to add */
+.ds-table .lab select.crew-pick {
+  flex: 0 0 auto;
+  width: auto;
+  max-width: 170px;
+  height: 18px;
+  padding: 0 20px 0 9px;
+  border: 1px dashed #3c78d8;
+  border-radius: 99px;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0h8L4 5z' fill='%231a73e8'/%3E%3C/svg%3E");
+  background-position: right 7px center;
+  color: #1a73e8;
+  font: 700 11px system-ui, "Segoe UI", sans-serif;
+  letter-spacing: .3px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .15s, border-color .15s;
+}
+.ds-table .lab select.crew-pick:hover { border-style: solid; background-color: #e8f0fe; }
+.ds-table .lab select.crew-pick:focus { outline: 2px solid #1a73e8; outline-offset: 1px; border-style: solid; }
+.ds-table .lab select.crew-pick:disabled { display: none; }
+
+/* "SERVICES" band */
+.ds-table .bar td {
+  height: 18px;
+  background: #f6b26b;
+  color: #783f04;
+  font: 12px var(--mono);
+  text-align: center;
+}
+
+/* Small "+ row / remove block" links, only when pointing at the label row */
+.ds-table .tools { margin-left: auto; text-align: right; }
+
+.ds-table .tools button {
+  margin-left: 6px;
+  padding: 0 8px;
+  border: 1px solid #9db6d0;
+  border-radius: 4px;
+  background: #fff;
+  color: #1e3a5f;
+  font: 11px system-ui, "Segoe UI", sans-serif;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.ds-table .lab:hover .tools button,
+.ds-table .tools button:focus { opacity: 1; }
+.ds-table .tools button[data-rmg]:hover { background: #fdeceb; color: var(--bad); }
+
+/* ---------- Cells ---------- */
+.ds-table input {
+  width: 100%;
+  height: 18px;
+  padding: 0 3px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: 13px var(--mono);
+  box-shadow: none;
+}
+
+.ds-table input:focus {
+  outline: 2px solid #1a73e8;
+  outline-offset: -2px;
+  background: #fff;
+}
+
+.ds-table .jo { border-left: 1px solid #e3e3e3; }
+.ds-table .jo input { text-transform: uppercase; }
+.ds-table .name { border-left: 1px solid #e3e3e3; }
+.ds-table .notes { background: #f4c7c3; }
+.ds-table .addr input { font-size: 10.5px; }
+
+/* ---------- Chips (every drop-down) ---------- */
+.ds-table select {
+  width: 100%;
+  height: 16px;
+  padding: 0 14px 0 5px;
+  border: 0;
+  border-radius: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: #e8eaed;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0h8L4 5z' fill='%23222'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 5px center;
+  color: #3c4043;
+  font: 12px var(--mono);
+  text-align: center;
+  text-align-last: center;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.ds-table select:focus {
+  outline: 2px solid #1a73e8;
+  outline-offset: 0;
+}
+
+.ds-table select option,
+.ds-table select optgroup {
+  background: #fff;
+  color: #111;
+  text-align: left;
+}
+
+/* Status */
+.ds-table select[data-v="WAITING"] { background-color: #ffe5a0; color: #b45f06; }
+.ds-table select[data-v="ON THE WAY"] { background-color: #ffc8aa; color: #753800; }
+.ds-table select[data-v="ONGOING"] { background-color: #c6dbfc; color: #1155cc; }
+.ds-table select[data-v="DONE"] { background-color: #b7e1cd; color: #0b8043; }
+.ds-table select[data-v="RESCHEDULED"] { background-color: #e6cff2; color: #5a3286; }
+.ds-table select[data-v="CANCELLED"] { background-color: #f4c7c3; color: #a50e0e; }
+
+/* Time: the chip, and each choice in its drop-down list (1st green, 2nd orange, 3rd red) */
+.ds-table select[data-k="time"] option[value]:not([value=""]) { font-weight: 700; }
+.ds-table select[data-v="1ST BATCH"], .ds-table select[data-k="time"] option[value="1ST BATCH"] { background-color: #4caf1a; color: #0d3d00; }
+.ds-table select[data-v="2ND BATCH"], .ds-table select[data-k="time"] option[value="2ND BATCH"] { background-color: #f9cb9c; color: #b45f06; }
+.ds-table select[data-v="3RD BATCH"], .ds-table select[data-k="time"] option[value="3RD BATCH"] { background-color: #f4c7c3; color: #a50e0e; }
+.ds-table select[data-v="4TH BATCH"], .ds-table select[data-k="time"] option[value="4TH BATCH"] { background-color: #e6cff2; color: #5a3286; }
+.ds-table select[data-v="5TH BATCH"], .ds-table select[data-k="time"] option[value="5TH BATCH"] { background-color: #bfe1f6; color: #0a53a8; }
+
+/* QTY drop-down list: grey choices like the sheet */
+.ds-table select[data-k="qty"] option[value]:not([value=""]) { background: #e8eaed; color: #3c4043; }
+
+/* Mode of payment: the chip, and each choice in its drop-down list */
+.ds-table select[data-k="mop"] option[value]:not([value=""]) { font-weight: 700; }
+.ds-table select[data-v="CASH"], .ds-table select[data-k="mop"] option[value="CASH"] { background-color: #d4edbc; color: #11734b; }
+.ds-table select[data-v="BANK TRANSFER"], .ds-table select[data-k="mop"] option[value="BANK TRANSFER"] { background-color: #bdbdbd; color: #3c4043; }
+.ds-table select[data-v="CREDIT CARD"], .ds-table select[data-k="mop"] option[value="CREDIT CARD"] { background-color: #ffc8aa; color: #753800; }
+.ds-table select[data-v="G-CASH"], .ds-table select[data-k="mop"] option[value="G-CASH"] { background-color: #bfe1f6; color: #0a53a8; }
+.ds-table select[data-v="PAYMAYA"], .ds-table select[data-k="mop"] option[value="PAYMAYA"] { background-color: #5b9aa6; color: #0c343d; }
+.ds-table select[data-v="GOTYME"], .ds-table select[data-k="mop"] option[value="GOTYME"] { background-color: #e6cff2; color: #5a3286; }
+.ds-table select[data-v="DEBIT"], .ds-table select[data-k="mop"] option[value="DEBIT"] { background-color: #ffe5a0; color: #7f6000; }
+.ds-table select[data-v="SALMON"], .ds-table select[data-k="mop"] option[value="SALMON"] { background-color: #e69138; color: #3d1f00; }
+.ds-table select[data-v="CHECK/CHEQUE PAYMENT"], .ds-table select[data-k="mop"] option[value="CHECK/CHEQUE PAYMENT"] { background-color: #7ba8f0; color: #0a2a5c; }
+
+/* Assign */
+.ds-table select[data-v="EJ COOLING CARE"] { background-color: #bfe1f6; color: #0a53a8; }
+.ds-table select[data-v="AIRCON G.O.D."] { background-color: #ffc8aa; color: #753800; }
+
+/* Model: units by brand */
+.ds-table select.model[data-c="midea"] { background-color: #4a86e8; color: #0a2a5c; }
+.ds-table select.model[data-c="tcl"] { background-color: #ffcfc9; color: #b10202; }
+.ds-table select.model[data-c="carrier"] { background-color: #c6dbe1; color: #215a6c; }
+.ds-table select.model[data-c="lg"] { background-color: #e6cff2; color: #5a3286; }
+.ds-table select.model[data-c="aux"] { background-color: #ffe5a0; color: #7f6000; }
+.ds-table select.model[data-c="kolin"] { background-color: #ffc8aa; color: #753800; }
+.ds-table select.model[data-c="daikin"] { background-color: #d4edbc; color: #11734b; }
+.ds-table select.model[data-c="panasonic"] { background-color: #ead1dc; color: #741b47; }
+.ds-table select.model[data-c="samsung"] { background-color: #bfe1f6; color: #0a53a8; }
+.ds-table select.model[data-c="gree"] { background-color: #b7e1cd; color: #0b8043; }
+.ds-table select.model[data-c="ah"] { background-color: #fce5cd; color: #b45f06; }
+
+/* Model: services (dark chips, white text) */
+.ds-table select.model[data-c="survey"],
+.ds-table select.model[data-c="cleaning"],
+.ds-table select.model[data-c="checkup"],
+.ds-table select.model[data-c="freon"],
+.ds-table select.model[data-c="repair"],
+.ds-table select.model[data-c="relocation"],
+.ds-table select.model[data-c="project"],
+.ds-table select.model[data-c="works"],
+.ds-table select.model[data-c="other"] {
+  color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0h8L4 5z' fill='%23fff'/%3E%3C/svg%3E");
+}
+.ds-table select.model[data-c="survey"] { background-color: #3d3d3d; }       /* survey, site visit */
+.ds-table select.model[data-c="cleaning"] { background-color: #b10202; }     /* cleaning, pull down, leak test */
+.ds-table select.model[data-c="checkup"] { background-color: #11734b; }      /* check up */
+.ds-table select.model[data-c="freon"] { background-color: #0a53a8; }        /* freon, reprocess */
+.ds-table select.model[data-c="repair"] { background-color: #5a3286; }       /* repair, back job, replacement */
+.ds-table select.model[data-c="relocation"] { background-color: #215a6c; }   /* relocation, re-install, installation only */
+.ds-table select.model[data-c="project"] { background-color: #1c4587; }      /* project, continuation */
+.ds-table select.model[data-c="works"] { background-color: #7f6000; }        /* piping, chipping, cladding, drain, styro */
+.ds-table select.model[data-c="other"] { background-color: #666; }           /* deliver, transact, reschedule, start up */
+
+/* Model drop-down list: each choice in its brand / service colour, like the chips */
+.ds-table select option[class^="c-"] { font-weight: 700; }
+.ds-table select option.c-midea { background: #4a86e8; color: #0a2a5c; }
+.ds-table select option.c-tcl { background: #ffcfc9; color: #b10202; }
+.ds-table select option.c-carrier { background: #c6dbe1; color: #215a6c; }
+.ds-table select option.c-lg { background: #e6cff2; color: #5a3286; }
+.ds-table select option.c-aux { background: #ffe5a0; color: #7f6000; }
+.ds-table select option.c-kolin { background: #ffc8aa; color: #753800; }
+.ds-table select option.c-daikin { background: #d4edbc; color: #11734b; }
+.ds-table select option.c-panasonic { background: #ead1dc; color: #741b47; }
+.ds-table select option.c-samsung { background: #bfe1f6; color: #0a53a8; }
+.ds-table select option.c-gree { background: #b7e1cd; color: #0b8043; }
+.ds-table select option.c-ah { background: #fce5cd; color: #b45f06; }
+.ds-table select option.c-survey { background: #3d3d3d; color: #fff; }
+.ds-table select option.c-cleaning { background: #b10202; color: #fff; }
+.ds-table select option.c-checkup { background: #11734b; color: #fff; }
+.ds-table select option.c-freon { background: #0a53a8; color: #fff; }
+.ds-table select option.c-repair { background: #5a3286; color: #fff; }
+.ds-table select option.c-relocation { background: #215a6c; color: #fff; }
+.ds-table select option.c-project { background: #1c4587; color: #fff; }
+.ds-table select option.c-works { background: #7f6000; color: #fff; }
+.ds-table select option.c-other { background: #666; color: #fff; }
+
+/* Remove-row ×, only when pointing at the row */
+.ds-table .x { text-align: center; border-bottom-color: transparent; }
+
+.ds-table .x button {
+  width: 20px;
+  height: 18px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: #a2b2b6;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.ds-table tr.job:hover .x button { opacity: 1; }
+.ds-table .x button:hover { background: #fdeceb; color: var(--bad); }
+
+/* Drag handle (⋮⋮) beside the ×: grab it to move a job to another row or block */
+.ds-table .x { white-space: nowrap; }
+.ds-table .x .grip {
+  display: inline-grid; place-items: center; width: 16px; height: 18px; vertical-align: middle;
+  color: #a2b2b6; font-size: 12px; cursor: grab; opacity: 0; touch-action: none; user-select: none;
+}
+.ds-table tr.job:hover .x .grip { opacity: 1; }
+.ds-table .x .grip:hover { color: #3c4a4e; }
+.ds-table tr.job.dragging td { background: #e8f0fe !important; opacity: .65; }
+.ds-table tr.drop-before td { box-shadow: inset 0 3px 0 #1a73e8; }
+.ds-table tr.drop-after td { box-shadow: inset 0 -3px 0 #1a73e8; }
+body.ds-drag-on, body.ds-drag-on * { cursor: grabbing !important; user-select: none; }
+@media (hover: none) { .ds-table tr.job .x .grip { opacity: 1; } }
+.ds-view-only .ds-table .x .grip { display: none; }
+
+/* ---------- Print: landscape, only the sheet ---------- */
+@page { size: A4 landscape; margin: 6mm; }
+
+@media print {
+  .side, .ds-top, .ds-table .tools, .ds-table .x, #cloudBadge { display: none !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body.app { display: block; background: #fff; }
+  .content { padding: 0; }
+  .ds-sheet { border: 0; }
+  .ds-scroll { overflow: visible; }
+  .ds-table { min-width: 0; font-size: 9px; }
+  .ds-table input, .ds-table select { font-size: 8.5px; }
+}
+
+/* ---------- View only (positions other than Owner, HR, Admin Staff, Developer) ---------- */
+.ds-view-only .ds-table input:disabled,
+.ds-view-only .ds-table select:disabled {
+  opacity: 1;
+  color: inherit;
+  cursor: default;
+  -webkit-text-fill-color: currentColor;
+}
+
+/* No drop-down arrows, no remove (×) buttons, no + row / remove block */
+.ds-view-only .ds-table select:disabled { background-image: none; padding-right: 5px; }
+.ds-view-only .ds-table .x button,
+.ds-view-only .ds-table .tools { display: none; }
+
+.ds-view-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #f4d58d;
+  border-radius: 8px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* The "+ Add a job" hint is for phones only; the sheet on a computer stays clean */
+.ds-table td.name input::placeholder { color: transparent; }
+
+/* =========================================
+   PHONES: the same sheet as on a computer (same columns, colours and drop-downs).
+   It scrolls sideways with a swipe; pinch to zoom in. Only the buttons above it are re-arranged.
+   ========================================= */
+@media screen and (max-width: 800px) {
+  .ds-top { flex-wrap: wrap; gap: 8px; }
+  .ds-nav { flex-wrap: wrap; }
+  .ds-top .ds-nav:last-child { width: 100%; justify-content: flex-end; }
+  .ds-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+}
+
+/* Touch screens (no mouse to point with): "+ row / remove block" and the × stay visible */
+@media (hover: none) {
+  .ds-table .tools button,
+  .ds-table tr.job .x button { opacity: 1; }
+}
+
+/* Crew box with no names yet: hidden, so "+ Add name" sits right after INSTALLER / SERVICE */
+.ds-table .lab input.crew[hidden] { display: none; }
+
+/* Customer's exact location pin beside the ADDRESS (opens Google Maps) */
+.ds-table td.addr { position: relative; }
+.ds-table td.addr .pin {
+  position: absolute; top: 50%; right: 3px; transform: translateY(-50%);
+  display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%;
+  background: #d93025; color: #fff; font-size: 10px; text-decoration: none;
+}
+.ds-table td.addr .pin:hover { background: #a50e0e; }
+.ds-table td.addr .pin ~ input, .ds-table td.addr input:has(+ .pin) { padding-right: 24px; }
+
+/* Fit button: phones only (a computer already shows the whole sheet) */
+.ds-btn.ds-fit { display: none; }
+@media screen and (max-width: 800px) { .ds-btn.ds-fit { display: inline-flex; } }
+@media print { .ds-table { zoom: 1 !important; } }
+
+/* ---------- Merged rows: one customer, several units / brands (dailysched.html spanAt) ---------- */
+.ds-table td[rowspan] { vertical-align: middle; }
+.ds-table td.name { position: relative; }
+.ds-table .add-brand {
+  position: absolute; right: 3px; bottom: 2px; padding: 1px 6px; border: 1px solid #d5a52a; border-radius: 6px;
+  background: #fff6dc; color: #7a5b06; font: 700 10px system-ui, "Segoe UI", sans-serif; cursor: pointer; opacity: 0;
+}
+.ds-table tr.job:hover .add-brand, .ds-table td.name:focus-within .add-brand, .ds-table .add-brand:focus { opacity: 1; }
+.ds-table .add-brand:hover { background: #d5a52a; color: #fff; }
+@media (hover: none) { .ds-table .add-brand { opacity: 1; } }
+@media print { .ds-table .add-brand { display: none; } }
+.ds-view-only .ds-table .add-brand { display: none; }
+
+/* PARKING (between STATUS and MOP): YES green, NO red */
+.ds-table select[data-k="parking"] option[value]:not([value=""]) { font-weight: 700; }
+/* PROJECT: YES = a project job (no team incentive), shown in navy like the PROJECT service chip */
+.ds-table select[data-k="project"][data-v="YES"], .ds-table select[data-k="project"] option[value="YES"] { background-color: #1c4587; color: #fff; font-weight: 700; }
+.ds-table select[data-k="parking"][data-v="YES"], .ds-table select[data-k="parking"] option[value="YES"] { background-color: #b7e1cd; color: #0b8043; }
+.ds-table select[data-k="parking"][data-v="NO"], .ds-table select[data-k="parking"] option[value="NO"] { background-color: #f4c7c3; color: #b10202; }

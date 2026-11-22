@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Daily Schedule</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="dailysched.css?v=29">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+</head>
+<body class="app">
+
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) window.location.href = "index.html";
+  </script>
+
+  <aside class="side">
+    <div class="side-brand">
+      <img src="AIRCON.png" alt="Logo">
+      <span>AIRCON G.O.D</span>
+    </div>
+    <nav aria-label="Main menu"><!-- filled in by sidebar.js --></nav>
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <main class="content ds">
+
+    <div class="ds-top">
+      <div class="ds-nav">
+        <button type="button" class="ds-btn" id="prev" title="Previous day"><i class="fas fa-chevron-left"></i></button>
+        <!-- Shown as MM/DD/YYYY whatever the computer's date format; the hidden date box opens the calendar -->
+        <label class="ds-pick" title="Pick a date"><span id="pickText"></span><i class="far fa-calendar-alt"></i><input type="date" id="pick" aria-label="Date"></label>
+        <button type="button" class="ds-btn" id="next" title="Next day"><i class="fas fa-chevron-right"></i></button>
+        <button type="button" class="ds-btn" id="today">Today</button>
+      </div>
+      <div class="ds-nav">
+        <button type="button" class="ds-btn" id="addInst"><i class="fas fa-plus"></i> Installer</button>
+        <button type="button" class="ds-btn" id="addServ"><i class="fas fa-plus"></i> Service</button>
+        <button type="button" class="ds-btn ds-fit" id="fitBtn" title="See the whole sheet on the screen"><i class="fas fa-compress-arrows-alt"></i> Fit</button>
+        <button type="button" class="ds-btn dark" id="printBtn"><i class="fas fa-print"></i> Print</button>
+      </div>
+    </div>
+
+    <!-- THE SHEET (looks like the Google Sheet) -->
+    <div class="ds-sheet">
+      <div class="ds-title">DAILY SCHEDULE</div>
+      <div class="ds-date" id="dateBar"></div>
+      <div class="ds-scroll">
+        <table class="ds-table">
+          <colgroup>
+            <col class="c-jo"><col class="c-time"><col class="c-name"><col class="c-loc"><col class="c-model"><col class="c-hp"><col class="c-qty">
+            <col class="c-status"><col class="c-proj"><col class="c-park"><col class="c-mop"><col class="c-assign"><col class="c-notes"><col class="c-addr"><col class="c-x">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>JO. #</th><th>TIME</th><th>NAME</th><th>LOCATION</th><th>MODEL</th><th>HP</th><th>QTY</th>
+              <th>STATUS</th><th title="YES: a project job, not counted for the team incentive">PROJECT</th><th>PARKING</th><th>MOP</th><th>ASSIGN</th><th>NOTES</th><th>ADDRESS</th><th class="x"></th>
+            </tr>
+          </thead>
+          <tbody id="body"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function logout() { sessionStorage.clear(); window.location.href = "index.html"; }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+  <script src="handoff.js?v=2"></script>
+  <script src="schedule-sync.js?v=1"></script>
+
+  <script>
+    const KEY = "aircon_daily";            // { "2026-11-04": { groups: [ { kind, rows: [...] } ] } }
+    const WEEKLY_KEY = "aircon_schedule";  // the Weekly Schedule's data (not used here)
+
+    const $ = (s) => document.querySelector(s);
+    const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const ymd = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+
+    // ---------- Choices for the chips ----------
+    const LOCATIONS = {
+      "Metro Manila": ["NORTH CALOOCAN","SOUTH CALOOCAN", "LAS PINAS CITY", "MAKATI", "MALABON", "MANDALUYONG", "MANILA", "MARIKINA", "MUNTINLUPA", "NAVOTAS", "PARANAQUE", "PASAY", "PASIG", "PATEROS", "QUEZON CITY", "SAN JUAN", "TAGUIG CITY", "VALENZUELA"],
+      "Cavite": ["BACOOR", "CAVITE CITY", "DASMARINAS", "GEN. TRIAS", "IMUS", "KAWIT", "NOVELETA", "ROSARIO", "SILANG", "TAGAYTAY", "TANZA", "TRECE MARTIRES", "CARMONA", "NAIC", "ALFONSO", "MAGALLANES", "AMADEO", "GEN. EMILIO AGUINALDO", "GEN. MARIANO ALVAREZ", "INDANG", "KAWIT", "GENERAL TRIAS", "TANZA"],
+      "Laguna": ["SAN PEDRO", "BINAN", "STA. ROSA", "CABUYAO", "CALAMBA", "LOS BANOS", "STA. CRUZ"],
+      "Rizal": ["ANTIPOLO", "CAINTA", "TAYTAY", "BINANGONAN", "SAN MATEO", "RODRIGUEZ", "ANGONO", "TANAY", "JALA-JALA", "CARDONA", "BARAS", "TERESA", "Pililla"],     "Batangas": ["BATANGAS CITY", "LIPA", "TANAUAN", "STO. TOMAS","NASUGBU"],
+      "Batangas": ["ALL AREAS"]
+    };
+    
+    // Model chips: short names, coloured by brand (installer units) or by kind of job (services)
+    const UNITS = [
+      ["AMERICAN HOME", "ah"],
+      ["MIDEA CELEST", "midea"], ["MIDEA NUMEN", "midea"], ["MIDEA AVIGATOR", "midea"], ["MIDEA AIRSTILL", "midea"], ["MIDEA FLOOR MOUNTED", "midea"],
+      ["CARRIER NEXUS", "carrier"], ["CARRIER AURA", "carrier"],
+      ["TCL BREEZEIN", "tcl"], ["TCL FRESH IN", "tcl"], ["TCL OBSIDIAN", "tcl"], ["TCL VOXIN", "tcl"], ["TCL KEI2", "tcl"],
+      ["LG IBA", "lg"], ["LG ISB", "lg"], ["LG PREMIUM", "lg"], ["LG DELUX", "lg"],
+      ["AUX FLDI", "aux"], ["AUX QQCDI", "aux"],
+      ["KOLIN CERTUS", "kolin"], ["KOLIN PRIMUS", "kolin"],
+      ["DAIKIN AMIHAN", "daikin"], ["DAIKIN D-SMART", "daikin"], ["DAIKIN D-SMART QUEEN", "daikin"], ["DAIKIN D-SMART KING", "daikin"],
+      ["PANASONIC BASIC", "panasonic"], ["PANASONIC DELUXE", "panasonic"], ["PANASONIC PREMIUM", "panasonic"],
+      ["SAMSUNG BASIC", "samsung"], ["SAMSUNG WINDFREE", "samsung"], ["SAMSUNG BESPOKE", "samsung"],
+      ["GREE CRYSTA", "gree"], ["GREE ZEPHYR", "gree"], ["GREE FULL DC", "gree"],
+    ];
+    // Services, in the office's order. The chip colour comes from the kind of job (first matching rule).
+    const SERVICE_NAMES = [
+      "CHECK UP", "SURVEY", "CLEANING ST", "CLEANING WT", "PROJECT", "CONTINUATION PROJECT", "REPAIR", "BACK JOB",
+      "INSTALLATION ONLY", "CLADDING ONLY", "RELOCATION", "PIPING", "CHIPPING WORKS", "REPROCESS & FREON", "RESCHEDULE",
+      "CHARGING FREON", "LEAKTEST & CLEANING", "DELIVER", "CHARGING FREON CLEANING CONDENSER ONLY", "TRANSACT CREADIT CARD",
+      "CONTINUATION", "CHIPPING & ELEC", "STYRO & SEALANT", "RELOC./ DISMANTLE/ CLEANING", "PULL DOWN CLEANING",
+      "CLEANING ST & WT", "RE-INSTALL", "CHECK-UP/CLEANING", "REPLACEMENT", "PULLDOWN & REGULAR CLEANING", "CLEANING FM",
+      "CLEANING ST & WT /DISMANTLE", "RE-DRAIN PVC", "SURVEY | LATAG PIPING", "START UP", "SITE VISIT",
+    ];
+    const SERVICE_COLORS = [
+      [/^CHECK/, "checkup"],                                  // green
+      [/^SURVEY|SITE VISIT/, "survey"],                       // dark grey
+      [/FREON|REPROCESS/, "freon"],                           // blue
+      [/^RELOC|RE-INSTALL|INSTALLATION ONLY/, "relocation"],  // teal
+      [/CLEANING|PULL ?DOWN|LEAKTEST/, "cleaning"],           // red
+      [/PROJECT|CONTINUATION/, "project"],                    // navy
+      [/REPAIR|BACK JOB|REPLACEMENT/, "repair"],              // purple
+      [/PIPING|CHIPPING|CLADDING|DRAIN|STYRO/, "works"],      // brown
+    ];
+    const serviceColor = (n) => (SERVICE_COLORS.find(([rule]) => rule.test(n)) || [, "other"])[1];   // other: grey
+    const SERVICES = SERVICE_NAMES.map((n) => [n, serviceColor(n)]);
+    const MODEL_COLOR = Object.fromEntries([...UNITS, ...SERVICES]);
+
+    const HPS = ["0.5HP", "0.75HP", "0.8HP", "1.0HP", "1.5HP", "2.0HP", "2.5HP", "3.0HP", "4.0HP", "5.0HP", "6.0HP", "7.0HP"];
+    const QTYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "-"];
+    const STATUS = ["WAITING", "ON THE WAY", "ONGOING", "DONE", "RESCHEDULED", "CANCELLED"];
+    const PARKING = ["YES", "NO"];   // is there parking at the customer's place
+    const PROJECT = ["YES"];         // a project job: its units don't count for the team incentive (attendance.js)
+    const MOP = ["CASH", "BANK TRANSFER", "CREDIT CARD", "G-CASH", "PAYMAYA", "GOTYME", "DEBIT", "SALMON", "CHECK/CHEQUE PAYMENT"];
+    const ASSIGN = ["EJ COOLING CARE", "AIRCON G.O.D."];
+    const TIMES = ["1ST BATCH", "2ND BATCH", "3RD BATCH", "4TH BATCH", "5TH BATCH"];
+
+    // A <select> chip: blank first, the saved value is kept even if it's not in the list
+    // Lists that have their own "-" choice (like QTY) don't show the empty one in the drop-down
+    const options = (list, v) =>
+      `<option value=""${list.includes("-") ? " hidden" : ""}></option>` + (v && !list.includes(v) ? `<option selected>${esc(v)}</option>` : "") +
+      list.map((o) => `<option value="${esc(o)}"${o === v ? " selected" : ""}>${esc(o)}</option>`).join("");   // value lets CSS colour each choice
+
+    const locOptions = (v) => {
+      const all = Object.values(LOCATIONS).flat();
+      return '<option value=""></option>' + (v && !all.includes(v) ? `<option selected>${esc(v)}</option>` : "") +
+        Object.entries(LOCATIONS).map(([prov, list]) =>
+          `<optgroup label="${prov}">` + list.map((n) => `<option${n === v ? " selected" : ""}>${n}</option>`).join("") + "</optgroup>").join("");
+    };
+
+    // SERVICE rows list only services; INSTALLER rows list only units
+    const modelOptions = (v, kind) => {
+      const list = kind === "service" ? SERVICES : UNITS;
+      const known = v && list.some(([n]) => n === v);
+      return '<option value=""></option>' + (v && !known ? `<option selected>${esc(v)}</option>` : "") +
+        list.map(([n, c]) => `<option class="c-${c}"${n === v ? " selected" : ""}>${n}</option>`).join("");   // c-… colours it like its chip
+    };
+
+    // ---------- Data: one sheet per date ----------
+    const blank = () => ({ jo: "", time: "", name: "", location: "", model: "", hp: "", qty: "", status: "", project: "", parking: "", mop: "", assign: "", notes: "", address: "" });
+    const block = (kind, n) => ({ kind, rows: Array.from({ length: n }, blank) });
+    const newDay = () => ({ groups: [block("installer", 3), block("installer", 3), block("installer", 3), block("service", 4)] });
+
+    // Entries saved by the earlier version of this page: long price-list names, "–" for empty, etc.
+    function tidy(r) {
+      const dash = (v) => (v === "–" || v === "-" ? "" : v ?? "");
+      ["location", "hp", "status", "mop", "assign"].forEach((k) => (r[k] = dash(r[k])));
+      r.mop = { BANK: "BANK TRANSFER", CHEQUE: "CHECK/CHEQUE PAYMENT" }[r.mop] || r.mop;   // older names
+      r.location = String(r.location).replace(/\s*\(.*\)$/, "").toUpperCase().replace(/Ñ/g, "N");
+      const places = Object.values(LOCATIONS).flat();
+      if (r.location && !places.includes(r.location) && places.includes(r.location + " CITY")) r.location += " CITY";
+      if (r.qty !== "" && r.qty != null) r.qty = String(r.qty);
+      if (r.model && !MODEL_COLOR[r.model]) {
+        const long = r.model.toUpperCase();
+        const hp = long.match(/(\d+(?:\.\d+)?)\s*HP/);
+        const unit = /BREEZ/.test(long) ? "TCL BREEZEIN"
+          : /^LG .*\bIBA\b/.test(long) ? "LG IBA"   // "LG DUAL SPLIT TYPE INVERTER IBA MODEL"
+          : /^LG .*\bISB\b/.test(long) ? "LG ISB"
+          : /SAMSUNG.*BESPOKE/.test(long) ? "SAMSUNG BESPOKE"
+          : /^CLEANING SPLIT/.test(long) ? "CLEANING ST"
+          : UNITS.map(([n]) => n).sort((a, b) => b.length - a.length).find((n) => long.startsWith(n));
+        if (unit) {
+          r.model = unit;
+          if (!r.hp && hp) r.hp = (+hp[1]).toFixed(1) + "HP";
+        }
+      }
+      return r;
+    }
+
+    // Days saved by an earlier version went into the Weekly Schedule's storage: move them here once.
+    function moveOldDays() {
+      const weekly = JSON.parse(localStorage.getItem(WEEKLY_KEY) || "{}");
+      const old = Object.keys(weekly).filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k));
+      if (!old.length) return false;
+      const daily = JSON.parse(localStorage.getItem(KEY) || "{}");
+      old.forEach((k) => { if (!daily[k]) daily[k] = weekly[k]; delete weekly[k]; });
+      localStorage.setItem(KEY, JSON.stringify(daily));
+      localStorage.setItem(WEEKLY_KEY, JSON.stringify(weekly));
+      return true;
+    }
+
+    let all = JSON.parse(localStorage.getItem(KEY) || "{}");
+    // dailysched.html?date=2026-11-20 opens on that day (Customer Records links here after booking)
+    const linkDate = new URLSearchParams(location.search).get("date") || "";
+    let cur = /^\d{4}-\d{2}-\d{2}$/.test(linkDate) ? linkDate : ymd(new Date());
+    const day = () => {
+      if (!all[cur]) all[cur] = newDay();
+      all[cur].groups.forEach((g) => g.rows.forEach(tidy));
+      return all[cur];
+    };
+    // Only Owner, Human Resources, Admin Staff (and Developer) can change the schedule; everyone else just views it
+    const CAN_EDIT = Roles.me().manager || Roles.me().fieldOffice;   // owner, HR, office positions, and "Office access" on their Staff record (roles.js)
+    // Saves only the day on screen: every other day is taken as it is now (another PC may have just
+    // changed one), so this page never puts back an older copy of a day it isn't showing
+    const save = () => {
+      if (!CAN_EDIT) return;
+      let latest = {};
+      try { latest = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) {}
+      latest[cur] = all[cur];
+      all = latest;
+      localStorage.setItem(KEY, JSON.stringify(all));
+    };
+
+    // ---------- Draw the sheet ----------
+    const chip = (key, list, v) => `<select data-k="${key}" data-v="${esc(v)}">${options(list, v)}</select>`;
+    // QTY: 1–10, "-", and OTHER… to type a bigger number (a saved 11, 25… shows as its own choice)
+    const qtyChip = (v) => chip("qty", QTYS, v).replace("</select>", '<option value="__more">OTHER…</option></select>');
+
+    // The customer's exact location pin (saved when booked from Customer Records): opens Google Maps
+    const PIN_URL = /^https:\/\/www\.google\.com\/maps\?q=-?\d+(\.\d+)?,-?\d+(\.\d+)?$/;
+    const pinBtn = (url) => PIN_URL.test(String(url || ""))
+      ? `<a class="pin" href="${url}" target="_blank" rel="noopener" title="Open the customer's exact location pin in Google Maps"><i class="fas fa-map-marker-alt"></i></a>` : "";
+
+    // ---------- MERGED ROWS: one customer, several units / brands ----------
+    // Rows next to each other in the same block with the same NAME and JO # are one customer: their
+    // JO #, time, name, location, MOP, assign, notes and address show ONCE across those rows (like merged
+    // cells), and changing one changes them all. MODEL, HP, QTY and STATUS stay per row, so each unit can
+    // be DONE on its own (attendance counts units per row). "+ brand" adds another unit row for that customer.
+    const SHARED = ["jo", "time", "name", "location", "project", "parking", "mop", "assign", "notes", "address", "pin"];
+    const nameOf = (r) => String((r && r.name) || "").trim().toUpperCase();
+    const joOf = (r) => String((r && r.jo) || "").trim().toUpperCase();
+    // Same customer: same name, and the same JO # (a blank JO # matches any)
+    const sameCust = (a, b) => !!(a && b && nameOf(a) && nameOf(a) === nameOf(b) && (!joOf(a) || !joOf(b) || joOf(a) === joOf(b)));
+    // How many rows from row i belong to the same customer (1 = not merged); 0 for a row inside a merge
+    function spanAt(rows, i) {
+      if (!nameOf(rows[i])) return 1;
+      if (i > 0 && sameCust(rows[i - 1], rows[i])) return 0;
+      let n = 1;
+      while (i + n < rows.length && sameCust(rows[i + n - 1], rows[i + n])) n++;
+      return n;
+    }
+
+    function rowHtml(r, g, i, kind, span) {
+      // "filled": the row has a job in it (phones show empty rows as one "+ Add a job" line)
+      // span: N = first of N merged rows (its shared cells cover all N), 0 = a later merged row, 1 = normal
+      const rs = span > 1 ? ` rowspan="${span}"` : "";
+      const first = span !== 0;
+      const shared = (html) => (first ? html : "");
+      const cls = `job${String(r.name || "").trim() || r.model ? " filled" : ""}${span > 1 ? " m-first" : ""}${span === 0 ? " m-more" : ""}`;
+      return `<tr class="${cls}" data-g="${g}" data-i="${i}" data-span="${span}">
+        ${shared(`<td class="jo"${rs}><input data-k="jo" value="${esc(r.jo)}"></td>`)}
+        ${shared(`<td class="time"${rs}>${chip("time", TIMES, r.time)}</td>`)}
+        ${shared(`<td class="name"${rs}><input data-k="name" value="${esc(r.name)}" placeholder="+ Add a job: type the client's name">${String(r.name || "").trim() ? `<button type="button" class="add-brand" data-brand title="Add another unit / brand for this customer">+ brand</button>` : ""}</td>`)}
+        ${shared(`<td${rs}><select data-k="location" class="loc">${locOptions(r.location)}</select></td>`)}
+        <td><select data-k="model" class="model" data-c="${MODEL_COLOR[r.model] || ""}">${modelOptions(r.model, kind)}</select></td>
+        <td>${chip("hp", HPS, r.hp)}</td>
+        <td>${qtyChip(r.qty)}</td>
+        <td>${chip("status", STATUS, r.status)}</td>
+        ${shared(`<td${rs}>${chip("project", PROJECT, r.project)}</td>`)}
+        ${shared(`<td${rs}>${chip("parking", PARKING, r.parking)}</td>`)}
+        ${shared(`<td${rs}>${chip("mop", MOP, r.mop)}</td>`)}
+        ${shared(`<td${rs}>${chip("assign", ASSIGN, r.assign)}</td>`)}
+        ${shared(`<td class="notes"${rs}><input data-k="notes" value="${esc(r.notes)}"></td>`)}
+        ${shared(`<td class="addr"${rs}><input data-k="address" value="${esc(r.address)}">${pinBtn(r.pin)}</td>`)}
+        <td class="x">${span !== 0 ? `<span class="grip" data-drag title="Drag to move this ${span > 1 ? "customer" : "job"} to another row or block"><i class="fas fa-grip-vertical"></i></span>` : ""}<button type="button" data-del title="${span === 1 ? "Remove this row" : "Remove this unit"}">&times;</button></td>
+      </tr>`;
+    }
+
+    function render() {
+      const d = day();
+      let html = "", servicesShown = false;
+      d.groups.forEach((g, gi) => {
+        if (g.kind === "service" && !servicesShown) {
+          html += `<tr class="bar"><td colspan="15">SERVICES</td></tr>`;
+          servicesShown = true;
+        }
+
+        // The INSTALLER / SERVICE label sits in the TIME column (JO. # stays blank)
+        html += `<tr class="lab" data-lab="${gi}"><td class="lab-pad"></td><td class="lab-name">${g.kind === "service" ? "SERVICE" : "INSTALLER"}</td>
+          <td colspan="13"><div class="lab-row">
+            <input class="crew" data-crew="${gi}" value="${esc(g.crew || "")}" size="${crewSize(g.crew)}"${String(g.crew || "").trim() ? "" : " hidden"}>
+            ${crewPicker(gi)}
+            <span class="tools"><button type="button" data-add="${gi}">+ row</button><button type="button" data-rmg="${gi}">remove block</button></span>
+          </div></td></tr>`;
+        g.rows.forEach((r, ri) => (html += rowHtml(r, gi, ri, g.kind, spanAt(g.rows, ri))));
+      });
+      $("#body").innerHTML = html;
+      // View only: every box and chip is shown but can't be changed
+      if (!CAN_EDIT) $("#body").querySelectorAll("input, select, button").forEach((el) => {
+        el.disabled = true;
+        if (el.matches("input.crew")) el.placeholder = "";
+      });
+
+      const [y, m, dd] = cur.split("-");
+      $("#dateBar").textContent = new Date(+y, m - 1, +dd).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", year: "numeric" });
+      $("#pick").value = cur;
+      $("#pickText").textContent = `${m}/${dd}/${y}`;   // month / day / year
+    }
+
+    // ---------- Editing ----------
+    function edit(e) {
+      if (!CAN_EDIT) return;
+      const el = e.target, tr = el.closest("tr.job");
+      if (!tr || !el.dataset.k) return;
+      const r = day().groups[tr.dataset.g].rows[tr.dataset.i];
+
+      // QTY "OTHER…": type any number (11 and up)
+      if (el.dataset.k === "qty" && el.value === "__more") {
+        if (e.type !== "change") return;
+        const n = parseInt(prompt("Quantity (any number):", r.qty && r.qty !== "-" ? r.qty : ""), 10);
+        if (n >= 1) r.qty = String(n);
+        el.outerHTML = qtyChip(r.qty);
+        save();
+        return;
+      }
+
+      r[el.dataset.k] = el.value;
+      // A merged customer: their shared details (name, address, time…) change on every unit row
+      const span = +tr.dataset.span || 1;
+      if (span > 1 && SHARED.includes(el.dataset.k)) {
+        const rows = day().groups[tr.dataset.g].rows;
+        for (let j = 1; j < span; j++) if (rows[+tr.dataset.i + j]) rows[+tr.dataset.i + j][el.dataset.k] = el.value;
+      }
+      // Name / JO # typed in full (change, not every key): rows may now join or leave a customer
+      if (e.type === "change" && (el.dataset.k === "name" || el.dataset.k === "jo")) {
+        const rows = day().groups[tr.dataset.g].rows, i = +tr.dataset.i;
+        // Joined the customer above: take its shared details, so the merged cells show the same thing
+        if (i > 0 && sameCust(rows[i - 1], r)) {
+          let top = i - 1;
+          while (top > 0 && sameCust(rows[top - 1], rows[top])) top--;
+          SHARED.forEach((k) => { for (let j = 0; j < span; j++) if (rows[i + j]) rows[i + j][k] = rows[top][k]; });
+        }
+        if (!r.status && String(r.name || "").trim()) r.status = "WAITING";
+        if (!r.qty && String(r.name || "").trim()) r.qty = "1";
+        save(); render();
+        return;
+      }
+
+      if (el.tagName === "SELECT") el.dataset.v = el.value;                      // recolours the chip
+      if (el.dataset.k === "model") el.dataset.c = MODEL_COLOR[el.value] || "";
+      // Typing a name starts the job as WAITING, qty 1
+      if (el.dataset.k === "name" && el.value.trim()) {
+        if (!r.status) { r.status = "WAITING"; tr.querySelector('[data-k="status"]').outerHTML = chip("status", STATUS, r.status); }
+        if (!r.qty) { r.qty = "1"; tr.querySelector('[data-k="qty"]').outerHTML = qtyChip(r.qty); }
+      }
+      tr.classList.toggle("filled", !!(String(r.name || "").trim() || r.model));
+      save();
+      // CANCELLED here → their Weekly Schedule slot that day too (and back), schedule-sync.js
+      if (el.dataset.k === "status" && e.type === "change" && typeof ScheduleSync !== "undefined") ScheduleSync.fromDaily(cur, r.name);
+    }
+    $("#body").addEventListener("input", edit);
+    $("#body").addEventListener("change", edit);
+
+    // Crew dropdown: active staff from the Staff page, grouped by position.
+    // Picking a name adds it to the crew box (names are separated by " | ").
+    const CREW_GROUPS = Roles.CREW_GROUPS.map(([label, list]) => [label, (p) => list.includes(Roles.norm(p))]);   // roles.js
+    const crewName = (s) => String(s.nickname || s.name || "").trim().toUpperCase();
+    const crewSplit = (t) => String(t || "").split("|").map((x) => x.trim()).filter(Boolean);
+    // The crew box is only as wide as the names in it, so the dropdown sits right after the last name.
+    // With no names yet the box is hidden and the dropdown starts right after INSTALLER / SERVICE.
+    const crewSize = (t) => String(t || "").length + 1;
+    function crewPicker(gi) {
+      let staff = [];
+      try { staff = JSON.parse(localStorage.getItem("aircon_staff") || "[]"); } catch (e) {}
+      staff = staff.filter((s) => s && crewName(s) && (s.status || "Active") === "Active");
+      const groups = CREW_GROUPS.map(([label, test]) => {
+        const names = staff.filter((s) => test(String(s.position || "").trim().toLowerCase())).map(crewName).sort();
+        return names.length ? `<optgroup label="${label}">${names.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join("")}</optgroup>` : "";
+      }).join("");
+      return `<select class="crew-pick" data-pick="${gi}" title="Add a staff member to this crew">
+        <option value="">+ Add name</option>${groups}
+        <optgroup label="Not on the list?"><option value="__type">✎ Type a name…</option></optgroup></select>`;
+    }
+    $("#body").addEventListener("change", (e) => {
+      if (!CAN_EDIT || e.target.dataset.pick === undefined || !e.target.value) return;
+      const g = day().groups[e.target.dataset.pick];
+      let pick = e.target.value;
+      e.target.value = "";
+      if (pick === "__type") pick = String(prompt("Name to add to this crew:") || "").trim().toUpperCase();
+      if (!pick) return;
+      const names = crewSplit(g.crew);
+      if (!names.includes(pick)) names.push(pick);
+      g.crew = names.join(" | ");
+      const box = e.target.closest(".lab-row").querySelector("input.crew");
+      box.value = g.crew;
+      box.size = crewSize(g.crew);
+      box.hidden = false;
+      save();
+    });
+    // Erasing every name in the box hides it again, so the dropdown moves back next to the label
+    $("#body").addEventListener("focusout", (e) => {
+      if (e.target.matches && e.target.matches("input.crew") && !e.target.value.trim()) e.target.hidden = true;
+    });
+
+    // The crew names beside INSTALLER / SERVICE
+    $("#body").addEventListener("input", (e) => {
+      if (!CAN_EDIT || e.target.dataset.crew === undefined) return;
+      day().groups[e.target.dataset.crew].crew = e.target.value.toUpperCase();
+      e.target.size = crewSize(e.target.value);
+      save();
+    });
+
+    $("#body").addEventListener("click", (e) => {
+      if (!CAN_EDIT) return;
+      const d = day();
+      const add = e.target.closest("[data-add]"), rmg = e.target.closest("[data-rmg]"), del = e.target.closest("[data-del]"), brand = e.target.closest("[data-brand]");
+      if (brand) {
+        // + brand: another unit row for this customer, right under their last row (merged with them)
+        const tr = brand.closest("tr"), rows = d.groups[tr.dataset.g].rows, i = +tr.dataset.i, span = +tr.dataset.span || 1;
+        const row = blank();
+        SHARED.forEach((k) => { if (rows[i][k] !== undefined) row[k] = rows[i][k]; });
+        row.status = rows[i].status && rows[i].status !== "DONE" ? rows[i].status : "WAITING";
+        row.qty = "1";
+        rows.splice(i + span, 0, row);
+        save(); render();
+        const added = $("#body").querySelector(`tr[data-g="${tr.dataset.g}"][data-i="${i + span}"] select[data-k="model"]`);
+        if (added) added.focus();
+        return;
+      }
+      if (add) d.groups[add.dataset.add].rows.push(blank());
+      else if (rmg) { if (!confirm("Remove this whole block and its jobs?")) return; d.groups.splice(rmg.dataset.rmg, 1); }
+      else if (del) { const tr = del.closest("tr"); d.groups[tr.dataset.g].rows.splice(tr.dataset.i, 1); }
+      else return;
+      save(); render();
+    });
+
+    // ---------- DRAG A JOB: grab the ⋮⋮ handle and drop it on another row or block ----------
+    // Works with a mouse and with a finger. A merged customer (several unit rows) moves as one.
+    // Drop on the top/bottom half of a row = before/after it; on an INSTALLER / SERVICE label = first row of that block.
+    let drag = null;
+    const clearMark = () => $("#body").querySelectorAll(".drop-before, .drop-after").forEach((t) => t.classList.remove("drop-before", "drop-after"));
+    // The rows of the customer that row element `tr` belongs to: [first tr, last tr, first index, count]
+    function custRows(tr) {
+      let top = tr;
+      while (top && top.dataset.span === "0") top = top.previousElementSibling;
+      const n = +top.dataset.span || 1;
+      let last = top;
+      for (let k = 1; k < n && last.nextElementSibling; k++) last = last.nextElementSibling;
+      return [top, last, +top.dataset.i, n];
+    }
+    function dropTarget(x, y) {
+      const el = document.elementFromPoint(x, y);
+      const tr = el && el.closest("#body tr");
+      if (!tr) return null;
+      if (tr.dataset.lab !== undefined) return { g: +tr.dataset.lab, at: 0, mark: tr, side: "after" };
+      if (!tr.classList.contains("job")) return null;
+      const [top, last, i, n] = custRows(tr);
+      const mid = (top.getBoundingClientRect().top + last.getBoundingClientRect().bottom) / 2;
+      return y < mid ? { g: +top.dataset.g, at: i, mark: top, side: "before" } : { g: +top.dataset.g, at: i + n, mark: last, side: "after" };
+    }
+    $("#body").addEventListener("pointerdown", (e) => {
+      const h = e.target.closest("[data-drag]");
+      if (!h || !CAN_EDIT || e.button > 0) return;
+      e.preventDefault();
+      const [top, , i, n] = custRows(h.closest("tr"));
+      const trs = [];
+      for (let t = top, k = 0; t && k < n; t = t.nextElementSibling, k++) trs.push(t);
+      trs.forEach((t) => t.classList.add("dragging"));
+      drag = { g: +top.dataset.g, i, n, trs, target: null };
+      h.setPointerCapture(e.pointerId);
+      document.body.classList.add("ds-drag-on");
+    });
+    $("#body").addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      clearMark();
+      const t = dropTarget(e.clientX, e.clientY);
+      // Dropping where it already is does nothing
+      drag.target = t && !(t.g === drag.g && t.at >= drag.i && t.at <= drag.i + drag.n) ? t : null;
+      if (drag.target) drag.target.mark.classList.add("drop-" + drag.target.side);
+      // Near the top / bottom of the screen: scroll so far-away rows can be reached
+      if (e.clientY < 50) scrollBy(0, -12); else if (e.clientY > innerHeight - 50) scrollBy(0, 12);
+    });
+    const endDrag = (e) => {
+      if (!drag) return;
+      const { g, i, n, trs, target } = drag;
+      drag = null;
+      clearMark();
+      trs.forEach((t) => t.classList.remove("dragging"));
+      document.body.classList.remove("ds-drag-on");
+      if (!target || e.type === "pointercancel") return;
+      const groups = day().groups;
+      const moved = groups[g].rows.splice(i, n);
+      const at = target.g === g && target.at > i ? target.at - n : target.at;
+      groups[target.g].rows.splice(at, 0, ...moved);
+      save(); render();
+    };
+    $("#body").addEventListener("pointerup", endDrag);
+    $("#body").addEventListener("pointercancel", endDrag);
+
+    // ---------- Top buttons ----------
+    const go = (date) => { cur = ymd(date); render(); };
+    const shift = (n) => { const [y, m, d] = cur.split("-"); go(new Date(+y, m - 1, +d + n)); };
+    $("#prev").onclick = () => shift(-1);
+    $("#next").onclick = () => shift(1);
+    $("#today").onclick = () => go(new Date());
+    $("#pick").onchange = (e) => { if (e.target.value) { cur = e.target.value; render(); } };
+    // Clicking anywhere on the date opens the calendar
+    $(".ds-pick").addEventListener("click", (e) => {
+      e.preventDefault();
+      try { $("#pick").showPicker(); } catch (err) { $("#pick").focus(); }
+    });
+
+    $("#addInst").onclick = () => {                  // new installer blocks go above the services
+      const d = day(), at = d.groups.findIndex((g) => g.kind === "service");
+      d.groups.splice(at < 0 ? d.groups.length : at, 0, block("installer", 3));
+      save(); render();
+    };
+    $("#addServ").onclick = () => { day().groups.push(block("service", 3)); save(); render(); };
+    $("#printBtn").onclick = () => window.print();
+    // Phones: Fit shrinks the whole sheet to the screen width (like the computer view); tap again for normal size
+    const fitSheet = () => {
+      const on = document.querySelector(".ds-sheet").classList.contains("fit");
+      const table = document.querySelector(".ds-table"), box = document.querySelector(".ds-scroll");
+      table.style.zoom = "";
+      if (on) table.style.zoom = Math.min(1, (box.clientWidth - 2) / table.scrollWidth).toFixed(3);
+      $("#fitBtn").innerHTML = on ? '<i class="fas fa-expand-arrows-alt"></i> Normal size' : '<i class="fas fa-compress-arrows-alt"></i> Fit';
+    };
+    $("#fitBtn").onclick = () => { document.querySelector(".ds-sheet").classList.toggle("fit"); fitSheet(); };
+    addEventListener("resize", () => { if (document.querySelector(".ds-sheet").classList.contains("fit")) fitSheet(); });
+    // View only: no + Installer / + Service buttons, and a note saying why
+    if (!CAN_EDIT) {
+      $("#addInst").remove();
+      $("#addServ").remove();
+      document.querySelector("main.ds").classList.add("ds-view-only");
+      $("#printBtn").insertAdjacentHTML("beforebegin", '<span class="ds-view-note"><i class="fas fa-eye"></i> View only</span>');
+    }
+
+    // Another PC changed the daily schedule: show the latest (unless someone is typing in it)
+    // (also when the staff list changes, so the crew dropdowns show new names)
+    window.addEventListener("storage", (e) => {
+      if ((e.key !== KEY && e.key !== "aircon_staff") || $("#body").contains(document.activeElement)) return;
+      all = JSON.parse(localStorage.getItem(KEY) || "{}");
+      render();
+    });
+
+    // Start with what's saved on this PC, then move any old days once the online data has loaded
+    (window.cloudReady || Promise.resolve()).then(() => {
+      if (CAN_EDIT && moveOldDays()) all = JSON.parse(localStorage.getItem(KEY) || "{}");
+      if (!$("#body").contains(document.activeElement)) render();   // also fills the crew dropdowns with the online staff list
+    });
+
+    // ---------- From Customer Records: put the customer in a row ----------
+    // A bar shows who is being scheduled; clicking an empty row (or "Fill next empty row") fills in their details
+    CustomerHandoff.take("daily").then((c) => {
+      if (!c) return;
+      const fill = (r) => {
+        Object.assign(r, {
+          name: c.name,
+          location: CustomerHandoff.cityOf(c.address) || r.location,
+          model: c.unit || r.model,
+          qty: c.qty ? String(c.qty) : "1",
+          status: r.status || "WAITING",
+          mop: CustomerHandoff.dailyMop(c.mop) || r.mop,
+          notes: [c.contact, c.person && [c.person, c.contact2].filter(Boolean).join(" ")].filter(Boolean).join(" / "),
+          address: [c.address, c.landmark].filter(Boolean).join(" · "),
+        });
+        tidy(r);   // a long Price List name becomes its model chip + HP
+        save();
+        render();
+        const [y, m, d] = cur.split("-");
+        bar.done("Added to " + new Date(+y, m - 1, +d).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }) + ".");
+        pending = false;
+      };
+      let pending = true;
+      const bar = CustomerHandoff.banner(c, "Pick the date, then click an empty row to fill in their details.", {
+        label: "Fill next empty row",
+        onClick: () => {
+          const d = day();
+          const groups = d.groups.filter((g) => g.kind === "installer").concat(d.groups.filter((g) => g.kind !== "installer"));
+          let row = null;
+          groups.some((g) => (row = g.rows.find((r) => !String(r.name || "").trim())));
+          if (!row) {
+            const g = groups[0] || (d.groups.push(block("installer", 0)), d.groups[d.groups.length - 1]);
+            g.rows.push((row = blank()));
+          }
+          fill(row);
+        },
+      });
+      bar.onCancel = () => (pending = false);
+      $("#body").addEventListener("click", (e) => {
+        if (!pending || e.target.closest("[data-del], [data-add], [data-rmg]")) return;
+        const tr = e.target.closest("tr.job");
+        if (!tr) return;
+        const r = day().groups[tr.dataset.g].rows[tr.dataset.i];
+        if (String(r.name || "").trim()) return;   // only empty rows; a booked row stays as it is
+        e.preventDefault();
+        fill(r);
+      }, true);
+    });
+
+    render();
+  </script>
+</body>
+</html>

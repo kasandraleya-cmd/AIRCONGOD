@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · JO Records</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="inventory.css">
+  <link rel="stylesheet" href="jo-records.css?v=3">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+</head>
+<body class="app">
+  <script>if (!sessionStorage.getItem("aircon_user")) location.href = "index.html";</script>
+  <aside class="side">
+    <div class="side-brand"><img src="AIRCON.png" alt="Logo"><span>AIRCON G.O.D</span></div>
+    <nav aria-label="Main menu"></nav>
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <main class="content inv">
+    <div class="inv-header">
+      <div>
+        <h1>JO Records</h1>
+        <p>Every job order and whether its stock is recorded: red until all its units have a serial number, green once they do.</p>
+      </div>
+      <a class="inv-btn teal" href="sales.html"><i class="fas fa-plus"></i> New JO</a>
+    </div>
+
+    <p class="jr-saved" id="savedNote" role="status" hidden></p>
+
+    <div class="inv-stats">
+      <div class="inv-stat"><i class="fas fa-file-invoice"></i><div><b id="sAll">0</b><span>Job orders</span></div></div>
+      <div class="inv-stat red"><i class="fas fa-box-open"></i><div><b id="sRed">0</b><span>Waiting for stock</span></div></div>
+      <div class="inv-stat green"><i class="fas fa-circle-check"></i><div><b id="sGreen">0</b><span>Stock recorded</span></div></div>
+      <div class="inv-stat green" id="sSalesCard"><i class="fas fa-coins"></i><div><b id="sSales">₱0</b><span>Total sales</span></div></div>
+    </div>
+
+    <div class="inv-toolbar">
+      <div class="inv-search"><i class="fas fa-search"></i><input id="search" type="search" placeholder="Search JO#, customer, unit, serial number…"></div>
+      <div class="jr-chips" id="chips" role="group" aria-label="Filter by stock status">
+        <button type="button" data-f="" class="on">All</button>
+        <button type="button" data-f="red">Waiting for stock</button>
+        <button type="button" data-f="green">Stock recorded</button>
+      </div>
+    </div>
+
+    <div class="inv-table-wrap">
+      <table class="inv-table jr-table">
+        <thead><tr><th>JO #</th><th>Date</th><th>Customer</th><th>Units / items</th><th>Stock</th><th class="num jr-money">Total</th></tr></thead>
+        <tbody id="rows"><tr><td colspan="6" class="inv-empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script>function logout() { sessionStorage.clear(); location.href = "index.html"; }</script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+  <script src="pricelist.js?v=4"></script>
+  <script src="pricepicker.js?v=4"></script>
+  <script src="jostock.js?v=1"></script>
+  <script src="jo-autoassign.js?v=1"></script>
+  <script>
+  (function joRecords() {
+    const JOBS_KEY = "aircon_jobs";
+    const $ = (s) => document.querySelector(s);
+    const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const peso = (n) => "₱" + Number(n || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const niceDate = (d) => (d && !isNaN(new Date(d + "T00:00")) ? new Date(d + "T00:00").toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" }) : "—");
+    const jobs = () => { try { return JSON.parse(localStorage.getItem(JOBS_KEY) || "[]") || []; } catch (e) { return []; } };
+
+    // Warehouse staff see the job orders (to know what needs stock) but not the money
+    const r = Roles.me();
+    const showMoney = !(r.warehouse && !r.manager);
+    if (!showMoney) { $("#sSalesCard").hidden = true; document.querySelector(".jr-money").hidden = true; }
+
+    let filter = "";
+    function render() {
+      if (typeof JoAuto !== "undefined") JoAuto.run();   // units go to the customer of their job order, automatically
+      const q = $("#search").value.trim().toLowerCase();
+      const all = jobs().map((j) => ({ j, st: JoStock.of(j) }))
+        .sort((a, b) => String(b.j.date || "").localeCompare(String(a.j.date || "")) || (+b.j.id || 0) - (+a.j.id || 0));
+
+      $("#sAll").textContent = all.length;
+      $("#sRed").textContent = all.filter((x) => x.st.state === "red").length;
+      $("#sGreen").textContent = all.filter((x) => x.st.state === "green").length;
+      $("#sSales").textContent = peso(all.reduce((t, x) => t + (+x.j.total || 0), 0));
+
+      const list = all.filter(({ j, st }) => (!filter || st.state === filter)
+        && (!q || [j.no, j.customer, j.contact, j.address, j.installer, j.date, ...(j.items || []).flatMap((i) => [i.desc, i.serial])].join(" ").toLowerCase().includes(q)));
+
+      $("#rows").innerHTML = list.length ? list.map(({ j, st }) => {
+        const items = (j.items || []).filter((i) => String(i.desc || "").trim());
+        const text = items.slice(0, 2).map((i) => `${esc(i.qty && +i.qty > 1 ? i.qty + " × " : "")}${esc(i.desc)}`).join("<br>")
+          + (items.length > 2 ? `<small class="jr-more">+ ${items.length - 2} more</small>` : "") || '<span class="jr-none">No items yet</span>';
+        const serials = items.map((i) => i.serial).filter(Boolean);
+        return `<tr class="jr-row${highlighted && wantNew && j.no === wantNew ? " jr-new" : ""}" data-id="${esc(j.id)}" data-no="${esc(j.no)}" tabindex="0" title="Open this job order">
+          <td><b class="jr-no">${esc(j.no) || "—"}</b></td>
+          <td>${niceDate(j.date)}</td>
+          <td><div class="jr-cell"><b>${esc(j.customer) || "—"}</b>${j.contact ? `<small class="jr-sub">${esc(j.contact)}</small>` : ""}</div></td>
+          <td class="jr-items"><div class="jr-cell">${text}${serials.length ? `<small class="jr-sub">S/N ${serials.map(esc).join(", ")}</small>` : ""}</div></td>
+          <td>${JoStock.badge(j) || '<span class="jr-none">No unit needed</span>'}</td>
+          ${showMoney ? `<td class="num"><b>${peso(j.total)}</b></td>` : ""}
+        </tr>`;
+      }).join("")
+        : `<tr><td colspan="${showMoney ? 6 : 5}" class="inv-empty"><i class="fas fa-file-invoice"></i><br>${all.length ? "No job orders match." : "No job orders yet."}</td></tr>`;
+      highlightNew();
+    }
+
+    // Arriving from Customer Records → Create JO → Save JO: the new job order is highlighted here
+    const wantNew = new URLSearchParams(location.search).get("new");
+    let highlighted = false;
+    function highlightNew() {
+      if (!wantNew || highlighted) return;
+      const tr = [...document.querySelectorAll("#rows tr[data-no]")].find((r) => r.dataset.no === wantNew);
+      if (!tr) return;   // not loaded yet: tried again after the next refresh
+      highlighted = true;
+      tr.classList.add("jr-new");
+      tr.scrollIntoView({ block: "center" });
+      const note = $("#savedNote");
+      note.innerHTML = `<i class="fas fa-circle-check"></i> <b>${esc(wantNew)}</b> was saved and is now in JO Records.`;
+      note.hidden = false;
+      if (typeof window.notify === "function") window.notify(wantNew + " saved from Customer Records. It's now in JO Records.", "good");
+      history.replaceState(null, "", location.pathname);   // a refresh doesn't highlight it again
+    }
+
+    const open = (id) => { location.href = "sales.html?jo=" + encodeURIComponent(id); };
+    $("#rows").addEventListener("click", (e) => { const tr = e.target.closest("[data-id]"); if (tr) open(tr.dataset.id); });
+    $("#rows").addEventListener("keydown", (e) => { if (e.key !== "Enter") return; const tr = e.target.closest("[data-id]"); if (tr) open(tr.dataset.id); });
+    $("#search").addEventListener("input", render);
+    $("#chips").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-f]"); if (!b) return;
+      filter = b.dataset.f;
+      document.querySelectorAll("#chips button").forEach((x) => x.classList.toggle("on", x === b));
+      render();
+    });
+    // Another device / another tab saved a JO or stock moved: update right away
+    addEventListener("storage", (e) => { if (e.key === JOBS_KEY || e.key === "aircon_stock") render(); });
+    (window.cloudReady || Promise.resolve()).then(render);
+    render();
+  })();
+  </script>
+</body>
+</html>

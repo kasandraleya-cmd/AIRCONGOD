@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Customer Records</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="inventory.css">
+  <link rel="stylesheet" href="customers.css?v=16">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+</head>
+<body class="app">
+
+  <!-- SECURITY GUARD -->
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) window.location.href = "index.html";
+  </script>
+
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="side-brand">
+      <img src="AIRCON.png" alt="Logo">
+      <span>AIRCON G.O.D</span>
+    </div>
+
+    <nav aria-label="Main menu"><!-- filled in by sidebar.js --></nav>
+
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="content inv">
+
+    <div class="inv-header">
+      <div>
+        <h1>Customer Records</h1>
+        <p>Customer details, job orders and installation requests.</p>
+      </div>
+      <button type="button" class="inv-btn light cr-clear" id="clearBtn"><i class="fas fa-trash"></i> Clear records</button>
+    </div>
+
+    <!-- SUMMARY CARDS -->
+    <div class="inv-stats">
+      <div class="inv-stat">
+        <i class="fas fa-users"></i>
+        <div><b id="sCustomers">0</b><span>Customers</span></div>
+      </div>
+      <div class="inv-stat green">
+        <i class="fas fa-receipt"></i>
+        <div><b id="sOrders">0</b><span>Receipts</span></div>
+      </div>
+      <div class="inv-stat green">
+        <i class="fas fa-coins"></i>
+        <div><b id="sTotal">₱0</b><span>Total sales</span></div>
+      </div>
+      <div class="inv-stat red">
+        <i class="fas fa-bell"></i>
+        <div><b id="sNew">0</b><span>New form requests</span></div>
+      </div>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="inv-toolbar">
+      <div class="inv-search">
+        <i class="fas fa-search"></i>
+        <input type="text" id="search" placeholder="Search customer, contact, address, JO# or item...">
+      </div>
+    </div>
+
+    <div class="cr-layout">
+
+      <!-- CUSTOMER LIST -->
+      <div class="inv-table-wrap cr-list">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th class="num">Receipts</th>
+              <th class="num">Total spent</th>
+              <th>Last purchase</th>
+            </tr>
+          </thead>
+          <tbody id="customers"></tbody>
+        </table>
+      </div>
+
+      <!-- SELECTED CUSTOMER -->
+      <section class="cr-detail" id="detail">
+        <div class="cr-pick"><i class="fas fa-hand-pointer"></i><p>Pick a customer to see their receipts.</p></div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- PAGE POP-UP: Daily Schedule / Weekly Schedule / Warranty opened over Customer Records -->
+  <div class="inv-modal" id="pageModal" hidden>
+    <div class="inv-box cr-page-box" role="dialog" aria-labelledby="pageTitle">
+      <div class="inv-box-head">
+        <div>
+          <h3 id="pageTitle">Daily Schedule</h3>
+          <p class="cr-page-sub" id="pageSub"></p>
+        </div>
+        <button type="button" class="inv-x" id="pageClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="cr-page-frame">
+        <div class="cr-page-loading" id="pageLoading"><i class="fas fa-spinner fa-spin"></i> Opening…</div>
+        <iframe id="pageFrame" title="Page" allow="geolocation"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = "index.html";
+    }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+  <script src="handoff.js?v=2"></script>
+  <script src="incentive-teams.js"></script>
+  <script src="signedforms.js?v=3"></script>
+  <script src="pricelist.js?v=4"></script>
+  <script src="pricepicker.js?v=4"></script>
+  <script src="jostock.js?v=1"></script>
+  <script src="daterange.js?v=3"></script>
+
+  <script>
+    const JOBS_KEY = "aircon_jobs";                       // job orders saved on the Sales page
+    const LOCAL_REQUESTS_KEY = "aircon_install_requests"; // form requests kept in this browser
+    const REQUEST_STATUS = ["New", "Contacted", "Scheduled", "Done", "Cancelled"];
+
+    const $ = (s) => document.querySelector(s);
+    const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const peso = (n) => "₱" + Number(n || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const niceDate = (d) => (d ? new Date(d + "T00:00").toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" }) : "—");
+
+    let selected = null;   // key of the customer being shown
+    let cloudRequests = [];   // requests sent through the installation form (online database)
+
+    // ---------- Installation form requests ----------
+    // Online ones come from the "install_requests" table. The copies the form keeps in this browser
+    // are only used when the online database can't be reached: once it has answered, it's the full
+    // list (otherwise cleared / archived requests would come back from those copies).
+    let cloudLoaded = false;
+    function allRequests() {
+      if (cloudLoaded) return cloudRequests;
+      const local = JSON.parse(localStorage.getItem(LOCAL_REQUESTS_KEY) || "[]");
+      const seen = new Set(cloudRequests.map((r) => r.no));
+      return cloudRequests.concat(local.filter((r) => !seen.has(r.no)).map((r) => ({ ...r, created_at: r.submitted, local: true })));
+    }
+
+    async function loadRequests() {
+      if (!window.cloud) return;
+      const list = () => window.cloud.from("install_requests").select("*").order("created_at", { ascending: false });
+      let { data, error } = await list().is("archived_at", null);   // archived (cleared) requests stay hidden
+      if (error && /archived_at/.test(error.message)) ({ data, error } = await list());   // install_requests_v3.sql not run yet
+      if (error) return;   // table not set up yet, or offline
+      cloudRequests = data;
+      cloudLoaded = true;
+      render();
+    }
+
+    // ---------- Group job orders and form requests by customer ----------
+    function buildCustomers() {
+      const jobs = JSON.parse(localStorage.getItem(JOBS_KEY) || "[]");
+      const map = {};
+      const customer = (name) => {
+        const key = (name || "").trim().toLowerCase();
+        return key && (map[key] || (map[key] = { key, name: name.trim(), receipts: [], requests: [], total: 0 }));
+      };
+      jobs.forEach((j) => {
+        const c = customer(j.customer);
+        if (!c) return;
+        c.receipts.push(j);
+        c.total += +j.total || 0;
+      });
+      allRequests().forEach((r) => { const c = customer(r.name); if (c) c.requests.push(r); });
+
+      return Object.values(map).map((c) => {
+        // Newest first; the latest details are the customer's contact info
+        c.receipts.sort((a, b) => String(b.date).localeCompare(String(a.date)) || b.id - a.id);
+        c.requests.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+        const pick = (f, rf = f) => (c.receipts.find((r) => r[f]) || {})[f] || (c.requests.find((r) => r[rf]) || {})[rf] || "";
+        const last = [c.receipts[0] && c.receipts[0].date, c.requests[0] && String(c.requests[0].created_at).slice(0, 10)].filter(Boolean).sort().pop();
+        const newRequests = c.requests.filter((r) => r.status === "New").length;
+        return { ...c, last, newRequests, contact: pick("contact"), address: pick("address"), landmark: pick("landmark"), contactPerson: pick("contact_person", "person"), contact2: pick("contact2"), tin: pick("tin") };
+      }).sort((a, b) => (b.newRequests > 0) - (a.newRequests > 0) || String(b.last).localeCompare(String(a.last)));
+    }
+
+    const matches = (c, q) => !q || [
+      c.name, c.contact, c.address, c.landmark, c.contactPerson, c.contact2, c.tin,
+      ...c.receipts.flatMap((r) => [r.no, r.installer, ...(r.items || []).map((i) => i.desc)]),
+      ...c.requests.flatMap((r) => [r.no, r.brand, r.unit, r.person, r.note, r.email, ...(r.items || []).map((u) => u.brand + " " + u.unit)]),
+    ].join(" ").toLowerCase().includes(q);
+
+    // ---------- Date filter (daterange.js) ----------
+    // A customer shows when one of their job orders is dated, or one of their form requests was sent, on the picked dates
+    const customerDays = (c) => [...c.receipts.map((r) => DateRange.day(r.date)), ...c.requests.map((r) => DateRange.day(r.created_at))].filter(Boolean);
+    const dates = typeof DateRange !== "undefined"
+      ? DateRange.filter({ dates: () => buildCustomers().flatMap(customerDays), onChange: () => render(),
+          title: "Show only the customers with a job order or form request on these dates" })
+      : null;
+    if (dates) document.querySelector(".inv-toolbar").appendChild(dates.el);
+
+    // ---------- Show everything ----------
+    function render() {
+      const all = buildCustomers();
+      $("#sCustomers").textContent = all.length;
+      $("#sOrders").textContent = all.reduce((t, c) => t + c.receipts.length, 0);
+      $("#sTotal").textContent = peso(all.reduce((t, c) => t + c.total, 0));
+      $("#sNew").textContent = all.reduce((t, c) => t + c.newRequests, 0);
+
+      const q = $("#search").value.trim().toLowerCase();
+      const list = all.filter((c) => matches(c, q) && (!dates || !dates.active || customerDays(c).some(dates.has)));
+      if (!selected || !all.some((c) => c.key === selected)) selected = list[0] ? list[0].key : null;
+
+      $("#customers").innerHTML = list.length
+        ? list.map((c) => `
+            <tr class="cr-row${c.key === selected ? " on" : ""}" data-key="${esc(c.key)}">
+              <td><b>${esc(c.name)}</b>${c.newRequests ? ' <span class="cr-new">NEW REQUEST</span>' : ""}<small class="inv-sub">${esc(c.contact || c.address || "No contact saved")}</small></td>
+              <td class="num">${c.receipts.length}${c.requests.length ? `<small class="inv-sub">+ ${c.requests.length} request${c.requests.length > 1 ? "s" : ""}</small>` : ""}</td>
+              <td class="num"><b>${peso(c.total)}</b></td>
+              <td>${niceDate(c.last)}</td>
+            </tr>`).join("")
+        : `<tr><td colspan="4" class="inv-empty"><i class="fas fa-address-book"></i><br>${all.length ? "No customers match your search or dates." : "No customers yet. Submit a job order on Job Order, or a customer fills in the installation form, and they appear here."}</td></tr>`;
+
+      renderDetail(all.find((c) => c.key === selected));
+    }
+
+    let shown = null;   // the customer in the detail panel
+    function renderDetail(c) {
+      shown = c;
+      if (!c) {
+        $("#detail").innerHTML = `<div class="cr-pick"><i class="fas fa-hand-pointer"></i><p>Pick a customer to see their receipts.</p></div>`;
+        return;
+      }
+      const info = [["Contact no.", c.contact], ["Address", c.address], ["Contact person", [c.contactPerson, c.contact2].filter(Boolean).join(" · ")], ["Landmark", c.landmark], ["TIN", c.tin]].filter(([, v], i) => i < 2 || v);
+      $("#detail").innerHTML = `
+        <div class="cr-head">
+          <div class="cr-avatar">${esc(c.name.charAt(0).toUpperCase())}</div>
+          <div>
+            <h2>${esc(c.name)}</h2>
+            <p>${c.receipts.length} receipt${c.receipts.length === 1 ? "" : "s"} · ${peso(c.total)} total${c.requests.length ? ` · ${c.requests.length} form request${c.requests.length > 1 ? "s" : ""}` : ""}</p>
+          </div>
+        </div>
+        <div class="cr-actions">
+          <span>Use this customer in:</span>
+          ${Roles.me().manager ? '<button type="button" data-send="jo"><i class="fas fa-file-invoice-dollar"></i> Create JO</button>' : ""}
+          <button type="button" data-send="schedule"><i class="fas fa-calendar-alt"></i> Daily / Weekly Schedule</button>
+          <button type="button" data-send="warranty"><i class="fas fa-tools"></i> Warranty</button>
+          <button type="button" data-send="survey"><i class="fas fa-clipboard-check"></i> Survey</button>
+          <button type="button" data-signed><i class="fas fa-file-signature"></i> Signed forms</button>
+        </div>
+        <dl class="cr-info">${info.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v) || "—"}</dd></div>`).join("")}
+          ${(() => { const p = c.requests.find((x) => pinLink(x)); return `<div class="cr-pin-row"><dt>Exact location pin</dt><dd>${p ? pinLink(p)
+            : '<span class="inv-sub">No pin from the customer yet</span>'}</dd></div>`; })()}</dl>
+        ${c.requests.length ? `<h3 class="cr-sub">Installation requests (from the form)</h3>${c.requests.map(requestCard).join("")}` : ""}
+        ${c.receipts.length ? joHistory(c) : ""}
+        ${c.receipts.length ? `<h3 class="cr-sub">Receipts</h3>${c.receipts.map(receipt).join("")}` : ""}`;
+    }
+
+    // The aircon units of a request, one entry per BRAND: its list (newer form); else the "Units:" lines saved in the
+    // note (database without the list column); else the single brand / model / quantity of the oldest requests,
+    // where several brands joined by commas ("MIDEA, TCL") are split into separate entries.
+    function requestUnits(req) {
+      if (Array.isArray(req.items) && req.items.length) return req.items;
+      const text = String(req.units || ((/Units:\s*\n([\s\S]*)$/.exec(req.note || "") || [])[1]) || "");
+      const parsed = text.split(/\r?\n/).map((l) => /^\s*(.+?)(?:\s+—\s+(.+?))?\s*×\s*(\d+)\s*(?:\+\s*Outdoor.*)?$/.exec(l)).filter(Boolean)
+        .map((m) => ({ brand: m[1].trim(), unit: (m[2] || "").trim(), qty: +m[3] || 1 }));
+      if (parsed.length) return parsed;
+      if (!req.brand) return [];
+      const brands = String(req.brand).split(/\s*,\s*/).filter(Boolean), total = +req.qty || brands.length || 1;
+      return brands.map((b, i) => ({ brand: b, unit: req.unit, qty: Math.max(1, Math.floor(total / brands.length) + (i < total % brands.length ? 1 : 0)) }));
+    }
+
+    // One request from the installation form, with a status the office can update
+    function requestCard(r) {
+      const when = r.created_at ? new Date(r.created_at).toLocaleString("en-PH", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "—";
+      // Several units (newer form): one line each, e.g. "LG — 1.5hp × 2"; older requests have one brand/model/qty
+      const items = Array.isArray(r.items) && r.items.length ? r.items : null;
+      // Each indoor unit comes with its outdoor unit (same brand, same horsepower, same quantity): shown right under it
+      const unitLines = items && items.map((u) => esc(`${u.brand}${u.unit ? " — " + u.unit : ""} × ${u.qty}`)
+        + (u.outdoor ? `<br><small class="inv-sub">↳ Outdoor: ${esc(u.outdoor.brand)}${u.outdoor.unit ? " " + esc(String(u.outdoor.unit).replace("HP", " HP")) : ""} × ${esc(u.outdoor.qty)}</small>` : "")).join("<br>");
+      const rows = [
+        ["Installation date", niceDate(r.date)],
+        ...(items ? [["Aircon units", unitLines, true], ["Total units", r.qty]] : [["Brand", r.brand], ["Model / HP", r.unit], ["Quantity", r.qty]]),
+        ["Mode of payment", r.payment], ["Contact no.", r.contact], ["Email", r.email], ["Contact person", r.person], ["Address", r.address],
+        ["Exact location pin", pinLink(r), true],
+      ].filter(([, v]) => v);
+      const status = r.status || "New";
+      return `
+        <article class="cr-request${status === "New" ? " is-new" : ""}">
+          <header>
+            <div><b>${esc(r.no)}</b><span>sent ${esc(when)}</span></div>
+            ${r.local ? `<span class="cr-req-status">${esc(status)}</span>` : `
+            <select class="cr-req-status" data-req="${r.id}" data-v="${esc(status)}" title="Update the status">
+              ${REQUEST_STATUS.map((s) => `<option${s === status ? " selected" : ""}>${s}</option>`).join("")}
+            </select>`}
+          </header>
+          <dl>${rows.map(([k, v, html]) => `<div${html ? ' class="wide"' : ""}><dt>${k}</dt><dd>${html ? v : esc(v)}</dd></div>`).join("")}</dl>
+          ${r.note ? `<p class="cr-remarks"><i class="fas fa-sticky-note"></i> ${linkMaps(esc(r.note))}</p>` : ""}        </article>`;
+    }
+
+    // GPS pin the customer set on the installation form → clickable Google Maps link
+    function pinLink(r) {
+      let lat = parseFloat(r.latitude), lng = parseFloat(r.longitude);
+      if (!isFinite(lat) || !isFinite(lng)) {
+        // Saved before the location columns existed: the pin is a Google Maps link in the note
+        const m = String(r.note || "").match(/google\.com\/maps\?q=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+        if (!m) return "";
+        lat = +m[1]; lng = +m[2];
+      }
+      const url = `https://www.google.com/maps?q=${lat},${lng}`;
+      const acc = +r.location_accuracy ? ` · GPS ±${Math.round(r.location_accuracy)} m` : " · placed on map";
+      return `<a href="${url}" target="_blank" rel="noopener"><i class="fas fa-map-marker-alt"></i> Open in Google Maps</a>
+        <small class="inv-sub">${lat.toFixed(6)}, ${lng.toFixed(6)}${acc}</small>`;
+    }
+    // Older requests (saved before the location columns existed) have the pin link inside the note
+    const linkMaps = (html) => html.replace(/https:\/\/(?:www\.)?(?:google\.com\/maps|maps\.google\.com\/)\?q=-?[\d.]+,-?[\d.]+/g,
+      (u) => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+
+    // Changing a request's status saves it online
+    $("#detail").addEventListener("change", async (e) => {
+      const sel = e.target.closest("[data-req]");
+      if (!sel || !window.cloud) return;
+      sel.disabled = true;
+      const { error } = await window.cloud.from("install_requests").update({ status: sel.value }).eq("id", +sel.dataset.req);
+      sel.disabled = false;
+      if (error) return alert("The status wasn't saved: " + error.message);
+      const r = cloudRequests.find((x) => x.id === +sel.dataset.req);
+      if (r) r.status = sel.value;
+      render();
+    });
+
+    // ---------- JO history: every job order of the customer, what they bought and the SRP of each model ----------
+    // SRP comes from the Price List (pricelist.js). A line that isn't on the Price List by its name is looked up
+    // by its serial's model in Inventory. An outdoor unit is part of the set, so its SRP is on the indoor unit.
+    function srpOf(item, stock) {
+      const desc = String(item.desc || "");
+      if (/\(outdoor\)/i.test(desc)) return { set: true };
+      const find = (t) => typeof PricePicker !== "undefined" && t ? PricePicker.find(t) : null;
+      const bare = desc.replace(/\((indoor|outdoor)\)/ig, "").trim();
+      let p = find(bare);
+      if (!p && item.serial) {
+        const u = stock.find((x) => String(x.barcode || "").toLowerCase() === String(item.serial).toLowerCase());
+        if (u) p = find(u.specs) || find([u.brand, u.specs].filter(Boolean).join(" ")) || find(u.name);
+      }
+      return p ? { srp: +p.srp, name: p.name } : null;
+    }
+    function joHistory(c) {
+      const stock = JSON.parse(localStorage.getItem("aircon_stock") || "[]");
+      let srpTotal = 0, paidTotal = 0, units = 0;
+      const rows = c.receipts.flatMap((r) => !(r.items || []).some((i) => String(i.desc || "").trim() || i.serial)
+        ? [`<tr><td class="cr-h-jo"><b>${esc(r.no) || "—"}</b><small>${niceDate(r.date)}</small>${JoStock.badge(r)}</td><td colspan="4"><span class="inv-sub">No items on this job order yet</span></td></tr>`]
+        : (r.items || []).filter((i) => String(i.desc || "").trim() || i.serial).map((i, k, arr) => {
+        const qty = +i.qty || 1, s = srpOf(i, stock);
+        const paid = (+i.cost || 0) * qty - (+i.disc || 0);
+        if (s && s.srp) srpTotal += s.srp * qty;
+        paidTotal += paid;
+        if ((s && s.srp) || /\(indoor\)/i.test(i.desc || "")) units += qty;
+        return `<tr>
+          ${k === 0 ? `<td rowspan="${arr.length}" class="cr-h-jo"><b>${esc(r.no) || "—"}</b><small>${niceDate(r.date)}</small>${JoStock.badge(r)}</td>` : ""}
+          <td>${esc(i.desc) || "—"}${i.serial ? `<small class="inv-sub">S/N ${esc(i.serial)}</small>` : ""}</td>
+          <td class="num">${esc(i.qty) || "1"}</td>
+          <td class="num">${s && s.set ? '<span class="inv-sub">with indoor</span>' : s ? `<b>${peso(s.srp)}</b>` : '<span class="inv-sub">not on price list</span>'}</td>
+          <td class="num">${+i.cost ? peso(paid) : "—"}</td>
+        </tr>`;
+      }));
+      if (!rows.length) return "";
+      return `<h3 class="cr-sub">JO history</h3>
+        <div class="cr-history">
+          <table>
+            <thead><tr><th>JO # / date</th><th>Model / unit bought</th><th class="num">Qty</th><th class="num">SRP</th><th class="num">Price paid</th></tr></thead>
+            <tbody>${rows.join("")}</tbody>
+            <tfoot><tr><td colspan="3">${c.receipts.length} job order${c.receipts.length === 1 ? "" : "s"}${units ? ` · ${units} unit${units === 1 ? "" : "s"}` : ""}</td>
+              <td class="num">${peso(srpTotal)}</td><td class="num">${peso(paidTotal)}</td></tr></tfoot>
+          </table>
+        </div>`;
+    }
+
+    // One receipt: what they bought and the job order details
+    function receipt(r) {
+      const items = r.items || [];
+      const meta = [["Installer", r.installer], ["MOP", r.mop], ["Supplier", r.supplier], ["AR #", r.ar], ["DR #", r.dr]].filter(([, v]) => v);
+      return `
+        <article class="cr-receipt" data-id="${r.id}">
+          <header>
+            <div><b>${esc(r.no)}</b><span>${niceDate(r.date)}</span></div>
+            <button type="button" class="cr-print" data-print="${r.id}" title="Print this receipt"><i class="fas fa-print"></i></button>
+          </header>
+          <div class="cr-print-head">
+            <b>AIRCON G.O.D. PH</b>
+            <span>028 Real St. Brgy Zapote Las Piñas City · 09772604127 / 09612379892</span>
+            <strong>RECEIPT ${esc(r.no)} · ${niceDate(r.date)}</strong>
+            <span>Customer: ${esc(r.customer)}${r.contact ? " · " + esc(r.contact) : ""}${r.address ? " · " + esc(r.address) : ""}</span>
+          </div>
+          <table>
+            <thead><tr><th class="num">Qty</th><th>Item</th><th class="num">Unit cost</th><th class="num">Discount</th><th class="num">Amount</th></tr></thead>
+            <tbody>${items.map((i) => {
+              const sales = (+i.qty || 0) * (+i.cost || 0);
+              return `<tr>
+                <td class="num">${esc(i.qty) || "—"}</td>
+                <td>${esc(i.desc) || "—"}</td>
+                <td class="num">${peso(i.cost)}</td>
+                <td class="num">${+i.disc ? peso(i.disc) : "—"}</td>
+                <td class="num">${peso(sales ? sales - (+i.disc || 0) : 0)}</td>
+              </tr>`;
+            }).join("")}</tbody>
+            <tfoot><tr><td colspan="4">TOTAL</td><td class="num">${peso(r.total)}</td></tr></tfoot>
+          </table>
+          ${meta.length ? `<p class="cr-meta">${meta.map(([k, v]) => `<span>${k}: <b>${esc(v)}</b></span>`).join("")}</p>` : ""}
+          ${r.remarks ? `<p class="cr-remarks"><i class="fas fa-sticky-note"></i> ${esc(r.remarks)}</p>` : ""}
+        </article>`;
+    }
+
+    // ---------- Clicks ----------
+    $("#customers").addEventListener("click", (e) => {
+      const row = e.target.closest("[data-key]");
+      if (!row) return;
+      selected = row.dataset.key;
+      render();
+    });
+
+    // This customer's signed forms (signedforms.js)
+    $("#detail").addEventListener("click", (e) => {
+      if (e.target.closest("[data-signed]") && shown) SignedForms.showList({ client: shown.name });
+    });
+
+    // Daily Schedule / Weekly Schedule / Warranty: open the page with this customer's details filled in
+    $("#detail").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-send]");
+      if (!btn || !shown) return;
+      const c = shown, r = c.receipts[0] || {}, req = c.requests[0] || {};
+      const items = (r.items || []).filter((i) => i.desc);
+      const reqUnits = requestUnits(req);
+      const first = items[0] ? { unit: items[0].desc, qty: items[0].qty }
+        : reqUnits[0] ? { unit: [reqUnits[0].brand, reqUnits[0].unit].filter(Boolean).join(" "), qty: reqUnits[0].qty } : { unit: "", qty: "" };
+      const customer = {
+        name: c.name, contact: c.contact || "", address: c.address || "", landmark: c.landmark || "",
+        person: c.contactPerson || "", contact2: c.contact2 || "", mop: r.mop || req.payment || "", unit: first.unit, qty: first.qty || "",
+      };
+      const to = btn.dataset.send;
+      if (to === "jo") {
+        // Job Order page: a NEW job order with this customer's details (and the units of their open installation request)
+        const openReq = req.status ? !["Done", "Cancelled"].includes(req.status) : !!req.no;
+        sessionStorage.setItem("aircon_jo_prefill", JSON.stringify({
+          fields: {
+            customer: c.name, contact: c.contact || "", contact2: c.contact2 || "", contact_person: c.contactPerson || "",
+            address: c.address || "", landmark: c.landmark || "", mop: r.mop || req.payment || "", ref: openReq ? req.no || "" : "",
+          },
+          // Separate lines for each brand the customer bought: its INDOOR unit, then its OUTDOOR unit (always the same brand,
+          // the same HP and the same quantity; the outdoor is priced 0, the price is on the indoor unit)
+          items: openReq ? reqUnits.flatMap((u) => {
+            const name = [u.brand, u.unit].filter((x) => x && !/not sure/i.test(x)).join(" ");
+            if (!name) return [];
+            const o = u.outdoor || {}, brand = o.brand || u.brand;
+            const hp = (String(o.unit || u.unit || "").match(/(\d+(?:\.\d+)?)\s*HP/i) || [])[1];
+            return [
+              { qty: String(u.qty || 1), desc: name + " (Indoor)" },
+              { qty: String(o.qty || u.qty || 1), desc: [brand, hp ? (+hp).toFixed(1) + " HP" : "", "(Outdoor)"].filter(Boolean).join(" "), cost: "0" },
+            ];
+          }) : [],
+        }));
+        return openPage("jo", c.name);
+      }
+      if (to === "warranty") {
+        // Same hand-over the Purchase page's Quotation button uses
+        const d = new Date();
+        sessionStorage.setItem("aircon_quote_from_jo", JSON.stringify({
+          no: r.no || "", customer: c.name, mop: customer.mop, contact: customer.contact || customer.contact2,
+          date: d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"),
+          address: [customer.address, customer.landmark].filter(Boolean).join(" · "),
+          items: items.length ? items : reqUnits.map((u) => ({ desc: [u.brand, u.unit].filter(Boolean).join(" "), qty: u.qty })),
+        }));
+        openPage("warranty", c.name);
+      } else if (to === "survey") {
+        // Survey page (Installation Acceptance & Agreement), filled in with this customer
+        const unitText = items.length ? items.map((i) => i.desc).join(", ")
+          : reqUnits.map((u) => [u.brand, u.unit].filter((x) => x && !/not sure/i.test(x)).join(" ")).filter(Boolean).join(", ");
+        sessionStorage.setItem("aircon_survey_prefill", JSON.stringify({
+          name: c.name, contact: customer.contact || customer.contact2,
+          address: [customer.address, customer.landmark].filter(Boolean).join(" · "),
+          unit: unitText, date: req.date || "",
+        }));
+        openPage("survey", c.name);
+      } else {
+        // Daily / Weekly Schedule: the Aircon Installation form, filled in. Submitting it books the
+        // client in both the Daily Schedule and the Weekly Schedule on the installation date.
+        const units = items.length ? items.map((i) => ({ text: i.desc, qty: i.qty }))
+          : reqUnits.map((u) => ({ brand: u.brand, unit: u.unit, qty: u.qty }));
+        sessionStorage.setItem("aircon_install_prefill", JSON.stringify({
+          name: c.name, contact: customer.contact || customer.contact2, email: req.email || "",
+          person: customer.person, address: [customer.address, customer.landmark].filter(Boolean).join(" · "),
+          payment: customer.mop, units,
+          date: req.date || "",   // the installation date the customer picked on their latest request
+          // The customer's pin (newest request that has one)
+          ...(() => { const p = c.requests.find((x) => pinLink(x)); if (!p) return {};
+            const m = pinLink(p).match(/q=(-?[\d.]+),(-?[\d.]+)/);
+            return { latitude: +m[1], longitude: +m[2], location_accuracy: p.location_accuracy }; })(),
+        }));
+        openPage("schedule", c.name);
+      }
+    });
+
+    // ---------- Page pop-up: shows the real page (without its sidebar) over Customer Records ----------
+    const PAGES = {
+      schedule: { file: "installation-form/index.html", title: "Daily / Weekly Schedule", sub: "Pick the installation date and submit to book" },
+      warranty: { file: "aftersales.html", title: "Warranty · Quotation", sub: "Quotation filled in for" },
+      survey: { file: "survey.html", title: "Survey", sub: "Installation Acceptance & Agreement filled in for" },
+      jo: { file: "sales.html", title: "Create Job Order", sub: "New job order for" },
+    };
+    const pageModal = $("#pageModal");
+    const pageFrame = $("#pageFrame");
+    function openPage(to, name) {
+      const p = PAGES[to];
+      $("#pageTitle").textContent = p.title;
+      $("#pageSub").innerHTML = `${p.sub} <b>${esc(name)}</b>`;
+      $("#pageLoading").hidden = false;
+      pageFrame.style.visibility = "hidden";
+      pageFrame.src = p.file + "?popup=1";
+      pageModal.hidden = false;
+    }
+    // Inside the pop-up the page has no sidebar, chat or save badge, so only its own content shows
+    pageFrame.addEventListener("load", () => {
+      if (!pageFrame.src || pageFrame.src === "about:blank") return;
+      try {
+        const doc = pageFrame.contentDocument;
+        const style = doc.createElement("style");
+        style.textContent = `
+          .side, #chatLauncher, #cloudBadge { display: none !important; }
+          body.app { display: block !important; min-height: 0 !important; }
+          .content { padding: 18px 20px !important; }`;
+        doc.head.appendChild(style);
+      } catch (e) {}
+      $("#pageLoading").hidden = true;
+      pageFrame.style.visibility = "";
+    });
+    function closePage() {
+      if (pageModal.hidden) return;
+      pageModal.hidden = true;
+      pageFrame.src = "about:blank";
+      sessionStorage.removeItem("aircon_customer_handoff");   // not placed: don't carry it to the next visit
+      sessionStorage.removeItem("aircon_install_prefill");
+      sessionStorage.removeItem("aircon_survey_prefill");
+      render();   // anything changed in the pop-up shows here too
+      loadRequests();   // a request sent from the installation form shows up right away
+    }
+    $("#pageClose").onclick = closePage;
+    // A job order saved in the Create JO pop-up: close it and show it in this customer's history
+    window.addEventListener("message", (e) => {
+      if (e.origin !== location.origin || !e.data || e.data.type !== "jo-saved") return;
+      closePage();
+      // The new job order shows in JO Records right away (highlighted)
+      location.href = "jo-records.html?new=" + encodeURIComponent(e.data.no || "");
+    });
+
+    // ---------- Installation form submitted in the pop-up: book it in Daily and Weekly Schedule ----------
+    const ymdOf = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    const unitName = (u) => [u.brand && !/not sure/i.test(u.brand) ? u.brand : "", u.unit].filter(Boolean).join(" ").toUpperCase();
+
+    // The batch: 1st → 1st INSTALLER block + AM slot, 2nd → 2nd block + PM slot, 3rd → 3rd block + PAHABOL
+    const BATCH_NO = { "1ST BATCH": 0, "2ND BATCH": 1, "3RD BATCH": 2 };
+
+    // Daily Schedule (aircon_daily): one row per unit, in the batch's INSTALLER block, TIME = the batch
+    function bookDaily(r) {
+      const all = JSON.parse(localStorage.getItem("aircon_daily") || "{}");
+      const blank = () => ({ jo: "", time: "", name: "", location: "", model: "", hp: "", qty: "", status: "", mop: "", assign: "", notes: "", address: "" });
+      const block = (kind, n) => ({ kind, rows: Array.from({ length: n }, blank) });
+      if (!all[r.date] || !Array.isArray(all[r.date].groups)) all[r.date] = { groups: [block("installer", 3), block("installer", 3), block("installer", 3), block("service", 4)] };
+      const day = all[r.date];
+      if (day.groups.some((g) => (g.rows || []).some((x) => String(x.name || "").trim().toLowerCase() === r.name.toLowerCase()))) return false;   // already there
+      const n = BATCH_NO[r.batch];
+      // Make sure the batch's INSTALLER block exists (new ones go above the services)
+      const installers = () => day.groups.filter((g) => g.kind === "installer");
+      while (installers().length < (n ?? 0) + 1) {
+        const at = day.groups.findIndex((g) => g.kind === "service");
+        day.groups.splice(at < 0 ? day.groups.length : at, 0, block("installer", 3));
+      }
+      // With a batch: only that batch's block; without one: the first empty installer row anywhere
+      const blocks = n === undefined ? installers() : [installers()[n]];
+      // The team picked for the batch becomes that INSTALLER block's crew (only if nobody is on it yet)
+      if (n !== undefined && Array.isArray(r.crew) && r.crew.length && !String(blocks[0].crew || "").trim()) {
+        blocks[0].crew = r.crew.join(" | ");
+      }
+      const units = r.items && r.items.length ? r.items : [{ brand: r.brand, unit: r.unit, qty: r.qty }];
+      units.forEach((u) => {
+        let row = null;
+        blocks.some((g) => (row = g.rows.find((x) => !String(x.name || "").trim())));
+        if (!row) blocks[blocks.length - 1].rows.push((row = blank()));
+        const hp = String(u.unit || "").match(/(\d+(?:\.\d+)?)\s*HP/i);
+        Object.assign(row, {
+          time: r.batch || row.time || "",
+          name: r.name,
+          location: CustomerHandoff.cityOf(r.address),
+          model: unitName(u),   // the Daily Schedule turns this into its model chip + HP
+          hp: hp ? (+hp[1]).toFixed(1) + "HP" : "",
+          qty: String(u.qty || 1),
+          status: "WAITING",
+          mop: CustomerHandoff.dailyMop(r.payment),
+          notes: [r.contact, r.person, r.note].filter(Boolean).join(" / "),
+          address: r.address,
+          pin: r.location || "",   // Google Maps link to the customer's exact location pin (if set)
+        });
+      });
+      localStorage.setItem("aircon_daily", JSON.stringify(all));
+      return true;
+    }
+
+    // Weekly Schedule (aircon_schedule): 1st batch → a free AM (morning installation) slot,
+    // 2nd batch → a free PM (noon installation) slot; 3rd batch, or when AM / PM are full → PAHABOL
+    function bookWeekly(r) {
+      const all = JSON.parse(localStorage.getItem("aircon_schedule") || "{}");
+      const mine = Object.entries(all).find(([k, e]) => k.startsWith(r.date + "|") && String(e.client || "").trim().toLowerCase() === r.name.toLowerCase());
+      if (mine) return mine[0];   // already booked that day
+      let key = null;
+      const n = BATCH_NO[r.batch];
+      const sections = n === undefined ? [["mi", 7], ["ni", 7]] : n === 0 ? [["mi", 7]] : n === 1 ? [["ni", 7]] : [];   // 4 slots + 3 extra
+      for (const [sec, slots] of sections) {
+        for (let i = 0; i < slots && !key; i++) if (!all[`${r.date}|${sec}|${i}`]) key = `${r.date}|${sec}|${i}`;
+        if (key) break;
+      }
+      for (let i = 0; !key; i++) if (!all[`${r.date}|ph|${i}`]) key = `${r.date}|ph|${i}`;
+      // The Weekly Schedule shows only the client's name and unit (no address, team, batch, contact or notes)
+      const units = r.items && r.items.length ? r.items : [{ brand: r.brand, unit: r.unit, qty: r.qty }];
+      all[key] = {
+        client: r.name,
+        job: units.map((u) => unitName(u) + (u.qty > 1 ? " x" + u.qty : "")).join(", "),
+        location: "",
+        team: "", status: "", paid: "", note: "",
+      };
+      localStorage.setItem("aircon_schedule", JSON.stringify(all));
+      return key;
+    }
+
+    // Book one client in both schedules and say where they went (from the pop-up form's SET SCHEDULE)
+    async function bookBoth(r) {
+      if (window.cloudReady) await window.cloudReady;   // latest online data first, so nothing is overwritten
+      const added = bookDaily(r);
+      const key = bookWeekly(r);
+      // Save both schedules online right now and wait: the schedules load what's online, so a booking
+      // that only stayed in this browser wouldn't show there
+      if (window.cloudSaveNow) {
+        showBooked('<i class="fas fa-spinner fa-spin"></i> Saving the booking online…', true);
+        const errors = (await Promise.all([window.cloudSaveNow("aircon_daily"), window.cloudSaveNow("aircon_schedule")])).filter(Boolean);
+        if (errors.length) {
+          // Refused by the database's rules: show who the database thinks is logged in, and as what
+          let who = "";
+          if (errors.some((x) => /row-level security/i.test(x)) && window.cloud) {
+            const [u, pos, mgr] = await Promise.all([
+              window.cloud.auth.getUser(), window.cloud.rpc("my_position"), window.cloud.rpc("is_manager"),
+            ]);
+            const email = u.data && u.data.user ? u.data.user.email : "?";
+            who = `<br><small>The database sees you as <b>${esc(email)}</b> with position <b>${esc(pos.data || "none found on the Staff page")}</b>
+              (${mgr.data ? "manager" : "not a manager"}). Only Owner, Human Resources, Admin Staff and Developer can change schedules.</small>`;
+          }
+          showBooked(`<b>${esc(r.name)}</b> was NOT saved online, so it won't show in the Daily / Weekly Schedule yet.
+            <small>(${esc([...new Set(errors)].join(" · "))})</small>${who}`, true, true);
+          return;
+        }
+      }
+      await markScheduled(r.name);   // their open requests: New / Contacted → Scheduled
+      const [, sec, slot] = key.split("|");
+      const where = { mi: "AM installation", ni: "PM installation", ph: "Pahabol" }[sec] + " slot " + (+slot + 1);
+      const day = new Date(r.date + "T00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", year: "numeric" });
+      // Links straight to that date: the schedules open on today, so a booking for another day isn't on screen there
+      const go = `<span class="cr-booked-go"><a href="dailysched.html?date=${esc(r.date)}"><i class="fas fa-calendar-day"></i> Open Daily Schedule</a>`
+        + `<a href="schedule.html?date=${esc(r.date)}"><i class="fas fa-calendar-alt"></i> Open Weekly Schedule</a></span>`;
+      showBooked((added
+        ? `<b>${esc(r.name)}</b> is booked on <b>${esc(day)}</b>${r.batch ? ` · <b>${esc(r.batch)}</b>` : ""}${r.team ? ` · <b>${esc(r.team)}</b>` : ""} in the Daily Schedule and the Weekly Schedule (${esc(where)}).`
+        : `<b>${esc(r.name)}</b> was already booked on <b>${esc(day)}</b> (Weekly Schedule: ${esc(where)}). Nothing was added twice.`) + go, true);
+    }
+
+    // Once a customer is booked in the Daily / Weekly Schedule, their open requests (New or Contacted)
+    // become "Scheduled", so the NEW REQUEST tag goes away
+    async function markScheduled(name) {
+      const same = (x) => String(x.name || "").trim().toLowerCase() === String(name || "").trim().toLowerCase();
+      const open = (x) => same(x) && ["New", "Contacted", ""].includes(x.status || "New");
+      const ids = cloudRequests.filter(open).map((x) => x.id);
+      if (ids.length && window.cloud) {
+        const { error } = await window.cloud.from("install_requests").update({ status: "Scheduled" }).in("id", ids);
+        if (!error) cloudRequests.forEach((x) => { if (ids.includes(x.id)) x.status = "Scheduled"; });
+      }
+      // Copies kept in this browser (used when the online database can't be reached)
+      const local = JSON.parse(localStorage.getItem(LOCAL_REQUESTS_KEY) || "[]");
+      let changed = false;
+      local.forEach((x) => { if (open(x)) { x.status = "Scheduled"; changed = true; } });
+      if (changed) localStorage.setItem(LOCAL_REQUESTS_KEY, JSON.stringify(local));
+      render();
+    }
+
+    // Green message at the top of the page after a booking; closes by itself
+    function showBooked(html, stay, bad) {
+      let box = $("#bookedMsg");
+      if (!box) {
+        box = document.createElement("div");
+        box.id = "bookedMsg";
+        box.className = "cr-booked-msg";
+        document.body.appendChild(box);
+      }
+      box.classList.toggle("bad", !!bad);
+      box.innerHTML = `<i class="fas ${bad ? "fa-exclamation-circle" : "fa-check-circle"}"></i><span>${html}</span><button type="button" aria-label="Close">&times;</button>`;
+      box.querySelector("button").onclick = () => box.remove();
+      clearTimeout(showBooked.timer);
+      if (!stay) showBooked.timer = setTimeout(() => box.remove(), 8000);   // with links: stays until closed
+    }
+
+    // The pop-up form's SET SCHEDULE: book it, close the pop-up
+    window.addEventListener("message", async (e) => {
+      if (e.origin !== location.origin || e.source !== pageFrame.contentWindow) return;
+      const r = e.data && e.data.type === "aircon-install-submitted" && e.data.request;
+      if (!r || !/^\d{4}-\d{2}-\d{2}$/.test(r.date || "")) return;
+      closePage();
+      await bookBoth(r);
+    });
+
+    pageModal.addEventListener("click", (e) => { if (e.target === pageModal) closePage(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePage(); });
+
+    // Print just one receipt
+    $("#detail").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-print]");
+      if (!btn) return;
+      const card = btn.closest(".cr-receipt");
+      card.classList.add("printing");
+      document.body.classList.add("cr-printing");
+      window.print();
+    });
+    window.addEventListener("afterprint", () => {
+      document.body.classList.remove("cr-printing");
+      document.querySelectorAll(".cr-receipt.printing").forEach((c) => c.classList.remove("printing"));
+    });
+
+    // Only a Developer login may clear records (role set on the login page)
+    const isDeveloper = sessionStorage.getItem("aircon_role") === "Developer";
+    if (!isDeveloper) $("#clearBtn").style.display = "none";
+
+    // Customer records are the saved job orders plus the form requests, so clearing removes both
+    // (the job orders on Sales too)
+    $("#clearBtn").onclick = async () => {
+      if (!isDeveloper) return alert("Only a Developer can clear records.");
+      const jobs = JSON.parse(localStorage.getItem(JOBS_KEY) || "[]").length;
+      const requests = allRequests().length;
+      if (!jobs && !requests) return alert("There are no records to clear.");
+
+      const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+      const what = [jobs && plural(jobs, "saved job order") + " (on the Sales page too) — deleted, can't be undone",
+        requests && plural(requests, "installation form request") + " — archived (hidden but kept in the database)"]
+        .filter(Boolean).join("\n• ");
+      if (!confirm(`Clear all customer records?\n\n• ${what}\n\nSigned forms are never cleared.`)) return;
+
+      // Form requests saved online are archived, never deleted (supabase/install_requests_v3.sql)
+      if (window.cloud && cloudRequests.length) {
+        $("#clearBtn").disabled = true;
+        const { error } = await window.cloud.from("install_requests")
+          .update({ archived_at: new Date().toISOString(), archived_by: sessionStorage.getItem("aircon_user") || null })
+          .is("archived_at", null);
+        $("#clearBtn").disabled = false;
+        if (error) return alert(/archived_at/.test(error.message)
+          ? "Run supabase/install_requests_v3.sql in Supabase first, so form requests can be archived instead of deleted."
+          : "The form requests weren't cleared: " + error.message);
+        cloudRequests = [];
+      }
+      localStorage.removeItem(JOBS_KEY);
+      localStorage.removeItem(LOCAL_REQUESTS_KEY);
+      selected = null;
+      $("#search").value = "";
+      render();
+    };
+
+    $("#search").addEventListener("input", render);
+    // Refresh when a job order is saved in another tab
+    window.addEventListener("storage", (e) => { if (e.key === JOBS_KEY || e.key === LOCAL_REQUESTS_KEY) render(); });
+
+    // Form requests: load them, and show new ones the moment a customer sends the form
+    (window.cloudReady || Promise.resolve()).then(() => {
+      loadRequests();
+      if (window.cloud) {
+        window.cloud.channel("install_requests")
+          .on("postgres_changes", { event: "*", schema: "public", table: "install_requests" }, loadRequests)
+          .subscribe();
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>

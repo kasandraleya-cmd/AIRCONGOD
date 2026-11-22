@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Cleaning Records</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="inventory.css">
+  <link rel="stylesheet" href="cleaning-records.css?v=8">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+</head>
+<body class="app">
+  <script>if (!sessionStorage.getItem("aircon_user")) location.href = "index.html";</script>
+  <aside class="side">
+    <div class="side-brand"><img src="AIRCON.png" alt="Logo"><span>AIRCON G.O.D</span></div>
+    <nav aria-label="Main menu"></nav>
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+  <main class="content inv">
+    <div class="inv-header"><div><h1>Cleaning Records</h1><p>Requests submitted through the Aircon Cleaning Form.</p></div></div>
+    <div class="inv-stats">
+      <div class="inv-stat"><i class="fas fa-wind"></i><div><b id="totalCount">0</b><span>Total requests</span></div></div>
+      <div class="inv-stat red"><i class="fas fa-bell"></i><div><b id="newCount">0</b><span>New requests</span></div></div>
+      <div class="inv-stat green"><i class="fas fa-calendar-check"></i><div><b id="doneCount">0</b><span>Completed</span></div></div>
+    </div>
+    <div class="inv-toolbar">
+      <div class="inv-search"><i class="fas fa-search"></i><input id="search" type="search" placeholder="Search name, contact, address, brand or request number"></div>
+      <button class="inv-btn light" id="refreshBtn" type="button"><i class="fas fa-sync-alt"></i> Refresh</button>
+    </div>
+    <p id="recordMessage" class="cleaning-record-message" role="status"></p>
+    <div class="cleaning-record-layout">
+      <div class="inv-table-wrap cleaning-record-list">
+        <table class="inv-table cleaning-record-table">
+          <thead><tr><th>Request</th><th>Customer</th><th>Status</th></tr></thead>
+          <tbody id="recordsBody"><tr><td colspan="3">Loading cleaning records…</td></tr></tbody>
+        </table>
+      </div>
+      <section class="cleaning-record-detail" id="recordDetail" aria-live="polite">
+        <div class="cleaning-record-empty"><i class="fas fa-hand-pointer"></i><p>Select a cleaning request to see its details.</p></div>
+      </section>
+    </div>
+  </main>
+  <!-- PAGE POP-UP: the same Daily / Weekly Schedule form Customer Records opens -->
+  <div class="inv-modal" id="pageModal" hidden>
+    <div class="inv-box cr-page-box" role="dialog" aria-modal="true" aria-labelledby="pageTitle">
+      <div class="inv-box-head">
+        <div>
+          <h3 id="pageTitle">Daily / Weekly Schedule</h3>
+          <p class="cr-page-sub" id="pageSub"></p>
+        </div>
+        <button type="button" class="inv-x" id="pageClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="cr-page-frame">
+        <div class="cr-page-loading" id="pageLoading"><i class="fas fa-spinner fa-spin"></i> Opening…</div>
+        <iframe id="pageFrame" title="Daily / Weekly Schedule form" allow="geolocation"></iframe>
+      </div>
+    </div>
+  </div>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="daterange.js?v=3"></script>
+  <script src="cleaning-records.js?v=9"></script>
+</body>
+</html>

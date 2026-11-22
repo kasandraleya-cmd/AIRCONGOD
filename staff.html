@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Staff</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="inventory.css">
+  <link rel="stylesheet" href="staff.css?v=14">
+  <link rel="stylesheet" href="leave.css?v=23">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+</head>
+<body class="app">
+
+  <!-- SECURITY GUARD -->
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) window.location.href = "index.html";
+  </script>
+
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="side-brand">
+      <img src="AIRCON.png" alt="Logo">
+      <span>AIRCON G.O.D</span>
+    </div>
+
+    <nav aria-label="Main menu"><!-- filled in by sidebar.js --></nav>
+
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="content inv">
+
+    <div class="st-head">
+      <div>
+        <h1>Staff</h1>
+        <p>Staff directory and pay rates.</p>
+      </div>
+      <span class="st-updated" id="updated"></span>
+    </div>
+
+    <!-- SEARCH + FILTERS -->
+    <div class="st-tools">
+      <div class="st-search">
+        <label for="search">Search</label>
+        <input type="text" id="search" placeholder="Name, nickname, ID, position, phone or email">
+      </div>
+      <div class="st-filter">
+        <label for="statusFilter">Status</label>
+        <select id="statusFilter">
+          <option value="">All statuses</option>
+          <option>Active</option>
+          <option>On leave</option>
+          <option>Inactive</option>
+        </select>
+      </div>
+      <div class="st-filter">
+        <label for="posFilter">Position</label>
+        <select id="posFilter"><option value="">All positions</option></select>
+      </div>
+      <div class="st-tools-actions">
+        <button type="button" class="inv-btn light" id="leaveBtn" hidden><i class="fas fa-plane-departure"></i> Leave requests</button>
+        <button type="button" class="inv-btn light" id="cashBtn" hidden><i class="fas fa-hand-holding-usd"></i> Cash advance</button>
+        <button type="button" class="inv-btn light" id="warnBtn" hidden><i class="fas fa-exclamation-circle"></i> Warnings</button>
+        <button type="button" class="inv-btn light" id="empBtn"><i class="fas fa-id-badge"></i> Employee Info</button>
+        <button type="button" class="inv-btn teal" id="addBtn"><i class="fas fa-plus"></i> Add staff</button>
+      </div>
+    </div>
+
+    <!-- NEEDS YOUR ACTION: what Human Resources still has to decide (only HR sees it) -->
+    <section class="st-act" id="actPanel" hidden aria-label="Needs your action">
+      <h2>Needs your action</h2>
+      <div class="st-act-grid">
+        <button type="button" class="st-act-card" data-act="leaveBtn"><i class="fas fa-plane-departure"></i>
+          <div><span>Leave requests</span><b id="aLeave">0</b><small id="aLeaveNote">waiting for approval</small></div><em>Review</em></button>
+        <button type="button" class="st-act-card" data-act="cashBtn"><i class="fas fa-hand-holding-usd"></i>
+          <div><span>Cash advances</span><b id="aCash">0</b><small id="aCashNote">waiting for approval</small></div><em>Review</em></button>
+        <button type="button" class="st-act-card" data-act="warnBtn"><i class="fas fa-exclamation-circle"></i>
+          <div><span>Warnings · last 30 days</span><b id="aWarn">0</b><small id="aWarnNote">given</small></div><em>View</em></button>
+      </div>
+    </section>
+
+    <!-- TABLE -->
+    <div class="inv-table-wrap">
+      <table class="inv-table st-table">
+        <thead>
+          <tr>
+            <th>Staff</th>
+            <th>Position</th>
+            <th>Contact</th>
+            <th>Current Rate</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <!-- ADD / EDIT STAFF POPUP -->
+  <div class="inv-modal" id="modal" hidden>
+    <div class="inv-box" role="dialog" aria-labelledby="mTitle">
+      <div class="inv-box-head">
+        <h3 id="mTitle">Add Staff</h3>
+        <button type="button" class="inv-x" id="mClose" aria-label="Close">&times;</button>
+      </div>
+
+      <form id="staffForm" autocomplete="off">
+        <div class="inv-grid">
+          <div class="wide"><label>Full Name</label><input name="name" placeholder="e.g. Dan Austin" required></div>
+          <div class="wide"><label>Nickname</label><input name="nickname" placeholder="e.g. Dan" autocomplete="off"></div>
+          <div><label>Staff ID</label><input name="code" placeholder="AG26-0001" required></div>
+          <div><label>Position</label><select name="position" required></select></div>
+          <div><label>Mobile Number</label><input name="phone" type="tel" placeholder="09XX XXX XXXX"></div>
+          <div><label>Email</label><input name="email" type="email" placeholder="name@email.com"></div>
+          <div><label>Rate (₱) <small>(leave empty if not set yet)</small></label><input name="rate" type="number" min="0" step="0.01" placeholder="0.00"></div>
+          <div><label>Rate Basis</label>
+            <select name="basis"><option value="daily">Daily</option><option value="monthly">Monthly</option><option value="per job">Per job</option></select>
+          </div>
+          <div><label for="staffHired">Date Hired</label><div class="staff-date-control"><input id="staffHired" name="hired" type="text" placeholder="MM/DD/YYYY" inputmode="numeric" maxlength="10" autocomplete="off"><i class="fas fa-calendar-alt staff-date-icon" aria-hidden="true"></i><input type="date" class="staff-date-picker" data-date-for="staffHired" aria-label="Choose date hired"></div></div>
+          <div><label for="staffBirthday">Birthday</label><div class="staff-date-control"><input id="staffBirthday" name="birthday" type="text" placeholder="MM/DD/YYYY" inputmode="numeric" maxlength="10" autocomplete="off"><i class="fas fa-calendar-alt staff-date-icon" aria-hidden="true"></i><input type="date" class="staff-date-picker" data-date-for="staffBirthday" aria-label="Choose birthday"></div></div>
+          <div><label>Status</label>
+            <select name="status"><option>Active</option><option>On leave</option><option>Inactive</option></select>
+          </div>
+          <div><label>IC Card Number <small>(Time Clock: click here, then tap the card)</small></label>
+            <input name="card" placeholder="e.g. 3034033286" inputmode="numeric" autocomplete="off"></div>
+          <div class="wide"><label class="st-check"><input type="checkbox" name="officeAccess">
+            <span><b>Office access</b> <small>For crew who also handle the office side: edit the Daily &amp; Weekly Schedule, and use Warranty,
+            Customer Records, Cleaning Records and Survey Records. Their Dashboard shows the office boxes (no sales, pay or stock pages).
+            Installation Supervisor always has this; Owner, HR and Office Staff already have more.</small></span></label></div>
+          <div class="wide"><label>Address</label><input name="address" placeholder="e.g. 1168 Tramo St. Pulang Lupa Uno, Las Piñas City" autocomplete="off"></div>
+
+          <!-- Government numbers and emergency contact -->
+          <div class="wide st-section"><i class="fas fa-id-card"></i> Government IDs</div>
+          <div><label>SSS Number</label><input name="sss" placeholder="34-1234567-8" inputmode="numeric" autocomplete="off"></div>
+          <div><label>PhilHealth Number</label><input name="philhealth" placeholder="12-345678901-2" inputmode="numeric" autocomplete="off"></div>
+          <div><label>Pag-IBIG Number</label><input name="pagibig" placeholder="1234-5678-9012" inputmode="numeric" autocomplete="off"></div>
+          <div></div>
+
+          <div class="wide st-section"><i class="fas fa-phone-alt"></i> Emergency Contact</div>
+          <div><label>Name of Emergency Contact</label><input name="emergency_name" placeholder="e.g. Maria Dela Cruz (mother)" autocomplete="off"></div>
+          <div><label>Emergency Contact Number</label><input name="emergency_contact" type="tel" placeholder="09XX XXX XXXX" autocomplete="off"></div>
+
+          <!-- Login: the Position above is the role they get when they log in -->
+          <div class="wide st-login-title"><i class="fas fa-key"></i> Login <small>(leave the username empty if this person doesn't need to log in)</small></div>
+          <div><label>Username</label><input name="username" placeholder="e.g. juan" autocomplete="off"></div>
+          <div class="st-pass"><label>Password</label><input name="password" type="password" placeholder="Set a password" autocomplete="new-password"></div>
+          <p class="wide st-login-hint" id="loginHint" hidden></p>
+        </div>
+
+        <div class="inv-box-actions">
+          <button type="button" class="inv-btn light" id="mCancel">Cancel</button>
+          <button type="submit" class="inv-btn teal" id="mSave">Save Staff</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- EMPLOYEE INFO POPUP (read-only list from the Employee INFO sheet) -->
+  <div class="inv-modal" id="empModal" hidden>
+    <div class="inv-box st-emp-box" role="dialog" aria-labelledby="empTitle">
+      <div class="inv-box-head">
+        <h3 id="empTitle">Employee Info</h3>
+        <button type="button" class="inv-x" id="empClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="st-emp-tools">
+        <input type="text" id="empSearch" placeholder="Search nickname, name, ID, position, contact or address">
+        <span id="empCount"></span>
+      </div>
+      <div class="inv-table-wrap">
+        <table class="inv-table st-table">
+          <thead>
+            <tr>
+              <th>Nickname</th>
+              <th>Full Name</th>
+              <th>ID Number</th>
+              <th>Status</th>
+              <th>Position</th>
+              <th>Contact Number</th>
+              <th>Birthday</th>
+              <th>Address</th>
+            </tr>
+          </thead>
+          <tbody id="empRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = "index.html";
+    }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+  <script src="accounts.js?v=4"></script>
+  <script src="employees.js?v=3"></script>
+  <script src="leave.js?v=25"></script>
+  <script>
+    // Day off & leave requests and warnings: only Human Resources sees these buttons
+    if (Leave.isManager) {
+      document.getElementById("leaveBtn").hidden = false;
+      Leave.mountManager(document.getElementById("leaveBtn"));
+      document.getElementById("cashBtn").hidden = false;
+      Leave.mountManager(document.getElementById("cashBtn"), true);   // cash advance (vale) requests
+      document.getElementById("warnBtn").hidden = false;
+      Leave.mountWarnings(document.getElementById("warnBtn"));
+
+      // NEEDS YOUR ACTION panel: pending leave / cash advance requests and the warnings of the last 30 days.
+      // Each card opens the same list as its button above.
+      const panel = document.getElementById("actPanel");
+      panel.hidden = false;
+      const readList = (key) => { try { return JSON.parse(localStorage.getItem(key) || "[]") || []; } catch (e) { return []; } };
+      const setCard = (id, n, note) => {
+        document.getElementById(id).textContent = n;
+        document.getElementById(id + "Note").textContent = note;
+        document.getElementById(id).closest(".st-act-card").classList.toggle("due", n > 0);
+      };
+      const nice = (d) => (d ? new Date(d + "T00:00").toLocaleDateString("en-PH", { month: "short", day: "numeric" }) : "");
+      const countActions = () => {
+        const requests = readList(LEAVE_KEY).filter((r) => r.status === "Pending");
+        const leave = requests.filter((r) => !Leave.isCash(r)), cash = requests.filter((r) => Leave.isCash(r));
+        const soonest = leave.map((r) => r.from).filter(Boolean).sort()[0];
+        setCard("aLeave", leave.length, leave.length ? `waiting for approval${soonest ? " · earliest " + nice(soonest) : ""}` : "Nothing waiting");
+        const peso = cash.reduce((t, r) => t + (+r.amount || 0), 0);
+        setCard("aCash", cash.length, cash.length ? `waiting · ₱${peso.toLocaleString("en-PH")} in total` : "Nothing waiting");
+        const since = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+        const warns = readList(WARN_KEY).filter((w) => String(w.date || w.givenAt || "").slice(0, 10) >= since);
+        const unread = warns.filter((w) => !w.readAt).length;
+        document.getElementById("aWarn").textContent = warns.length;
+        document.getElementById("aWarnNote").textContent = warns.length ? `given${unread ? ` · ${unread} not read yet` : " · all read"}` : "None given";
+      };
+      panel.addEventListener("click", (e) => {
+        const card = e.target.closest("[data-act]");
+        if (card) document.getElementById(card.dataset.act).click();
+      });
+      countActions();
+      (window.cloudReady || Promise.resolve()).then(countActions);
+      addEventListener("storage", (e) => { if (e.key === LEAVE_KEY || e.key === WARN_KEY) countActions(); });
+      // Approving / rejecting / giving a warning happens in a pop-up on this page: count again when it closes
+      new MutationObserver(countActions).observe(document.body, { childList: true });
+    }
+  </script>
+
+  <script>
+    const POSITIONS = Roles.POSITIONS;   // the list and what each position can do: roles.js
+    // Staff saved as "HEAD INSTALLER", "owner/founder" etc. still match
+    const samePos = (a, b) => Roles.norm(a) === Roles.norm(b);
+    const listedPos = (p) => POSITIONS.find((x) => samePos(x, p)) || p;
+
+    const $ = (s) => document.querySelector(s);
+    const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const load = () => JSON.parse(localStorage.getItem(STAFF_KEY) || "[]");
+    const store = (list) => localStorage.setItem(STAFF_KEY, JSON.stringify(list));
+    const peso = (n) => "₱" + Number(n || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const form = $("#staffForm");
+    const modal = $("#modal");
+    let editId = null;
+
+    // Show MM/DD/YYYY consistently while keeping ISO dates in saved staff records.
+    const dateText = (value) => {
+      const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+      if (iso) return `${iso[2]}/${iso[3]}/${iso[1]}`;
+      return String(value || "");
+    };
+    const dateISO = (value) => {
+      const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(value || ""));
+      if (!match) return "";
+      const [, mm, dd, yyyy] = match;
+      const date = new Date(+yyyy, +mm - 1, +dd);
+      return date.getFullYear() === +yyyy && date.getMonth() === +mm - 1 && date.getDate() === +dd
+        ? `${yyyy}-${mm}-${dd}` : "";
+    };
+    form.querySelectorAll('input[name="hired"], input[name="birthday"]').forEach((input) => {
+      input.addEventListener("input", () => {
+        const digits = input.value.replace(/\D/g, "").slice(0, 8);
+        input.value = digits.length < 3 ? digits : digits.length < 5
+          ? `${digits.slice(0, 2)}/${digits.slice(2)}`
+          : `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+      });
+    });
+    form.querySelectorAll(".staff-date-picker").forEach((picker) => {
+      picker.addEventListener("change", () => {
+        if (picker.value) document.getElementById(picker.dataset.dateFor).value = dateText(picker.value);
+      });
+    });
+
+    // Developers, Owners and Human Resources can add, edit or delete staff and their logins; everyone else can only view.
+    // Owners and Human Resources can't touch Developers or make someone a Developer.
+    const managerRole = String(sessionStorage.getItem("aircon_role") || "").trim().toLowerCase();
+    const isHR = !isDeveloper() && Roles.of(managerRole).staffAndPay;
+    const canManage = isDeveloper() || isHR;
+    const canManageRow = (s) => canManage && !(isHR && samePos(s.position, "Developer"));
+    const positionChoices = () => POSITIONS.filter((p) => !(isHR && samePos(p, "Developer")));
+    if (!canManage) $("#addBtn").style.display = "none";
+
+    // With the online database, saving here creates the login in Supabase (staff-login function)
+    if (USES_CLOUD) {
+      $(".st-login-title small").textContent = "(username or email; leave empty if this person doesn't need to log in)";
+    }
+    // The account's email in Supabase: their own email (Email box) if given, else username@aircongod.app.
+    // Saved as "login" so an old account keeps working with the email it was made with.
+    const loginOf = (s) => s.login || (s.username ? loginEmail(s.username) : "");
+    const newLoginEmail = (username, email) =>
+      username.includes("@") ? username.toLowerCase() : (email || "").trim().toLowerCase() || loginEmail(username);
+
+    function showLoginHint() {
+      const hint = $("#loginHint");
+      const name = form.username.value.trim().toLowerCase();
+      hint.hidden = !USES_CLOUD || !name;
+      if (hint.hidden) return;
+      const email = newLoginEmail(name, form.email.value);
+      hint.innerHTML = name.includes("@")
+        ? `They log in with <b>${esc(email)}</b> and this password.`
+        : `They log in with <b>${esc(name)}</b> or <b>${esc(email)}</b> and this password.` +
+          (form.email.value.trim() ? "" : " <small>(Fill in the Email box above to use their own email instead.)</small>");
+    }
+    form.username.addEventListener("input", showLoginHint);
+    form.email.addEventListener("input", showLoginHint);
+
+    // Create / change / delete a login in Supabase. Returns an error message, or "" when it worked.
+    async function loginAction(action, username, password) {
+      if (!window.cloud) return "Can't reach the online database. Check the internet and refresh.";
+      const { error } = await window.cloud.functions.invoke("staff-login", { body: { action, username, password } });
+      if (!error) return "";
+      try {
+        const body = await error.context.json();
+        if (body && body.error) return body.error;
+      } catch (e) {}
+      return /Failed to send|fetch/i.test(error.message)
+        ? "The staff-login function isn't set up in Supabase yet, or the internet is down."
+        : error.message;
+    }
+
+    form.position.innerHTML = '<option value="">Select</option>' + positionChoices().map((p) => `<option>${p}</option>`).join("");
+    $("#posFilter").innerHTML += POSITIONS.map((p) => `<option>${p}</option>`).join("");
+
+    // Next free ID for this year, e.g. AG26-0007
+    function nextCode() {
+      const yy = String(new Date().getFullYear()).slice(2);
+      const used = load().map((s) => s.code).filter((c) => c.startsWith("AG" + yy + "-")).map((c) => +c.split("-")[1] || 0);
+      return "AG" + yy + "-" + String(Math.max(0, ...used) + 1).padStart(4, "0");
+    }
+
+    // Pay rates: kept in the protected table "staff_pay" (supabase/staff_pay.sql), which only a Developer,
+    // Owner or Human Resources can read. PAY stays null until that table answers; until then (or if it
+    // isn't set up yet) the older way is used: rate and basis inside the staff record.
+    let PAY = null;   // { staffId: { rate, basis } }
+    const rateOf = (s) => (PAY ? PAY[String(s.id)] || {} : s);
+    const hasRate = (s) => +rateOf(s).rate > 0;
+    async function loadPay() {
+      if (!window.cloud) return;
+      const { data, error } = await window.cloud.from("staff_pay").select("staff_id,rate,basis");
+      if (error) return;   // table not set up yet: keep the older way
+      PAY = Object.fromEntries((data || []).map((p) => [String(p.staff_id), { rate: p.rate, basis: p.basis }]));
+      render();
+    }
+    async function savePay(id, rate, basis) {
+      const { error } = await window.cloud.from("staff_pay").upsert({ staff_id: String(id), rate: rate === "" ? null : Number(rate), basis: basis || "daily" });
+      if (error) return alert("The rate wasn't saved: " + error.message);
+      PAY[String(id)] = { rate: rate === "" ? null : Number(rate), basis: basis || "daily" };
+      render();
+    }
+    // Personal details (mobile, email, birthday, date hired, address, SSS / PhilHealth / Pag-IBIG, emergency
+    // contact): kept in the protected table "staff_private" (supabase/protect_private_data.sql), which only a
+    // Developer, Owner or Human Resources can read. PRIV stays null until that table answers; until then (or if it
+    // isn't set up yet) the older way is used: the details inside the staff record.
+    const PRIVATE_FIELDS = ["phone", "email", "birthday", "hired", "address", "sss", "philhealth", "pagibig", "emergency_name", "emergency_contact"];
+    let PRIV = null;   // { staffId: { phone, ... } }
+    const withPriv = (s) => (PRIV && s ? { ...s, ...(PRIV[String(s.id)] || {}) } : s);
+    async function loadPrivate() {
+      if (!window.cloud) return;
+      const { data, error } = await window.cloud.from("staff_private").select("staff_id,data");
+      if (error) return;   // table not set up yet: keep the older way
+      PRIV = Object.fromEntries((data || []).map((p) => [String(p.staff_id), p.data || {}]));
+      render();
+    }
+    async function savePrivate(id, fields) {
+      const merged = { ...(PRIV[String(id)] || {}), ...fields };
+      const { error } = await window.cloud.from("staff_private").upsert({ staff_id: String(id), data: merged });
+      if (error) { alert("The personal details weren't saved: " + error.message); return false; }
+      PRIV[String(id)] = merged;
+      return true;
+    }
+    const isActive = (s) => s.status === "Active";
+    const count = (list, ...positions) => list.filter((s) => isActive(s) && positions.some((p) => samePos(p, s.position))).length;
+
+    // ---------- Show everything ----------
+    function render() {
+      const all = load().map(withPriv);
+
+      // Search + filters
+      const q = $("#search").value.trim().toLowerCase();
+      const st = $("#statusFilter").value;
+      const pos = $("#posFilter").value;
+      const rows = all
+        .filter((s) => (!st || s.status === st) && (!pos || samePos(s.position, pos)))
+        .filter((s) => !q || [s.name, s.nickname, s.code, s.position, s.phone, s.email, s.username, s.address].join(" ").toLowerCase().includes(q))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      const statusClass = { Active: "active", "On leave": "leave", Inactive: "inactive" };
+      $("#rows").innerHTML = rows.length
+        ? rows.map((s) => `
+            <tr>
+              <td><div class="st-who"><span class="st-av">${esc(String(s.name || "?").charAt(0).toUpperCase())}${Roles.photoImg ? Roles.photoImg(loginOf(s)) : ""}</span><div><b>${esc(s.name)}</b><span class="st-id">${esc(s.code)}</span>${s.card ? `<span class="st-id" title="IC card (Time Clock)"><i class="fas fa-id-card"></i> ${esc(s.card)}</span>` : ""}${s.officeAccess === true ? `<span class="st-id st-office" title="Office access: schedules, warranty, customer / cleaning / survey records"><i class="fas fa-key"></i> Office access</span>` : ""}</div></div></td>
+              <td>${esc(listedPos(s.position))}${s.username ? `<span class="st-id"><i class="fas fa-key"></i> ${esc(s.username)}</span>` : ""}</td>
+              <td class="st-contact">${esc(s.phone) || "—"}${s.email ? `<small>${esc(s.email)}</small>` : ""}</td>
+              <td>${PAY && !canManage ? '<span class="st-rate none">Hidden</span>'
+                : hasRate(s) ? `${peso(rateOf(s).rate)} / ${esc(rateOf(s).basis || "daily")}` : '<span class="st-rate none">Not set</span>'}</td>
+              <td><span class="st-status ${statusClass[s.status] || "inactive"}">${esc(s.status)}</span></td>
+              <td>${canManageRow(s) ? `
+                <div class="st-row-actions">
+                  <button type="button" class="inv-btn light" data-edit="${s.id}">Edit</button>
+                  <button type="button" class="inv-btn st-del" data-del="${s.id}">Delete</button>
+                </div>` : ""}
+              </td>
+            </tr>`).join("")
+        : `<tr><td colspan="6" class="inv-empty"><i class="fas fa-user-friends"></i><br>${all.length ? "No staff match your search." : canManage ? "No staff yet. Click Add staff to add your first one." : "No staff yet. Only a Developer, Owner or Human Resources can add staff."}</td></tr>`;
+
+      $("#updated").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    }
+
+    // ---------- Add / edit popup ----------
+    function openModal(id = null) {
+      editId = id;
+      form.reset();
+      $("#mTitle").textContent = id ? "Edit Staff" : "Add Staff";
+      $("#mSave").textContent = id ? "Save Changes" : "Save Staff";
+      // Positions that were removed from the list stay selectable for staff who still have them
+      form.position.innerHTML = '<option value="">Select</option>' + positionChoices().map((p) => `<option>${p}</option>`).join("");
+      if (id) {
+        const s = { ...withPriv(load().find((x) => x.id === id)) };
+        s.position = listedPos(s.position);   // "INSTALLER" opens as "Installer" and is saved that way
+        if (s.position && !POSITIONS.includes(s.position)) form.position.insertAdjacentHTML("beforeend", `<option>${esc(s.position)}</option>`);
+        Object.keys(s).forEach((k) => { if (form[k] && k !== "officeAccess") form[k].value = ["hired", "birthday"].includes(k) ? dateText(s[k]) : s[k]; });
+        form.officeAccess.checked = s.officeAccess === true;
+        if (PAY) { form.rate.value = rateOf(s).rate ?? ""; form.basis.value = rateOf(s).basis || "daily"; }
+      } else {
+        form.code.value = nextCode();
+      }
+      const saved = id && load().find((x) => x.id === id);
+      const hasPassword = saved && (USES_CLOUD ? !!saved.username : !!saved.passHash);
+      form.password.value = "";
+      form.password.placeholder = hasPassword ? "Leave empty to keep the current password" : "Set a password";
+      showLoginHint();
+      modal.hidden = false;
+      form.name.focus();
+    }
+    const closeModal = () => (modal.hidden = true);
+
+    // The card reader types the number and presses Enter: don't save the form, just go to the next box
+    form.card.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      form.card.value = form.card.value.replace(/\s+/g, "").replace(/^0+(?=\d)/, "");
+      form.address.focus();
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!canManage) return alert("Only a Developer, Owner or Human Resources can add or change staff.");
+      const data = Object.fromEntries(new FormData(form));
+      Object.keys(data).forEach((k) => (data[k] = String(data[k]).trim()));
+      data.officeAccess = form.officeAccess.checked;   // "Office access" (roles.js, supabase/office_access.sql)
+      for (const key of ["hired", "birthday"]) {
+        if (data[key] && !(data[key] = dateISO(data[key]))) {
+          alert(`${key === "hired" ? "Date hired" : "Birthday"}: enter a valid date as MM/DD/YYYY.`);
+          return form[key === "hired" ? "hired" : "birthday"].focus();
+        }
+      }
+      data.code = data.code.toUpperCase();
+      data.username = data.username.toLowerCase();
+      const password = form.password.value;
+      delete data.password;   // only the scrambled version is saved
+      let savedWithoutLogin = false;
+
+      const list = load();
+      const old = list.find((s) => s.id === editId) || {};
+      if (isHR && (samePos(data.position, "Developer") || samePos(old.position, "Developer"))) {
+        return alert("Only a Developer can add or change a Developer.");
+      }
+      if (list.some((s) => s.code === data.code && s.id !== editId)) {
+        alert("Staff ID " + data.code + " is already used. Please use another one.");
+        return form.code.focus();
+      }
+      // IC card (Time Clock): digits only, the same way the Time Clock reads it; one card, one person
+      data.card = String(data.card || "").replace(/\s+/g, "").replace(/^0+(?=\d)/, "");
+      const cardOwner = data.card && list.find((s) => s.id !== editId && String(s.card || "").replace(/\s+/g, "").replace(/^0+(?=\d)/, "") === data.card);
+      if (cardOwner) {
+        alert("IC card " + data.card + " already belongs to " + cardOwner.name + ". Remove it from them first, or check the number.");
+        return form.card.focus();
+      }
+
+      // Online database: create the login in Supabase (or change its password) before saving
+      if (USES_CLOUD && data.username) {
+        if (!/^[a-z0-9._@+-]{3,}$/.test(data.username)) {
+          alert("Login: a username (letters/numbers, no spaces) or an email address.");
+          return form.username.focus();
+        }
+        const login = newLoginEmail(data.username, data.email);
+        const others = list.filter((s) => s.id !== editId);
+        if (others.some((s) => s.username && s.username === data.username)) {
+          alert("Username " + data.username + " is already taken. Please choose another one.");
+          return form.username.focus();
+        }
+        if (others.some((s) => s.username && loginOf(s) === login)) {
+          alert(login + " is already linked to another staff member.");
+          return form.username.focus();
+        }
+        const oldLogin = loginOf(old);
+        const isNewLogin = !oldLogin || oldLogin !== login;
+        if (isNewLogin && !password) {
+          alert("Set a password for " + login + "." + (oldLogin ? "\n(Their login is moving from " + oldLogin + ".)" : ""));
+          return form.password.focus();
+        }
+        if (password && password.length < 6) {
+          alert("Password: at least 6 characters.");
+          return form.password.focus();
+        }
+        if (isNewLogin || password) {
+          $("#mSave").disabled = true;
+          $("#mSave").textContent = "Saving login…";
+          const problem = await loginAction("save", login, password);
+          // A changed login: the old one is removed so it can't be used any more
+          if (!problem && oldLogin && isNewLogin) await loginAction("delete", oldLogin);
+          $("#mSave").disabled = false;
+          $("#mSave").textContent = editId ? "Save Changes" : "Save Staff";
+          if (problem) {
+            const canSaveProfileOnly = isHR && !editId && confirm(
+              "The login couldn't be created: " + problem + "\n\nSave this staff profile without a login? They won't be able to sign in until a Developer updates the Supabase staff-login function."
+            );
+            if (!canSaveProfileOnly) return;
+            savedWithoutLogin = true;
+            data.username = "";
+            data.login = "";
+            form.username.value = "";
+            form.password.value = "";
+          }
+        }
+        if (!savedWithoutLogin) data.login = login;
+        delete data.passHash;
+      } else if (USES_CLOUD) {
+        // Login removed from this person
+        if (old.username) await loginAction("delete", loginOf(old));
+        data.login = "";
+        delete data.passHash;
+      }
+
+      // Login: username must be free; a password is needed for a new login or a changed username
+      else if (data.username) {
+        if (!/^[a-z0-9._-]{3,}$/.test(data.username)) {
+          alert("Username: at least 3 letters or numbers, no spaces.");
+          return form.username.focus();
+        }
+        if (ACCOUNTS[data.username] || list.some((s) => (s.username || "") === data.username && s.id !== editId)) {
+          alert("Username " + data.username + " is already taken. Please choose another one.");
+          return form.username.focus();
+        }
+        const needsPassword = !old.passHash || old.username !== data.username;
+        if (needsPassword && !password) {
+          alert("Set a password for " + data.username + ".");
+          return form.password.focus();
+        }
+        if (password && password.length < 6) {
+          alert("Password: at least 6 characters.");
+          return form.password.focus();
+        }
+        data.passHash = password ? await hashPassword(data.username, password) : old.passHash;
+      } else {
+        data.passHash = "";
+      }
+
+      // With the protected pay table, the rate is saved there and never inside the staff list
+      const pay = PAY ? { rate: data.rate, basis: data.basis } : null;
+      if (pay) { delete data.rate; delete data.basis; }
+      // Same for personal details: saved in staff_private, never inside the open staff list
+      const priv = PRIV ? Object.fromEntries(PRIVATE_FIELDS.map((k) => [k, data[k] ?? ""])) : null;
+      if (priv) PRIVATE_FIELDS.forEach((k) => delete data[k]);
+
+      let savedId = editId;
+      if (editId) {
+        const i = list.findIndex((s) => s.id === editId);
+        list[i] = { ...list[i], ...data };
+        if (pay) { delete list[i].rate; delete list[i].basis; }
+        if (priv) PRIVATE_FIELDS.forEach((k) => delete list[i][k]);
+      } else {
+        savedId = Date.now();
+        list.push({ id: savedId, ...data });
+      }
+      store(list);
+      closeModal();
+      render();
+      const before = pay && rateOf({ id: savedId });
+      if (priv && (await savePrivate(savedId, priv))) render();
+      if (pay && (String(before.rate ?? "") !== String(pay.rate) || (before.basis || "daily") !== pay.basis)) await savePay(savedId, pay.rate, pay.basis);
+      if (savedWithoutLogin) alert("Staff profile added. No login was created, so this staff member cannot sign in yet.");
+    });
+
+    // ---------- Employee list (from the Employee INFO sheet, employees.js) ----------
+    const empModal = $("#empModal");
+    // Saved edits (ID number / status) win over the starting list in employees.js
+    const loadEmployees = () => {
+      const saved = JSON.parse(localStorage.getItem(EMPLOYEES_KEY) || "[]");
+      return saved.length ? saved : EMPLOYEES.map((p) => ({ ...p }));
+    };
+    const storeEmployees = (list) => localStorage.setItem(EMPLOYEES_KEY, JSON.stringify(list));
+    const empStatusClass = { ACTIVE: "active", "ON LEAVE": "leave", "SICK LEAVE": "sick", INACTIVE: "inactive" };
+
+    function renderEmployees() {
+      const all = loadEmployees();
+      const q = $("#empSearch").value.trim().toLowerCase();
+      const list = all.map((p, i) => ({ ...p, i })).filter((p) => !q || [p.nickname, p.name, p.id, p.status, p.position, p.contact, p.birthday, p.address].join(" ").toLowerCase().includes(q));
+      $("#empCount").textContent = list.length + " of " + all.length + " employees";
+      $("#empRows").innerHTML = list.length
+        ? list.map((p) => `
+            <tr>
+              <td><b>${esc(p.nickname)}</b></td>
+              <td>${esc(p.name)}</td>
+              <td>${canManage
+                ? `<input class="st-emp-id" data-emp-id="${p.i}" value="${esc(p.id)}" aria-label="ID number of ${esc(p.name)}">`
+                : esc(p.id)}</td>
+              <td>${canManage
+                ? `<select class="st-emp-status ${empStatusClass[p.status] || "inactive"}" data-emp-status="${p.i}" aria-label="Status of ${esc(p.name)}">
+                    ${EMPLOYEE_STATUSES.map((s) => `<option${s === p.status ? " selected" : ""}>${s}</option>`).join("")}
+                  </select>`
+                : `<span class="st-status ${empStatusClass[p.status] || "inactive"}">${esc(p.status)}</span>`}</td>
+              <td>${esc(p.position) || "—"}</td>
+              <td>${p.contact ? "0" + esc(p.contact) : "—"}</td>
+              <td>${esc(p.birthday) || "—"}</td>
+              <td>${esc(p.address) || "—"}</td>
+            </tr>`).join("")
+        : `<tr><td colspan="8" class="inv-empty">No employees match your search.</td></tr>`;
+    }
+    function openEmployees() {
+      $("#empSearch").value = "";
+      renderEmployees();
+      empModal.hidden = false;
+      $("#empSearch").focus();
+    }
+    const closeEmployees = () => (empModal.hidden = true);
+
+    // Save an ID number when the box loses focus / Enter is pressed, and a status as soon as it's picked
+    $("#empRows").addEventListener("change", (e) => {
+      if (!canManage) return;
+      const list = loadEmployees();
+      const idBox = e.target.closest("[data-emp-id]");
+      const statusBox = e.target.closest("[data-emp-status]");
+      if (idBox) {
+        const p = list[+idBox.dataset.empId];
+        const id = idBox.value.trim().toUpperCase();
+        if (!id) {
+          alert("The ID number can't be empty.");
+          idBox.value = p.id;
+          return;
+        }
+        if (list.some((x) => x !== p && x.id === id)) {
+          alert("ID number " + id + " is already used by " + list.find((x) => x !== p && x.id === id).name + ".");
+          idBox.value = p.id;
+          return;
+        }
+        p.id = idBox.value = id;
+      } else if (statusBox) {
+        list[+statusBox.dataset.empStatus].status = statusBox.value;
+        statusBox.className = "st-emp-status " + (empStatusClass[statusBox.value] || "inactive");
+      } else return;
+      storeEmployees(list);   // no redraw, so Tab to the next box keeps working
+    });
+    $("#empRows").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && e.target.matches("[data-emp-id]")) e.target.blur();
+    });
+
+    $("#rows").addEventListener("click", (e) => {
+      const edit = e.target.closest("[data-edit]");
+      if (edit && canManageRow(load().find((x) => x.id === +edit.dataset.edit) || {})) return openModal(+edit.dataset.edit);
+      const del = e.target.closest("[data-del]");
+      if (!del || !canManage) return;
+      const s = load().find((x) => x.id === +del.dataset.del);
+      if (!canManageRow(s)) return alert("Only a Developer can delete a Developer.");
+      const withLogin = USES_CLOUD && s.username ? "\n\nTheir login (" + loginOf(s) + ") will be deleted too." : "";
+      if (!confirm("Delete " + s.name + " (" + s.code + ")?" + withLogin)) return;
+      (async () => {
+        if (withLogin) {
+          const problem = await loginAction("delete", loginOf(s));
+          if (problem) return alert("The login wasn't deleted: " + problem);
+        }
+        store(load().filter((x) => x.id !== s.id));
+        render();
+      })();
+    });
+
+    // ---------- Buttons ----------
+    $("#addBtn").onclick = () => openModal();    $("#mClose").onclick = closeModal;
+    $("#mCancel").onclick = closeModal;
+    modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+    $("#empBtn").onclick = openEmployees;
+    $("#empClose").onclick = closeEmployees;
+    $("#empSearch").addEventListener("input", renderEmployees);
+    empModal.addEventListener("click", (e) => { if (e.target === empModal) closeEmployees(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeModal(); closeEmployees(); } });
+    $("#search").addEventListener("input", render);
+    $("#statusFilter").addEventListener("change", render);
+    $("#posFilter").addEventListener("change", render);
+    // Refresh when another tab changes the staff list
+    window.addEventListener("storage", (e) => {
+      if (e.key === STAFF_KEY) render();
+      if (e.key === EMPLOYEES_KEY && !empModal.hidden && !empModal.contains(document.activeElement)) renderEmployees();
+    });
+
+    render();
+    (window.cloudReady || Promise.resolve()).then(() => { loadPay(); loadPrivate(); });
+  </script>
+</body>
+</html>

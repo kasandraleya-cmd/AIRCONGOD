@@ -1,0 +1,27 @@
+/* JO Records page (jo-records.html) */
+.jr-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.jr-chips button { border: 1px solid #dbe4e7; background: #fff; color: #1f2d33; border-radius: 99px; padding: 8px 14px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.jr-chips button:hover { border-color: #071d49; }
+.jr-chips button.on { background: #071d49; border-color: #071d49; color: #fff; }
+
+.jr-table td { vertical-align: top; }
+.jr-row { cursor: pointer; }
+.jr-row:hover > td, .jr-row:focus > td { background: #f4f9f8; outline: none; }
+.jr-no { color: #0f766e; font-family: ui-monospace, Consolas, monospace; }
+.jr-sub { display: block; margin-top: 2px; color: #64767d; font-size: 12px; font-weight: 500; word-break: break-word; }
+.jr-more { display: block; color: #64767d; font-size: 12px; }
+.jr-none { color: #94a3b8; font-size: 12.5px; }
+.jr-items { min-width: 220px; max-width: 420px; white-space: normal; }
+.jr-table .num { text-align: right; white-space: nowrap; }
+
+@media (max-width: 640px) {
+  .jr-cell { text-align: right; min-width: 0; }
+  .jr-chips { width: 100%; }
+  .jr-chips button { flex: 1 1 auto; }
+}
+
+/* A job order just saved from Customer Records */
+.jr-saved { margin: 0 0 14px; padding: 10px 14px; border: 1px solid #b7e4c7; border-radius: 10px; background: #e8f7ee; color: #15803d; font-size: 14px; }
+.jr-saved i { margin-right: 4px; }
+.jr-row.jr-new > td { background: #fff7d6; animation: jrFlash 3s ease-out 1; }
+@keyframes jrFlash { 0%, 40% { background: #ffe58a; } 100% { background: #fff7d6; } }

@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Scanner</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+  <style>
+    /* Warranty: one small box per part (filled in from the model) */
+    .warranty-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+    .warranty-grid .w-part { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 6px; margin: 0;
+      padding: 9px 10px; border: 1px solid #dbe5ea; border-radius: 10px; background: #f8fbfc; font-weight: 400; cursor: text; }
+    .warranty-grid .w-part span { grid-column: 1 / -1; color: #334155; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+    .warranty-grid .w-part input { width: 100%; min-width: 0; margin: 0; padding: 6px 8px; font-weight: 700; }
+    .warranty-grid .w-part em { color: #64767d; font-size: 12px; font-style: normal; }
+    .warranty-grid .w-part small { grid-column: 1 / -1; min-height: 15px; color: #0f766e; font-size: 12px; font-weight: 600; }
+    .warranty-grid .w-part:focus-within { border-color: #d5a52a; background: #fffbea; }
+    @media (max-width: 1100px) { .warranty-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    input.no-price { background: #f3f6f8; color: #94a3b8; cursor: not-allowed; }
+    .pending-box { margin-top: 14px; border: 1px solid #dbe5ea; border-radius: 12px; background: #fff; overflow: hidden; }
+    .pending-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 14px; background: #f8fbfc; border-bottom: 1px solid #dbe5ea; }
+    .pending-head h4 { margin: 0; font-size: 15px; }
+    .pending-head small { color: #64767d; }
+    .pending-actions { display: flex; align-items: center; gap: 8px; }
+    .pending-actions .btn { width: auto; padding: 8px 18px; }
+    .pending-actions .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .pending-group > h5 { display: flex; justify-content: space-between; gap: 8px; margin: 0; padding: 8px 14px; background: #eef4ff; color: #1d3a8a; font-size: 12px; letter-spacing: .03em; text-transform: uppercase; }
+    .pending-row { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-top: 1px solid #edf1f3; font-size: 13px; }
+    .pending-row .mono { flex: 1; word-break: break-all; }
+    .pending-row .p-tag { padding: 2px 9px; border-radius: 99px; background: #fff4dc; color: #b45309; font-size: 11px; font-weight: 800; letter-spacing: .05em; }
+    .pending-row .p-x { border: 0; background: none; color: #94a3b8; font-size: 18px; line-height: 1; cursor: pointer; }
+    .pending-row .p-x:hover { color: #b42318; }
+    .pending-empty { padding: 16px 14px; color: #64767d; font-size: 13px; text-align: center; }
+    .stock-out-note { margin: 16px 0 0; padding: 12px 14px; border: 1px solid #dbe5ea; border-radius: 10px; background: #f8fbfc; color: #475569; font-size: 13px; line-height: 1.5; }
+    @media (max-width: 600px) { .warranty-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body class="app scanner-page">
+
+  <!-- SECURITY GUARD -->
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) {
+      window.location.href = "index.html";
+    }
+  </script>
+
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="side-brand">
+      <img src="AIRCON.png" alt="Logo">
+      <span>AIRCON G.O.D</span>
+    </div>
+
+    <nav aria-label="Main menu"><!-- filled in by sidebar.js --></nav>
+
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="content">
+
+    <div class="page-header">
+      <div>
+        <h1>Scanner</h1>
+        <p class="subtitle">Scan units in and out by barcode.</p>
+      </div>
+      <div class="toast-success" id="toast" style="display: none;"></div>
+    </div>
+
+    <div class="scanner-layout">
+
+      <!-- LEFT COLUMN: SCANNING -->
+      <div class="panel">
+        <div class="tab-container">
+          <button type="button" class="tab-btn active" data-mode="in">Stock In</button>
+          <button type="button" class="tab-btn" data-mode="out">Stock Out</button>
+          <button type="button" class="tab-btn" data-mode="look">Lookup</button>
+        </div>
+
+        <div class="scanner-ready" id="scannerReady">
+          <span class="dot"></span>
+          <span id="scannerReadyText">Scanner ready. Scan a label.</span>
+        </div>
+
+        <label style="margin-bottom: 8px; font-weight: 700; font-size: 13px;">Barcode / Serial number</label>
+        <div class="scan-input-wrapper" id="scanBox">
+          <input type="text" id="barcode" placeholder="Scan or type barcode" autofocus autocomplete="off">
+        </div>
+
+        <div class="scan-actions">
+          <button type="button" class="btn" id="process">Process</button>
+          <button type="button" class="mini" id="camera">Camera</button>
+          <button type="button" class="mini" id="stop">Stop</button>
+        </div>
+
+        <video id="video" playsinline hidden style="width: 100%; border-radius: 10px; margin-bottom: 12px;"></video>
+
+        <div class="status-box" id="status">Ready.</div>
+
+        <!-- Stock In: units scanned one after another wait here as PENDING until Save -->
+        <div class="pending-box" id="pendingBox" hidden>
+          <div class="pending-head">
+            <div>
+              <h4>UNITS STOCK IN</h4>
+              <small id="pendingCount">Nothing scanned yet.</small>
+            </div>
+            <div class="pending-actions">
+              <button type="button" class="mini" id="pendingClear">Clear</button>
+              <button type="button" class="btn" id="pendingSave" disabled><i class="fas fa-check"></i> Save</button>
+            </div>
+          </div>
+          <div id="pendingList"></div>
+        </div>
+
+        <div class="recent">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h4>Recent scans</h4>
+            <button type="button" class="mini" id="clearRecent" style="padding: 4px 10px; font-size: 12px;">Clear</button>
+          </div>
+          <div id="recent"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="panel">
+
+        <!-- Stock In form -->
+        <div id="formPanel">
+          <h3 style="margin-bottom: 20px; font-size: 18px;">Stock In</h3>
+
+          <form id="stockForm">
+            <div class="form-grid">
+
+              <div>
+                <label>Date Entry</label>
+                <input type="date" name="date">
+              </div>
+
+              <div>
+                <label>Unit No. <small style="font-weight: 400; color: #64767d;">(automatic, counts every unit scanned, any brand)</small></label>
+                <input type="text" id="unitNo" name="unitNo" readonly tabindex="-1" style="font-weight: 800; background: #f3f6f8;">
+              </div>
+
+              <div>
+                <label>Unit Type</label>
+                <div class="unit-type-toggle">
+                  <input type="radio" id="indoor" name="unit" value="Indoor">
+                  <label for="indoor">Indoor</label>
+                  <input type="radio" id="outdoor" name="unit" value="Outdoor">
+                  <label for="outdoor">Outdoor</label>
+                  <input type="radio" id="single" name="unit" value="Single">
+                  <label for="single">Single</label>
+                </div>
+              </div>
+
+              <div class="full-width">
+                <label>Product Group / SKU</label>
+                <select name="group">
+                  <option value="" disabled selected>Select...</option>
+                  <option value="Air Conditioners">Air Conditioners</option>
+                  <option value="Spare Parts">Spare Parts</option>
+                </select>
+              </div>
+              <div>
+                <label>SKU</label>
+                <input type="text" name="sku" placeholder="Enter SKU">
+              </div>
+              <div>
+                <label>Brand</label>
+                <select name="brand">
+                  <option value="" disabled selected>Select...</option>
+                  <option>MIDEA</option>
+                  <option>AMERICAN HOME</option>
+                  <option>CARRIER</option>
+                  <option>TCL</option>
+                  <option>LG</option>
+                  <option>AUX</option>
+                  <option>KOLIN</option>
+                  <option>DAIKIN</option>
+                  <option>PANASONIC</option>
+                  <option>SAMSUNG</option>
+                  <option>GREE CRYSTAL</option>
+                  <option>HISENSE</option>
+                  <option>IFFALCON</option>
+                </select>
+              </div>
+
+              <div>
+                <label>Category</label>
+                <select name="category">
+                  <option value="" disabled selected>Select...</option>
+                  <option>ST - INDOOR</option>
+                  <option>ST - OUTDOOR</option>
+                  <option>WT - WINDOW TYPE</option>
+                  <option>FM - INDOOR</option>
+                  <option>FM - OUTDOOR</option>
+                  <option>CC - INDOOR</option>
+                  <option>CC - OUTDOOR</option>
+                  <option>CS - INDOOR</option>
+                  <option>CS - OUTDOOR</option>
+                </select>
+              </div>
+
+              <div>
+                <label>Supplier</label>
+                <select name="supplier">
+                  <option value="" disabled selected>Select...</option>
+                  <option>Firstar Inc</option>
+                  <option>SAGA</option>
+                  <option>CQ</option>
+                  <option>Ray &amp; J's</option>
+                  <option>Tyric</option>
+                  <option>Samcee</option>
+                  <option>Rosarito</option>
+                  <option>Sir J</option>
+                </select>
+              </div>
+
+              <div>
+                <label>Cost from Supplier (₱) <small style="font-weight: 400; color: #64767d;">(how much we paid)</small></label>
+                <input type="number" name="cost" min="0" step="0.01" inputmode="decimal" placeholder="0.00" title="An outdoor unit has no price: its cost is on the indoor unit">
+              </div>
+
+              <div class="full-width">
+                <label>Model Specs</label>
+                <select name="specs" id="specsSelect"><option value="">Select a model…</option></select>
+              </div>
+
+              <!-- Warranty, one box per part, filled in from the model (warranty.js); each can be changed -->
+              <div class="full-width">
+                <label>Warranty <small id="warrantyHint" style="font-weight: 400; color: #64767d;">(set by the model)</small></label>
+                <div class="warranty-grid">
+                  <label class="w-part"><span>Parts &amp; Labor</span><input type="number" name="warranty" min="0" placeholder="—"><em>days</em><small data-for="warranty"></small></label>
+                  <label class="w-part"><span>Compressor</span><input type="number" name="warrantyCompressor" min="0" placeholder="—"><em>days</em><small data-for="warrantyCompressor"></small></label>
+                  <label class="w-part"><span>PCB Board</span><input type="number" name="warrantyPcb" min="0" placeholder="—"><em>days</em><small data-for="warrantyPcb"></small></label>
+                  <label class="w-part"><span>Replacement</span><input type="number" name="warrantyReplacement" min="0" placeholder="—"><em>days</em><small data-for="warrantyReplacement"></small></label>
+                  <label class="w-part"><span>Service / Workmanship</span><input type="number" name="warrantyService" min="0" placeholder="—"><em>days</em><small data-for="warrantyService"></small></label>
+                </div>
+              </div>
+
+              <div class="full-width">
+                <label>Notes</label>
+                <textarea rows="2" name="notes" placeholder="Additional notes"></textarea>
+              </div>
+
+            </div>
+
+            <button type="submit" class="btn-save">Save Stock In</button>
+          </form>
+        </div>
+
+        <!-- Stock Out / Lookup result -->
+        <div id="detailsPanel" hidden>
+          <h3 id="detailsTitle" style="margin-bottom: 20px; font-size: 18px;">Item details</h3>
+          <div id="details" class="details"></div>
+          <p id="stockOutNote" class="stock-out-note" hidden><i class="fas fa-circle-info"></i> Stock out is recorded on the <b>Job Order</b>: pick this serial number on the unit's line there. The Job Order turns <b style="color:#15803d">green</b> once all its units are recorded, <b style="color:#b42318">red</b> until then.</p>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = "index.html";
+    }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+  <script src="pricelist.js?v=4"></script>
+  <script src="pricepicker.js?v=4"></script>
+  <script src="jo-autoassign.js?v=1"></script>
+  <script src="warranty.js"></script>
+
+  <script>
+    // ---------- Saved data (other pages can read these keys) ----------
+    const STOCK_KEY = "aircon_stock";   // every unit: { barcode, name, sku, status: "in" | "out", ... }
+    const LOG_KEY = "aircon_scans";     // history of scans
+    const SERIAL_KEY = "aircon_serials"; // mirrored in Serial Number Tracking
+    const DELETED_SERIALS_KEY = "aircon_deleted_serials";
+    const JOBS_KEY = "aircon_jobs";
+
+    const load = (key) => JSON.parse(localStorage.getItem(key) || "[]");
+    const store = (key, value) => localStorage.setItem(key, JSON.stringify(value));
+    const $ = (selector) => document.querySelector(selector);
+    const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+    const barcodeInput = $("#barcode");
+    const form = $("#stockForm");
+    const today = () => new Date().toISOString().slice(0, 10);
+    const MODES = { in: "Stock In", out: "Stock Out", look: "Lookup" };
+
+    // Keep Serial Number Tracking aligned with each barcode's inventory record.
+    // Existing tracking fields (such as customer and dates) are retained.
+    function syncSerialTracking(item) {
+      const serial = String(item.barcode || "").trim();
+      if (!serial) return;
+      // A deliberate scan can add a serial back after it was removed from tracking.
+      try {
+        const deleted = JSON.parse(localStorage.getItem(DELETED_SERIALS_KEY) || "[]") || [];
+        localStorage.setItem(DELETED_SERIALS_KEY, JSON.stringify(deleted.filter((s) => String(s).trim().toLowerCase() !== serial.toLowerCase())));
+      } catch (e) {}
+      const list = load(SERIAL_KEY);
+      const index = list.findIndex((s) => String(s.serial || "").trim().toLowerCase() === serial.toLowerCase());
+      const tracked = {
+        serial,
+        sku: item.sku || serial,
+        model: [item.brand, item.specs || item.name].filter(Boolean).join(" "),
+        supplier: item.supplier || "",
+        dateScanned: item.scannedDate || item.date || today(),
+        dateRelease: item.status === "out" ? item.outDate || today() : "",
+        po: "",
+        cost: String(item.cost ?? "").trim(),
+        customer: "",
+        jo: item.jo || "",
+        status: item.status === "out" ? "Sold" : "Available",
+      };
+      if (index >= 0) {
+        const existing = list[index];
+        list[index] = {
+          ...tracked,
+          ...existing,
+          serial,
+          sku: item.sku || existing.sku || serial,
+          model: tracked.model || existing.model || "",
+          supplier: item.supplier || existing.supplier || "",
+          dateScanned: tracked.dateScanned || existing.dateScanned || "",
+          dateRelease: item.status === "out" ? tracked.dateRelease || existing.dateRelease || "" : "",
+          jo: item.status === "out" ? item.jo || existing.jo || "" : "",
+          // A cost typed on the Scanner is used; otherwise the one typed in Serial Number Tracking is kept
+          cost: tracked.cost || existing.cost || "",
+          status: tracked.status,
+        };
+      } else list.push(tracked);
+      store(SERIAL_KEY, list);
+    }
+
+    let mode = "in";
+    let stream = null;
+
+    form.date.value = today();
+
+    // ---------- Model Specs: a drop-down of the units on the Price List (pricelist.js) ----------
+    // Grouped by brand like the price sheet; once a Brand is picked only its models are listed.
+    // Picking a model with no Brand chosen yet fills in the Brand.
+    const peso = (n) => "₱" + Number(n || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const BRAND_OPTIONS = [...form.brand.options].map((o) => o.value).filter(Boolean);
+    const brandOfModel = (name) => {
+      const n = String(name).toUpperCase();
+      // Longest brand first ("AMERICAN HOME" before others); "GREE CRYSTAL" also covers plain "GREE …" models
+      return [...BRAND_OPTIONS].sort((a, b) => b.length - a.length)
+        .find((b) => n.startsWith(b + " ") || n.startsWith(b.split(" ")[0] + " ")) || "";
+    };
+    const MODELS = [];   // { name, srp, brand } for every aircon unit on the price sheet (the sections before services)
+    if (typeof PRICE_SHEET !== "undefined") {
+      const firstService = PRICE_SHEET.findIndex((s) => s.color === "service");
+      PRICE_SHEET.slice(0, firstService < 0 ? undefined : firstService)
+        .forEach((s) => s.rows.forEach(([name, , srp]) => MODELS.push({ name, srp, brand: brandOfModel(name) })));
+    }
+    function buildSpecs(keep = form.specs.value) {
+      const brand = form.brand.value;
+      const list = brand ? MODELS.filter((m) => m.brand === brand) : MODELS;
+      const groups = {};
+      list.forEach((m) => (groups[m.brand || "OTHER"] ||= []).push(m));
+      const known = list.some((m) => m.name === keep);
+      form.specs.innerHTML = `<option value="">${list.length ? "Select a model…" : "No models on the price list for " + esc(brand)}</option>`
+        + (keep && !known ? `<option value="${esc(keep)}">${esc(keep)}</option>` : "")   // an older typed spec stays
+        + Object.entries(groups).map(([b, ms]) => `<optgroup label="${esc(b)}">`
+          + ms.map((m) => `<option value="${esc(m.name)}">${esc(m.name)}</option>`).join("") + "</optgroup>").join("");
+      form.specs.value = keep || "";
+    }
+    form.brand.addEventListener("change", () => buildSpecs());
+
+    // ---------- Warranty: one box per part, set automatically from the model's warranty (warranty.js) ----------
+    // e.g. Midea Celest Pro: Parts & Labor 365 · Compressor 3650 · PCB Board 1095 · Replacement 7 (days).
+    // A price-list unit without its own series gets the standard warranty. Every box can still be changed by hand.
+    const DEFAULT_TERMS = ["1 Year for the Parts", "10 Years for the Compressor", "30 Days for Workmanship", "3 Years PCB board", "7 Days Replacement"];
+    // Which box each warranty term goes in (Parts and Labor → "warranty", the old Warranty Days field)
+    const WARRANTY_PARTS = [
+      ["warranty", /parts/i], ["warrantyCompressor", /compressor/i], ["warrantyPcb", /pcb/i],
+      ["warrantyReplacement", /replacement/i], ["warrantyService", /service|workmanship/i],
+    ];
+    const toDays = (term) => {
+      const m = String(term).match(/(\d+)\s*(year|month|day)/i);
+      return m ? +m[1] * ({ year: 365, month: 30, day: 1 })[m[2].toLowerCase()] : 0;
+    };
+    // 3650 → "10 years", 1095 → "3 years", 30 → "30 days"
+    const daysText = (v) => {
+      const d = +v;
+      if (!d) return "";
+      if (d % 365 === 0) return `${d / 365} year${d === 365 ? "" : "s"}`;
+      if (d % 30 === 0 && d >= 60) return `${d / 30} months`;
+      return `${d} day${d === 1 ? "" : "s"}`;
+    };
+    function warrantyFor(model) {
+      if (!model) return null;
+      const series = typeof WARRANTY !== "undefined" && WARRANTY.find(model);
+      const terms = series ? series.terms : MODELS.some((m) => m.name === model) ? DEFAULT_TERMS : null;
+      if (!terms) return null;
+      const days = {};
+      WARRANTY_PARTS.forEach(([field, re]) => { const t = terms.find((x) => re.test(x)); days[field] = t ? toDays(t) : ""; });
+      return { days, name: series ? series.name : "Standard warranty" };
+    }
+    function showWarrantyHint() {
+      const w = warrantyFor(form.specs.value);
+      $("#warrantyHint").textContent = w ? `(${w.name})` : "(set by the model)";
+      WARRANTY_PARTS.forEach(([field]) => { form.querySelector(`[data-for="${field}"]`).textContent = daysText(form[field].value); });
+    }
+    function setWarranty() {
+      const w = warrantyFor(form.specs.value);
+      if (w) WARRANTY_PARTS.forEach(([field]) => (form[field].value = w.days[field]));
+      showWarrantyHint();
+    }
+    form.addEventListener("input", (e) => { if (/^warranty/.test(e.target.name || "")) showWarrantyHint(); });
+
+    form.specs.addEventListener("change", () => {
+      const m = MODELS.find((x) => x.name === form.specs.value);
+      if (m && m.brand && !form.brand.value) {
+        form.brand.value = m.brand;
+        buildSpecs(m.name);
+      }
+      setWarranty();   // saved with the unit by the form's own change → saveDraft
+    });
+    buildSpecs("");
+
+    // ---------- Unit No.: every scanned unit gets the next number, whatever the brand ----------
+    // 1st unit scanned (e.g. LG) = No. 1, the next one = No. 2, and so on. A unit that comes back keeps its number.
+    const nextUnitNo = (stock) => stock.reduce((max, s) => Math.max(max, +s.unitNo || 0), 0) + 1;
+    const formatUnitNo = (value) => String(parseInt(value, 10) || 0).padStart(4, "0");
+    const showNextUnitNo = () => { form.unitNo.value = ""; form.unitNo.placeholder = "Next: No. " + formatUnitNo(nextUnitNo(load(STOCK_KEY))); };
+    showNextUnitNo();
+
+    // ---------- Feedback: status text, beep, flash, toast ----------
+    let audioCtx = null;   // one sound context for the whole page (a new one per scan slows a long batch down)
+    function beep(ok) {
+      try {
+        const ctx = audioCtx || (audioCtx = new (window.AudioContext || window.webkitAudioContext)());
+        if (ctx.state === "suspended") ctx.resume();
+        const osc = ctx.createOscillator();
+        osc.frequency.value = ok ? 880 : 220;
+        osc.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + (ok ? 0.12 : 0.3));
+      } catch (e) {}
+    }
+
+    function say(text, ok) {
+      const box = $("#status");
+      box.textContent = text;
+      box.className = "status-box " + (ok === undefined ? "" : ok ? "ok" : "err");
+      if (ok === undefined) return;
+
+      beep(ok);
+      const wrap = $("#scanBox");
+      wrap.classList.remove("flash-ok", "flash-err");
+      void wrap.offsetWidth; // restart the animation
+      wrap.classList.add(ok ? "flash-ok" : "flash-err");
+    }
+
+    function toast(text, ok = true) {
+      const t = $("#toast");
+      t.textContent = text;
+      t.classList.toggle("err", !ok);
+      t.style.display = "flex";
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => (t.style.display = "none"), 2500);
+    }
+
+    // ---------- Scan history ----------
+    function logScan(type, barcode, name) {
+      const log = load(LOG_KEY);
+      log.push({ type, barcode, name, time: Date.now() });
+      store(LOG_KEY, log.slice(-100));
+      renderRecent();
+    }
+
+    function renderRecent() {
+      const items = load(LOG_KEY).slice(-6).reverse();
+      $("#recent").innerHTML = items.length
+        ? items.map((s) => `
+            <div class="recent-item">
+              <span class="tag ${s.type === "Stock Out" ? "bad" : ""}">${esc(s.type)}</span>
+              <span class="mono">${esc(s.barcode)}</span>
+              <small>${new Date(s.time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</small>
+            </div>`).join("")
+        : '<p class="empty-note">No scans yet.</p>';
+    }
+
+    // Clears only the list; units saved in stock stay in Inventory
+    $("#clearRecent").onclick = () => {
+      if (!confirm("Clear the recent scans list? Saved stock is not affected.")) return;
+      store(LOG_KEY, []);
+      renderRecent();
+      barcodeInput.focus();
+    };
+
+    // ---------- Mode tabs ----------
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.onclick = () => {
+        mode = btn.dataset.mode;
+        draft = null;   // stop auto-saving the form into the last Stock In unit
+        document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b === btn));
+        $("#formPanel").hidden = mode !== "in";
+        $("#detailsPanel").hidden = mode === "in";
+        $("#detailsTitle").textContent = MODES[mode] + " result";
+        $("#details").innerHTML = "";
+        $("#stockOutNote").hidden = mode !== "out";
+        say("Ready.");
+        renderPending();
+        barcodeInput.focus();
+      };
+    });
+
+    // ---------- Stock In: scan one unit after another, then Save ----------
+    // Every scan is added to a list as PENDING with the details picked at that moment (brand, model, type, supplier,
+    // cost, warranty …), so several brands can be scanned in one go: change the details, keep scanning. Save puts
+    // every pending unit into Inventory (each with its Unit No.) and Serial Number Tracking.
+    const PENDING_KEY = "aircon_scan_pending";   // kept on this computer only, so a refresh doesn't lose the scans
+    const loadPending = () => { try { return JSON.parse(localStorage.getItem(PENDING_KEY) || "[]") || []; } catch (e) { return []; } };
+    const storePending = (list) => localStorage.setItem(PENDING_KEY, JSON.stringify(list));
+
+    // Returns true when the scan was added
+    function addPending(code, item) {
+      if (item && item.status === "in") { say("Already in stock: " + label(item), false); return false; }
+      const pending = loadPending();
+      if (pending.some((p) => String(p.barcode).toLowerCase() === String(code).toLowerCase())) { say("Already scanned and waiting to be saved: " + code, false); return false; }
+      if (item) {
+        // Came back into the warehouse: refill the form with its old details
+        ["sku", "name", "brand", "category", "supplier", "cost", "location", "warranty", "warrantyCompressor", "warrantyPcb", "warrantyReplacement", "warrantyService", "specs", "group"]
+          .forEach((f) => { if (form[f] && item[f]) form[f].value = item[f]; });
+        form.category.value = newCategory(item);
+        if (item.unit) setUnitRadio(item.unit);
+        syncCost();
+        buildSpecs(item.specs || "");
+        if (!item.warranty) setWarranty(); else showWarrantyHint();
+      }
+      const data = Object.fromEntries(new FormData(form));
+      if (!data.brand) { say("Pick the Brand first, then scan: the details you pick go with every unit scanned after.", false); return false; }
+      if (!data.unit) { say("Pick the unit type (Indoor, Outdoor or Single) first.", false); return false; }
+      delete data.unitNo;
+      delete data.sku;
+      pending.push({ barcode: code, details: data, time: Date.now(), back: !!item });
+      storePending(pending);
+      renderPending();
+      say("Added (pending): " + code + " · " + [data.brand, data.specs].filter(Boolean).join(" ") + ". Scan the next one, or press Save.", true);
+      return true;
+    }
+
+    function renderPending() {
+      const box = $("#pendingBox");
+      box.hidden = mode !== "in";
+      if (mode !== "in") return;
+      const pending = loadPending();
+      $("#pendingSave").disabled = !pending.length;
+      $("#pendingCount").textContent = pending.length ? pending.length + " unit" + (pending.length === 1 ? "" : "s") + " waiting to be saved" : "Nothing scanned yet.";
+      // One group per brand / model / type, in the order first scanned
+      const groups = [];
+      pending.forEach((p, i) => {
+        const d = p.details || {};
+        const key = [d.brand, d.specs, d.unit].join("|");
+        let g = groups.find((x) => x.key === key);
+        if (!g) groups.push((g = { key, title: [d.brand, d.specs, d.unit].filter(Boolean).join(" · "), rows: [] }));
+        g.rows.push([p, i]);
+      });
+      $("#pendingList").innerHTML = groups.length ? groups.map((g) => `<section class="pending-group">
+          <h5><span>${esc(g.title)}</span><span>${g.rows.length} unit${g.rows.length === 1 ? "" : "s"}</span></h5>
+          ${g.rows.map(([p, i]) => `<div class="pending-row"><span class="mono">${esc(p.barcode)}</span><span class="p-tag">PENDING</span><button type="button" class="p-x" data-i="${i}" title="Remove this scan" aria-label="Remove this scan">&times;</button></div>`).join("")}
+        </section>`).join("")
+        : '<div class="pending-empty">Scan the units. They show here as PENDING until you press Save.</div>';
+    }
+    $("#pendingList").addEventListener("click", (e) => {
+      const x = e.target.closest(".p-x");
+      if (!x) return;
+      const list = loadPending();
+      list.splice(+x.dataset.i, 1);
+      storePending(list);
+      renderPending();
+      barcodeInput.focus();
+    });
+    $("#pendingClear").onclick = () => {
+      if (!loadPending().length || !confirm("Remove all the scanned units that are waiting to be saved? Nothing has been saved yet.")) return;
+      storePending([]);
+      renderPending();
+      barcodeInput.focus();
+    };
+
+    function savePending() {
+      const pending = loadPending();
+      if (!pending.length) return say("Nothing to save yet. Scan the units first.", false);
+      const stock = load(STOCK_KEY);
+      let saved = 0, skipped = 0;
+      const brands = new Set();
+      pending.forEach((p) => {
+        const existing = findUnit(stock, p.barcode);
+        if (existing && existing.status === "in") { skipped++; return; }
+        const unit = {
+          ...p.details, sku: p.barcode, barcode: p.barcode, status: "in", outDate: "",
+          unitNo: formatUnitNo((existing && existing.unitNo) || nextUnitNo(stock)),   // its place in line, any brand
+          scannedDate: existing && existing.scannedDate || today(),
+        };
+        if (existing) Object.assign(existing, unit); else stock.push(unit);
+        syncSerialTracking(unit);
+        logScan("Stock In", p.barcode, label(unit));
+        if (unit.brand) brands.add(unit.brand);
+        saved++;
+      });
+      store(STOCK_KEY, stock);
+      storePending([]);
+      renderPending();
+      showNextUnitNo();
+      if (typeof JoAuto !== "undefined") JoAuto.run();   // the units go to their job orders right away
+      say("Saved " + saved + " unit" + (saved === 1 ? "" : "s") + " to Inventory and Serial Number Tracking" + (brands.size ? " (" + [...brands].join(", ") + ")" : "") + (skipped ? ". " + skipped + " were already in stock." : "."), true);
+      toast("Stock in saved.");
+      form.notes.value = "";
+      barcodeInput.value = "";
+      barcodeInput.focus();
+    }
+    $("#pendingSave").onclick = savePending;
+
+    // ---------- Process a barcode ----------
+    // How a unit is named in messages: its brand and serial (older units may still have a product name)
+    const label = (item) => item.name || [item.brand, item.barcode].filter(Boolean).join(" ");
+
+    function showDetails(item) {
+      $("#stockOutNote").hidden = mode !== "out";
+      const rows = [
+        ["Unit No.", item.unitNo ? "No. " + formatUnitNo(item.unitNo) : ""], ["Serial", item.barcode], ["SKU", item.sku], ["Brand", item.brand],
+        ["Category", item.category], ["Unit type", item.unit], ["Supplier", item.supplier],
+        ["Cost from supplier", String(item.cost ?? "").trim() !== "" ? peso(item.cost) : ""],
+        ["Location", item.location], ["Date in", item.date],
+        ...(item.status === "out" ? [["Customer", item.customer], ["Job order", item.jo], ["Date out", item.outDate]] : []),
+        ["Warranty", [["Parts & labor", item.warranty], ["Compressor", item.warrantyCompressor], ["PCB", item.warrantyPcb],
+          ["Replacement", item.warrantyReplacement], ["Service", item.warrantyService]].filter(([, d]) => +d).map(([k, d]) => `${k} ${daysText(d)}`).join(" · ")], ["Status", item.status === "in" ? "In stock" : "Sold / out"],
+      ];
+      $("#details").innerHTML = rows
+        .map(([k, v]) => `<div><small>${k}</small><b>${esc(v) || "—"}</b></div>`)
+        .join("");
+    }
+
+    // ---------- Turn a scanned label into the serial number ----------
+    // Some labels hold more than the S/No. Add a rule here when a brand's barcode is longer
+    // than the serial printed on the label.
+    const SERIAL_RULES = [
+      { length: 25, keepLast: 12 },   // LG: 6B1X01MW5884A602HAWSBF529 → S/No 602HAWSBF529
+    ];
+
+    // A unit by its serial. Units saved before the "%" was removed (e.g. "%F149811835") are still found.
+    const findUnit = (stock, code) => stock.find((s) => s.barcode === code)
+      || stock.find((s) => String(s.barcode || "").replace(/^%+/, "") === code);
+
+    function toSerial(raw) {
+      let s = String(raw ?? "").replace(/^\][A-Za-z]\d/, "").trim();   // scanner symbology prefix like ]C0
+      s = s.replace(/^%+/, "").trim();   // "%" the scanner adds in front: %F149811835 → F149811835
+      const gs1 = s.match(/\(21\)([^(]+)/) || s.match(/^01\d{14}(?:1[1-7]\d{6})*21(.+)$/);   // GS1 serial (AI 21)
+      if (gs1) return gs1[1].trim();
+      const label = s.match(/^(?:s\/?no?|serial(?:\s*(?:no|number))?)\.?\s*[:#=\-]?\s*(.+)$/i);   // "S/No.: 123"
+      if (label) s = label[1].trim();
+      const rule = SERIAL_RULES.find((r) => s.length === r.length && /^[A-Z0-9]+$/i.test(s));
+      return rule ? s.slice(-rule.keepLast) : s;
+    }
+
+    // A brand is low at 5 units or fewer.
+    const LOW_STOCK_AT = 5;
+    function warnIfLow(stock, brand) {
+      const key = (brand || "").trim().toLowerCase();
+      if (!key) return;
+      const units = stock.filter((s) => s.status === "in" && (s.brand || "").trim().toLowerCase() === key);
+      if (units.length > LOW_STOCK_AT) return;
+      const msg = `Low stock: ${brand} has ${units.length} unit${units.length === 1 ? "" : "s"} left.`;
+      $("#status").textContent += "  ⚠ " + msg;
+      setTimeout(() => toast(msg, false), 1200);   // after the "Stock out saved." message
+    }
+
+    function process() {
+      // (Stock In only adds to the pending list, so nothing needs assigning per scan: Save does it)
+      if (mode !== "in" && typeof JoAuto !== "undefined") JoAuto.run();   // units in stock go to their job orders
+      const code = toSerial(barcodeInput.value);
+      barcodeInput.value = code;
+      barcodeInput.dataset.done = code;   // the next scan replaces this instead of adding to it
+      if (!code) return say("Type or scan a barcode first.", false);
+
+      const stock = load(STOCK_KEY);
+      const item = findUnit(stock, code);
+
+      if (mode === "in") {
+        addPending(code, item);
+        return;
+      }
+
+      if (!item) {
+        $("#details").innerHTML = "";
+        return say("Barcode not found in the system.", false);
+      }
+      showDetails(item);
+
+      if (mode === "look") return say(label(item) + " · " + (item.status === "in" ? "In stock" : "Sold / out"), true);
+
+      // Stock Out: nothing is changed here. A unit is stocked out when its serial number is picked on the
+      // Job Order (Job Order page), which records it on that JO and turns the JO green.
+      if (item.status === "out") return say(label(item) + " is already stocked out" + (item.jo ? " to " + item.jo : "") + (item.customer ? " (" + item.customer + ")" : "") + ".", false);
+      say(label(item) + " is in stock. Pick this serial number on the Job Order to stock it out.", true);
+      barcodeInput.value = "";
+    }
+
+    $("#process").onclick = process;
+    barcodeInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        process();
+        if (document.activeElement === barcodeInput) barcodeInput.select();   // next scan replaces it
+      }
+    });
+    barcodeInput.addEventListener("focus", () => barcodeInput.select());
+    window.addEventListener("load", renderPending);
+
+    // ---------- Auto-save the Stock In form ----------
+    // The unit is saved as soon as it's scanned (draft = its barcode); every change to the
+    // form is written to the same record, so the Inventory page always has the latest details.
+    let draft = null;
+
+    function saveDraft() {
+      if (!draft || mode !== "in") return;
+      const stock = load(STOCK_KEY);
+      const unit = stock.find((s) => s.barcode === draft);
+      if (!unit) return;
+      // (a unit already given to a job order stays out)
+      Object.assign(unit, Object.fromEntries(new FormData(form)), { barcode: draft, status: unit.status === "out" && unit.jo ? "out" : "in" });
+      store(STOCK_KEY, stock);
+      return unit;
+    }
+    // ---------- Category ↔ Unit type, and no cost for an outdoor unit ----------
+    // Category is "XX - INDOOR / OUTDOOR" (or "WT - WINDOW TYPE"); picking one sets the Unit type, and picking the
+    // Unit type sets the matching category. An outdoor unit has no price (it is on the indoor unit): Cost from
+    // Supplier is emptied and locked.
+    const KIND_UNIT = { INDOOR: "Indoor", OUTDOOR: "Outdoor", "WINDOW TYPE": "Single" };
+    const catParts = (c) => { const m = /^(\w+)\s*-\s*(.+)$/.exec(String(c || "").trim().toUpperCase()); return m ? { code: m[1], kind: m[2].trim() } : null; };
+    const setUnitRadio = (v) => { const r = form.querySelector(`input[name="unit"][value="${v}"]`); if (r) r.checked = true; };
+    // Units saved with the older category names open under the new ones
+    function newCategory(item) {
+      const old = String(item.category || "").trim(), unit = String(item.unit || "").toUpperCase();
+      if (catParts(old)) return old.toUpperCase().replace(/\s*-\s*/, " - ");
+      const kind = unit === "OUTDOOR" || old === "Outdoor" ? "OUTDOOR" : "INDOOR";
+      return { "Split Type": "ST - " + kind, "Window Type": "WT - WINDOW TYPE", "Floor Mounted": "FM - " + kind, Outdoor: "ST - OUTDOOR" }[old] || old;
+    }
+    function syncCost() {
+      const out = (form.querySelector('input[name="unit"]:checked') || {}).value === "Outdoor";
+      if (out) form.cost.value = "";
+      form.cost.readOnly = out;
+      form.cost.classList.toggle("no-price", out);
+      form.cost.placeholder = out ? "No price (outdoor)" : "0.00";
+    }
+    form.addEventListener("change", (e) => {
+      if (e.target.name === "category") {
+        const p = catParts(e.target.value), unit = p && KIND_UNIT[p.kind];
+        if (unit) setUnitRadio(unit);
+        syncCost();
+      } else if (e.target.name === "unit") {
+        const p = catParts(form.category.value), want = p && p.kind !== "WINDOW TYPE" && ["Indoor", "Outdoor"].includes(e.target.value) ? p.code + " - " + e.target.value.toUpperCase() : "";
+        if (want && [...form.category.options].some((o) => o.value === want)) form.category.value = want;
+        syncCost();
+      }
+    });
+    form.addEventListener("input", saveDraft);
+    // When a box is finished (cost, supplier, model…), Serial Number Tracking gets it too
+    form.addEventListener("change", () => { const unit = saveDraft(); if (unit) syncSerialTracking(unit); });
+
+    // ---------- Save Stock In ----------
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const code = toSerial(barcodeInput.value);
+      if (code) {
+        barcodeInput.value = code;
+        const added = addPending(code, findUnit(load(STOCK_KEY), code));
+        if (!added && !loadPending().some((p) => String(p.barcode).toLowerCase() === code.toLowerCase())) return;
+      }
+      savePending();
+    });
+
+    // ---------- Camera scanning (works in Chrome, Edge and Brave on most phones) ----------
+    $("#camera").onclick = async () => {
+      if (!("BarcodeDetector" in window)) return say("Camera scanning isn't supported in this browser. Type the barcode instead.", false);
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        const video = $("#video");
+        video.srcObject = stream;
+        video.hidden = false;
+        await video.play();
+
+        const detector = new BarcodeDetector();
+        (async function look() {
+          if (!stream) return;
+          const found = await detector.detect(video).catch(() => []);
+          if (found[0]) {
+            barcodeInput.value = found[0].rawValue;
+            stopCamera();
+            process();
+          } else {
+            setTimeout(look, 300);
+          }
+        })();
+      } catch (err) {
+        say("Camera access was blocked.", false);
+      }
+    };
+
+    function stopCamera() {
+      if (stream) stream.getTracks().forEach((t) => t.stop());
+      stream = null;
+      $("#video").hidden = true;
+    }
+    $("#stop").onclick = stopCamera;
+
+    // ---------- Physical scanner (USB / Bluetooth in keyboard mode) ----------
+    // A scanner "types" the whole barcode in a few milliseconds, then presses Enter.
+    // Any burst that fast is treated as a scan, wherever the cursor is: the text it typed
+    // into another field is undone, and the barcode is processed straight away.
+    const SCAN_GAP_MS = 50;   // max time between keys from a scanner (people type slower)
+    const SCAN_MIN_LEN = 6;
+    let burst = "", lastKey = 0, burstField = null, burstValue = null, burstTimer = null;
+
+    function finishBurst() {
+      clearTimeout(burstTimer);
+      // In the barcode box the scanner's keys land in the box itself, so use all of it
+      // (the first keys can arrive a little late and miss the burst)
+      const raw = burstField === barcodeInput ? barcodeInput.value : burst;
+      burst = "";
+      if (raw.trim().length < SCAN_MIN_LEN) return false;
+      if (burstField && burstField !== barcodeInput && burstValue !== null) {
+        burstField.value = burstValue;
+        saveDraft();   // the scanner's keys were auto-saved into the last unit; put its real value back
+      }
+      barcodeInput.value = raw;
+      barcodeInput.focus();
+      process();
+      if (document.activeElement === barcodeInput) barcodeInput.select();   // next scan replaces it
+      return true;
+    }
+
+    document.addEventListener("keydown", (e) => {
+      const now = performance.now();
+      const fast = now - lastKey < SCAN_GAP_MS;
+      lastKey = now;
+
+      if (e.key === "Enter" || e.key === "Tab") {
+        if (fast && burst.length >= SCAN_MIN_LEN) {
+          e.preventDefault();
+          e.stopImmediatePropagation();   // don't also submit the form / run the barcode box's Enter
+          finishBurst();
+        }
+        burst = "";
+        return;
+      }
+      if (e.key.length !== 1 || e.ctrlKey || e.altKey || e.metaKey) return;
+
+      if (!fast || !burst) {
+        // Possible start of a scan: remember the field so its text can be restored
+        burst = "";
+        burstField = e.target;
+        burstValue = "value" in e.target ? e.target.value : null;
+        if (e.target === barcodeInput && barcodeInput.value && barcodeInput.value === barcodeInput.dataset.done) {
+          barcodeInput.value = "";   // the box still shows the last processed serial
+        }
+      }
+      burst += e.key;
+      clearTimeout(burstTimer);
+      burstTimer = setTimeout(finishBurst, 120);   // for scanners set up without an Enter at the end
+    }, true);
+
+    // ---------- "Scanner ready" indicator ----------
+    // The scanner types into whichever window is active, so show whether this page will receive it.
+    // When nothing else is being typed in, keep the cursor in the barcode box (helps slower scanners).
+    const isField = (el) => el && el.matches && el.matches("input, select, textarea");
+
+    function updateReady() {
+      const on = document.hasFocus();
+      $("#scannerReady").classList.toggle("off", !on);
+      $("#scannerReadyText").textContent = on
+        ? "Scanner ready. Scan a label."
+        : "Click here so the page can receive scans.";
+      if (on && !isField(document.activeElement)) barcodeInput.focus();
+    }
+    window.addEventListener("focus", updateReady);
+    window.addEventListener("blur", updateReady);
+    $("#scannerReady").onclick = () => barcodeInput.focus();
+    document.addEventListener("click", (e) => {
+      if (!isField(e.target) && !e.target.closest("label, button") && !isField(document.activeElement)) barcodeInput.focus();
+    });
+
+    // Camera scanning needs BarcodeDetector, which desktop Windows browsers don't have
+    if (!("BarcodeDetector" in window)) {
+      $("#camera").hidden = true;
+      $("#stop").hidden = true;
+    }
+
+    updateReady();
+    say("Ready. Scan with the scanner at any time.");
+    renderRecent();
+  </script>
+</body>
+</html>

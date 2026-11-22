@@ -1,0 +1,474 @@
+/* =========================================
+   AFTER-SALE: QUOTATION SHEET (aftersale.html only)
+   ========================================= */
+.q-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.q-bar h1 { display: block; margin: 0 0 4px; font-size: 24px; }
+.q-bar p { margin: 0; color: var(--mut); }
+.q-bar-actions { display: flex; gap: 8px; }
+
+.q-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.q-btn:hover { background: var(--bg); }
+.q-btn.gold { border-color: #d97706; background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; }
+
+/* The paper */
+.q-paper {
+  overflow-x: auto;
+  padding: 20px;
+  border-radius: 12px;
+  background: #cfd8dc;
+}
+
+.q-sheet {
+  --navy: #0b1f44;
+  --red: #c00000;
+  --yel: #fff8d0;
+  width: 794px;
+  margin: 0 auto;
+  padding: 26px 30px 24px;
+  background: #fff;
+  color: #000;
+  font: 10px/1.35 Cambria, Georgia, "Times New Roman", serif;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+}
+
+.q-sheet input {
+  width: 100%;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #000;
+  font: inherit;
+  box-shadow: none;
+}
+
+.q-sheet input:focus { outline: 1px solid #2563eb; background: #fffef3; }
+
+/* Header */
+.q-head {
+  text-align: center;
+  color: #22304a;
+}
+
+/* Logo: emblem cut from AIRCON.png + text, in a rounded frame */
+.q-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  margin: 0 auto 6px;
+  padding: 5px 14px 5px 8px;
+  border: 2px solid #5b6066;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.q-logo-mark {
+  flex: none;
+  position: relative;
+  width: 72px;
+  height: 50px;
+  margin-right: 10px;
+  overflow: hidden;
+}
+
+/* A real image (not a background) so it shows even when "Background graphics" is off when printing.
+   Shows only the shield and ribbon from the 500×500 AIRCON.png */
+.q-logo-mark img {
+  position: absolute;
+  top: -10px;
+  left: -18px;
+  width: 104px;
+  height: 104px;
+  max-width: none;
+}
+
+/* Divider between the emblem and the text */
+.q-logo-text {
+  padding-left: 12px;
+  border-left: 2px solid #5b6066;
+}
+
+.q-logo-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: Montserrat, "Arial Black", Arial, sans-serif;
+  line-height: 1;
+}
+
+.q-logo-text b {
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  color: #111;
+}
+
+/* Gold G.O.D: a solid gold colour first, then a gradient on screens that support it */
+.q-logo-text em {
+  margin-left: 4px;
+  font-style: normal;
+  color: #c9971c;
+}
+
+@media screen {
+  .q-logo-text em {
+    background: linear-gradient(180deg, #f6d36b 0%, #d4a017 45%, #a97412 100%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+.q-logo-text small {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  color: #2b2f33;
+}
+
+.q-logo-text small::before,
+.q-logo-text small::after {
+  content: "";
+  width: 20px;
+  border-top: 2px solid #2b2f33;
+}
+
+.q-head p {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.q-head p.small {
+  font-size: 8px;
+}
+
+.q-title {
+  margin: 14px 0 8px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+/* Client / date block */
+.q-info {
+  display: grid;
+  grid-template-columns: 46% 24% 30%;
+  grid-template-rows: 30px 30px;
+  border: 1px solid #000;
+  border-bottom: 0;
+}
+
+.q-info label {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  margin: 0;
+  padding: 3px 5px;
+  border-right: 1px solid #000;
+  border-bottom: 1px solid #000;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.q-info .y,
+.q-sign-row .y,
+.q-date { background: var(--yel); }
+.q-info .c1 { grid-column: 1; }
+.q-info .c2 { grid-column: 2; }
+.q-info .r1 { grid-row: 1; }
+.q-info .r2 { grid-row: 2; }
+.q-info .mop { grid-column: 3; grid-row: 1 / 3; border-right: 0; }
+
+/* Item table */
+.q-items { width: 100%; border-collapse: collapse; table-layout: fixed; }
+
+.q-items th {
+  padding: 5px 4px;
+  border: 1px solid #000;
+  background: var(--navy);
+  color: #fff;
+  font-size: 10px;
+  letter-spacing: 0.3px;
+  text-align: center;
+}
+
+.q-items td { height: 16px; padding: 0 4px; border: 1px solid #000; }
+.q-items td input { height: 15px; }
+.q-items .q, .q-items .u { text-align: center; }
+.q-items .p { text-align: right; }
+.q-items .t { font-weight: 700; font-size: 10px; text-align: right; }
+.q-items input[type="number"]::-webkit-outer-spin-button,
+.q-items input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.q-items input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+.q-items tfoot td { height: 20px; border: 0; }
+.q-items .tl {
+  padding-right: 6px;
+  background: var(--navy);
+  color: #fff;
+  font-weight: 700;
+  font-size: 10px;
+  text-align: right;
+}
+.q-items .tv { color: var(--red); font-weight: 700; font-size: 10px; text-align: right; }
+
+/* Terms */
+.q-terms {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 6px;
+  border: 1px solid #000;
+}
+
+.q-terms .col.left { border-right: 1px solid #000; }
+.q-terms section { padding: 3px 5px 5px; border-bottom: 1px solid #000; }
+.q-terms section:last-child { border-bottom: 0; }
+.q-terms h4 { margin: 0 0 2px; color: var(--red); font-size: 10px; font-weight: 700; }
+.q-terms p { margin: 0; font-size: 9px; line-height: 1.3; }
+.q-terms p.in { padding-left: 8px; }
+
+/* Scope of work */
+.q-scope {
+  margin-top: 6px;
+  padding: 4px;
+  background: var(--navy);
+  color: #fff;
+  font-weight: 700;
+  font-size: 10px;
+  text-align: center;
+}
+
+.q-scope-text {
+  padding: 4px;
+  border: 1px solid #000;
+  border-top: 0;
+  background: var(--yel);
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Prepared by / Noted by / Date */
+.q-sign-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 4px;
+  border: 1px solid #000;
+}
+
+.q-sign-row label,
+.q-date {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+  padding: 3px 5px;
+  font-size: 9px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.q-sign-row label { height: 40px; align-items: flex-start; }
+.q-sign-row label:first-child { border-right: 1px solid #000; }
+.q-date { margin-top: 30px; background: transparent; }
+
+.q-accept { margin: 14px 0 0; font-size: 9px; line-height: 1.4; text-align: justify; }
+.q-accept .line { display: inline-block; width: 120px; border-bottom: 1px solid #000; }
+
+.q-sigs {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 30px;
+  font-size: 8.5px;
+  font-weight: 700;
+}
+
+/* Signature lines: tap to sign on screen (signedforms.js) */
+.q-sig { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.q-sig-box {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 210px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid #000;
+  background: transparent;
+  cursor: pointer;
+}
+.q-sig-box img { max-width: 100%; max-height: 50px; }
+.q-sig-box:not(.signed) img { display: none; }
+.q-sig-hint {
+  position: absolute;
+  inset: 4px 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px dashed #94a3b8;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #64767d;
+  font: 600 11px system-ui, "Segoe UI", sans-serif;
+}
+.q-sig-box:hover .q-sig-hint { border-color: #0f766e; color: #0f766e; }
+.q-sig-box.signed .q-sig-hint { display: none; }
+
+/* WARRANTY box: name of the unit series it belongs to (warranty.js) */
+.q-terms .w-unit { margin-bottom: 2px; font-weight: 700; font-style: italic; }
+
+/* Message under the top bar ("Saved as SF-…") */
+.q-note {
+  margin: -6px 0 14px;
+  padding: 10px 14px;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 13px;
+}
+
+/* The picture taken for the saved PDF: no "tap to sign" boxes, plain gold text */
+html.sf-capture .q-sig-hint { display: none; }
+html.sf-capture .q-sheet input:focus { outline: 0; background: transparent; }
+html.sf-capture .q-paper, html.sf-capture .q-sheet { zoom: 1 !important; }
+html.sf-capture .q-logo-text em { background: none; -webkit-text-fill-color: #c9971c; color: #c9971c; }
+
+/* =========================================
+   PHONES: step-by-step form (aftersales-phone.js) instead of the wide paper
+   ========================================= */
+.pf { display: none; }
+
+/* Short button labels for phones (e.g. "Formal Quote" instead of "Formal Quotation") */
+.q-short { display: none; }
+/* Same text colour for every button, also on iPhones (which colour plain buttons blue) and for the
+   Survey (Ocular) link (which turned purple once visited) */
+.q-btn:not(.gold), a.q-btn:not(.gold):visited { color: #071d49; }
+
+@media screen and (max-width: 800px) {
+  .q-bar { flex-direction: column; gap: 10px; margin-bottom: 12px; }
+  .q-long { display: none; }
+  .q-short { display: inline; }
+  .q-bar-actions .q-btn { white-space: nowrap; }
+  .q-bar h1 { font-size: 20px; }
+  .q-bar-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; width: 100%; gap: 6px; }
+  .q-bar-actions .q-btn { justify-content: center; padding: 9px 6px; font-size: 12px; gap: 5px; }
+  /* Print and Save live in the form below on phones */
+  #printBtn, #saveSignedBtn { display: none; }
+
+  .pf { display: grid; gap: 12px; padding-bottom: 80px; }   /* room for the chat button */
+  .pf-card { padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+  .pf-card h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; font-size: 17px; }
+  .pf-card h2 b {
+    display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+    background: #0b1f44; color: #f6d36b; font-size: 14px;
+  }
+  .pf-help { margin: -4px 0 10px; color: var(--mut); font-size: 12.5px; }
+  .pf-help.center { margin: 8px 0 0; text-align: center; }
+
+  .pf-field { display: block; margin-bottom: 10px; }
+  .pf-field > span:first-child, .pf-item-grid span { display: block; margin-bottom: 4px; color: var(--mut); font-size: 12px; font-weight: 700; }
+  .pf-input-row { display: flex; gap: 6px; }
+  .pf input {
+    width: 100%; min-width: 0; height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px;
+    background: #fff; color: var(--ink); font: inherit; font-size: 16px;   /* 16px: phones don't zoom in */
+  }
+  .pf input:focus { outline: 2px solid #0f766e; outline-offset: -1px; }
+  .pf-mini { flex: none; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: #f4f7f8; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+
+  .pf-item { margin-bottom: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: #f8fafc; }
+  .pf-item-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; }
+  .pf-remove { width: 36px; height: 32px; border: 0; border-radius: 8px; background: none; color: var(--bad); cursor: pointer; }
+  .pf-item-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .pf-item-grid .wide { grid-column: 1 / -1; }
+  .pf-line { margin-top: 8px; color: var(--mut); font-size: 13px; text-align: right; }
+  .pf-line b { color: var(--ink); }
+  .pf-add, .pf-link {
+    display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 11px;
+    border: 1px dashed #94a3b8; border-radius: 10px; background: none; color: #0f766e; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  .pf-link { margin: 4px 0 12px; border-style: solid; border-color: var(--line); }
+  .pf-total { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 2px solid #0b1f44; font-weight: 700; }
+  .pf-total b { color: #c00000; font-size: 18px; }
+  .pf-warranty { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: #eff6ff; color: #0b1f44; font-size: 13px; line-height: 1.5; }
+  .pf-warranty > b:first-child { display: block; margin-bottom: 4px; color: #1d4ed8; }
+  .pf-warranty p { margin: 0; }
+
+  .pf-sigs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .pf-sig {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 92px; padding: 8px;
+    border: 2px dashed #94a3b8; border-radius: 10px; background: #f8fafc; color: #0b1f44; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .pf-sig img { display: none; max-width: 100%; max-height: 50px; }
+  .pf-sig.signed { border-style: solid; border-color: #16a34a; background: #f0fdf4; }
+  .pf-sig.signed img { display: block; }
+  .pf-sig.signed span { color: #166534; font-size: 11.5px; }
+  .pf-save {
+    display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 12px; padding: 14px;
+    border: 0; border-radius: 10px; background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer;
+  }
+  .pf-save:disabled { opacity: .7; }
+
+  /* The paper: hidden until "read the full form", then shrunk to fit the phone */
+  .q-paper:not(.show) { display: none; }
+  .q-paper.show { padding: 8px; overflow: hidden; }
+  .q-paper.show .q-sheet { zoom: var(--pz, 0.42); }
+  .price-suggest { min-width: 0 !important; max-width: calc(100vw - 24px); left: 12px !important; right: 12px; }
+}
+
+/* Printing: only the sheet, on A4 */
+@page { size: A4; margin: 8mm; }
+
+@media print {
+  .side, .q-bar, .q-note, .q-sig-hint { display: none !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body.app { display: block; background: #fff; }
+  .content { padding: 0; }
+  .q-paper { padding: 0; background: none; overflow: visible; }
+  .q-sheet { width: 100%; padding: 0; box-shadow: none; }
+  .q-sheet input:focus { outline: 0; background: transparent; }
+
+  /* Slightly tighter spacing so the whole quotation fits on one A4 page */
+  .q-logo { margin-bottom: 4px; zoom: 0.78; }
+  .q-title { margin: 6px 0 6px; }
+  .q-terms p { line-height: 1.22; }
+  .q-items td { height: 14px; }
+  .q-items td input { height: 13px; }
+  .q-date { margin-top: 16px; }
+  .q-accept { margin-top: 10px; }
+  .q-sigs { margin-top: 22px; }
+  .q-sheet { break-inside: avoid; }
+}

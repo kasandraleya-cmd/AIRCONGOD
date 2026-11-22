@@ -1,0 +1,934 @@
+/* =========================================
+   SALES / JOB ORDER PAGE (sales.html only)
+   Loads after style.css. Everything is scoped
+   to .so or a so- class.
+   The navy and gold sheet palette is set below.
+   ========================================= */
+
+.so {
+  --so: #071d49;
+  --so-d: #041432;
+  --so-l: #fbf5e4;
+  --so-gold: #d5a52a;
+}
+
+/* ---------- Page header ---------- */
+.so-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.so-head h1 {
+  display: block;
+  margin: 0 0 4px;
+  font-size: 26px;
+}
+
+.so-head p {
+  margin: 0;
+  color: var(--mut);
+}
+
+.so-mode {
+  padding: 7px 14px;
+  border-radius: 99px;
+  background: var(--so-l);
+  color: var(--so);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.so-mode.edit {
+  background: var(--so-l);
+  color: var(--so-d);
+}
+
+/* ---------- Layout: form on the left, buttons on the right ---------- */
+.so-layout {
+  display: grid;
+  grid-template-columns: 1fr 230px;
+  gap: 18px;
+  align-items: start;
+}
+
+.so-sheet {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.so-banner {
+  padding: 14px;
+  background: linear-gradient(120deg, var(--so-d), var(--so));
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+/* ---------- Cards ---------- */
+.so-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+  padding: 18px;
+}
+
+.so-card {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fbfdfd;
+}
+
+.so-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--so);
+}
+
+.so-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.so-fields .wide {
+  grid-column: 1 / -1;
+}
+
+.so label {
+  margin: 0 0 4px;
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #4a5c63;
+}
+
+.so input,
+.so textarea {
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.so textarea {
+  height: auto;
+  min-height: 64px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.so input:focus,
+.so textarea:focus {
+  border-color: var(--so-gold);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(213, 165, 42, 0.18);
+}
+
+.so input[readonly] {
+  background: #f1f5f9;
+  color: var(--so);
+  font-weight: 700;
+}
+
+/* ---------- Item table ---------- */
+.so-table-wrap {
+  margin: 0 18px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.so-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+.so-table th {
+  padding: 12px 8px;
+  background: var(--so);
+  color: #fff;
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.so-table th.left { text-align: left; padding-left: 14px; }
+.so-table th:nth-child(2) { text-align: center; }
+
+.so-table td {
+  padding: 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.so-table tbody tr:nth-child(even) { background: #f8fafc; }
+.so-table tbody tr:hover { background: #fffcf2; }
+
+.so-table td.n {
+  width: 36px;
+  color: #a2b2b6;
+  font-size: 12px;
+  text-align: center;
+}
+
+.so-table td input {
+  height: 38px;
+  border-color: transparent;
+  background: transparent;
+}
+
+.so-table td input:hover { border-color: var(--line); background: #fff; }
+.so-table td input:focus { background: #fff; }
+.so-table td input::placeholder { color: #b5c2c6; }
+
+.so-table .qty { width: 70px; text-align: center; }
+.so-table .cost,
+.so-table .disc { width: 120px; text-align: right; }
+
+.so-table input[type="number"]::-webkit-outer-spin-button,
+.so-table input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.so-table input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.so-table .calc {
+  padding-right: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.so-table .sales { color: var(--mut); }
+.so-table .net { font-weight: 700; }
+
+.so-table .x { width: 34px; text-align: center; }
+
+.so-x {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: #b5c2c6;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.so-x:hover { background: #fdeceb; color: var(--bad); }
+
+.so-table tfoot td {
+  padding: 14px 8px;
+  border-bottom: 0;
+  background: linear-gradient(90deg, var(--so-l), #f5e9bf);
+  font-weight: 700;
+}
+
+.so-table .tlabel {
+  padding-right: 14px;
+  color: var(--so);
+  letter-spacing: 1px;
+  text-align: right;
+}
+
+.so-table .big {
+  color: var(--so);
+  font-size: 19px;
+}
+
+/* ---------- Remarks ---------- */
+.so-remarks {
+  padding: 16px 18px 18px;
+}
+
+/* ---------- Right column ---------- */
+.so-side {
+  position: sticky;
+  top: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.so-jo {
+  display: grid;
+  gap: 4px;
+  background: #fff;
+}
+
+.so-jo input { margin-bottom: 8px; }
+.so-jo input:last-child { margin-bottom: 0; }
+
+.so-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  border: 0;
+  border-radius: 12px;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+  transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+}
+
+.so-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.18);
+}
+
+.so-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.so-btn.green { background: linear-gradient(135deg, #0d2a60, #041432); height: 52px; font-size: 16px; }
+.so-btn.amber { background: linear-gradient(135deg, #e8bd4a, #b8860b); }
+.so-btn.blue { background: linear-gradient(135deg, #0d2a60, #041432); }
+.so-btn.dark { background: linear-gradient(135deg, #0d2a60, #041432); }
+.so-btn.red { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+.so-btn.ghost { border: 1px solid var(--line); background: #fff; color: var(--ink); box-shadow: none; }
+
+.so-hint {
+  margin: 4px 0 0;
+  color: var(--mut);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.so-hint kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #fff;
+  font: inherit;
+  font-size: 11px;
+}
+
+/* ---------- Search / Edit popup ---------- */
+.so-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(15, 30, 36, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.so-modal[hidden] { display: none; }
+
+.so-box {
+  width: 100%;
+  max-width: 620px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.so-box-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.so-box-head h3 { margin: 0; font-size: 20px; }
+
+.so-close {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--mut);
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.so-close:hover { background: #fdeceb; color: var(--bad); }
+
+.so-q {
+  height: 44px;
+  margin-bottom: 12px;
+}
+
+.so-list {
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.so-hit {
+  display: grid;
+  grid-template-columns: 90px 1fr auto auto auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.so-hit:last-child { border-bottom: 0; }
+.so-hit:hover { background: var(--so-l); }
+.so-hit b { color: var(--so); }
+.so-hit small { color: var(--mut); }
+.so-hit em { font-style: normal; font-weight: 700; }
+
+.so-none {
+  margin: 0;
+  padding: 36px 16px;
+  color: var(--mut);
+  text-align: center;
+}
+
+/* ---------- Message ---------- */
+.so-toast {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 3000;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: #15803d;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.so-toast[hidden] { display: none; }
+.so-toast.err { background: var(--bad); }
+
+/* ---------- Small screens ---------- */
+@media (max-width: 1000px) {
+  .so-layout { grid-template-columns: 1fr; }
+  .so-side { position: static; grid-template-columns: repeat(2, 1fr); }
+  .so-jo, .so-hint { grid-column: 1 / -1; }
+}
+
+@media (max-width: 700px) {
+  .so-grid, .so-fields { grid-template-columns: 1fr; }
+  .so-head { flex-direction: column; }
+}
+
+/* ---------- Printing (Quotation / Job Order): only the form shows ---------- */
+@media print {
+  .side, .so-head, .so-side, .so-toast, .so-modal, .so-x, .so-hint,
+  .so-table .x, .so-table td.n, .so-table th.n { display: none !important; }
+
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  body.app { display: block; background: #fff; }
+  .content { padding: 0; }
+  .so-layout { display: block; }
+  .so-sheet { border: 0; box-shadow: none; }
+  .so-table tr.blank { display: none; }
+  .so-table-wrap { overflow: visible; }
+
+  .so input, .so textarea {
+    padding: 2px 4px;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .so input::-webkit-calendar-picker-indicator { display: none; }
+}
+
+/* ---------- Delete confirmation popup ---------- */
+.so-confirm {
+  width: 100%;
+  max-width: 400px;
+  padding: 28px 24px 22px;
+  border-radius: 16px;
+  background: #fff;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  animation: soPop 0.2s ease-out;
+}
+
+.so-confirm-icon {
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: #fdeceb;
+  color: var(--bad);
+  font-size: 26px;
+}
+
+.so-confirm h3 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+
+.so-confirm p {
+  margin: 0 0 12px;
+  color: var(--mut);
+}
+
+.so-confirm p b {
+  color: var(--ink);
+}
+
+.so-confirm-info {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f4f7f8;
+  font-weight: 600;
+}
+
+.so-confirm-info:empty {
+  display: none;
+}
+
+.so-confirm .so-confirm-warn {
+  margin-bottom: 18px;
+  color: var(--bad);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.so-confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@keyframes soPop {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+/* =========================================
+   EXCEL-STYLE SALES SHEET
+   Navy and gold theme.
+   ========================================= */
+.xl {
+  --g: #d0d7de;
+  --hd: #f1f3f4;
+  font-family: "Segoe UI", Calibri, sans-serif;
+}
+
+.xl-file {
+  overflow: hidden;
+  border: 1px solid var(--g);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.xl-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--so-d);
+  border-bottom: 2px solid var(--so-gold);
+  color: #fff;
+}
+
+.xl-titlebar i { font-size: 18px; }
+.xl-titlebar span { margin-left: auto; font-size: 12px; opacity: 0.8; }
+
+/* Ribbon */
+.xl-ribbon {
+  display: flex;
+  gap: 2px;
+  padding: 8px 10px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--g);
+  background: #f6f8f8;
+}
+
+.xl-btn {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 78px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.xl-btn i { font-size: 20px; }
+
+.xl-btn:hover:not(:disabled) {
+  border-color: var(--g);
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.xl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.xl-sep { width: 1px; margin: 4px 6px; background: var(--g); }
+
+/* Formula bar */
+.xl-fx {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--g);
+  font-size: 13px;
+}
+
+.xl-name {
+  width: 70px;
+  padding: 6px 10px;
+  border-right: 1px solid var(--g);
+  background: var(--hd);
+  font-weight: 600;
+  text-align: center;
+  color: #475569;
+}
+
+.xl-fxi {
+  padding: 6px 12px;
+  border-right: 1px solid var(--g);
+  color: #94a3a8;
+  font-style: italic;
+  font-weight: 700;
+}
+
+.xl-mode { padding: 6px 12px; font-weight: 600; color: var(--so); }
+.xl-mode.edit { color: #b8860b; }
+.xl-tip { margin-left: auto; padding: 0 14px; color: #94a3a8; font-size: 12px; }
+
+/* Sheet */
+.xl-scroll { overflow-x: auto; }
+.xl-sheet { min-width: 780px; }
+
+.xl-banner {
+  padding: 12px;
+  background: var(--so);
+  border-bottom: 2px solid var(--so-gold);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+/* Label and value cells */
+.xl-info {
+  display: grid;
+  grid-template-columns: 150px 1fr 130px 1fr;
+}
+
+.xl-lbl,
+.xl-val {
+  border-right: 1px solid var(--g);
+  border-bottom: 1px solid var(--g);
+}
+
+.xl-lbl {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  min-height: 34px;
+  background: var(--so-l);
+  color: var(--so-d);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.xl-val { display: flex; min-width: 0; }
+
+/* Formal pick list (Mode of payment, returning customers) */
+.xl-pick { position: relative; align-items: center; }
+.xl-pick > i { position: absolute; right: 12px; color: #64748b; font-size: 11px; cursor: pointer; }
+.xl-pick input { padding-right: 30px !important; cursor: pointer; }
+.opt-menu { position: absolute; z-index: 60; max-height: 300px; overflow-y: auto; padding: 6px; background: #fff;
+  border: 1px solid #d5dde3; border-radius: 8px; box-shadow: 0 10px 28px rgba(15, 23, 42, .14);
+  font-family: inherit; }
+.opt-menu[hidden] { display: none; }
+.opt-title { padding: 6px 10px 6px; color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+  border-bottom: 1px solid #edf1f4; margin-bottom: 4px; }
+.opt-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 6px;
+  background: none; color: #1e293b; font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.opt-menu button > i:first-child { width: 18px; color: var(--so-d, #0d635c); text-align: center; font-size: 13px; }
+.opt-menu button span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.opt-menu button:hover, .opt-menu button.on { background: var(--so-l, #e3f3f0); color: var(--so-d, #0d635c); }
+.opt-tick { color: var(--so-d, #0d635c); font-size: 12px; }
+@media print { .opt-menu, .xl-pick > i { display: none !important; } }
+
+/* Cell inputs: no boxes, a gold outline when selected */
+.xl input,
+.xl textarea {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.xl textarea { height: auto; min-height: 56px; padding: 8px 10px; }
+
+.xl input:focus,
+.xl textarea:focus {
+  border: 0;
+  outline: 2px solid var(--so-gold);
+  outline-offset: -2px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.xl input[readonly] { background: #f6f8f8; color: var(--so-d); font-weight: 700; }
+.xl input.xl-jo { color: var(--so-d); font-weight: 700; }
+.xl input::placeholder,
+.xl textarea::placeholder { color: #b5c2c6; }
+
+/* Item table */
+.xl-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.xl-table th,
+.xl-table td {
+  padding: 0;
+  border: 1px solid var(--g);
+}
+
+.xl-letters th {
+  height: 22px;
+  background: var(--hd);
+  color: #64767d;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.xl-cols th {
+  padding: 8px;
+  background: var(--so);
+  border-color: var(--so-d);
+  color: #fff;
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-align: center;
+}
+
+.xl-cols th.left { text-align: left; padding-left: 12px; }
+
+/* Column widths are set by the <colgroup> in sales.html */
+.xl-table .n,
+.xl-letters .corner { background: var(--hd); color: #64767d; font-size: 11px; text-align: center; }
+.xl-table .x { background: var(--hd); text-align: center; }
+.xl-table tfoot .x { background: var(--so-l); }
+
+.xl-table .qty { text-align: center; }
+.xl-table .cost,
+.xl-table .disc { text-align: right; }
+
+.xl-table .calc {
+  padding: 0 10px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.xl-table .sales { color: var(--mut); }
+.xl-table .net { font-weight: 700; }
+.xl-table tbody tr:hover td:not(.n):not(.x) { background: #fffcf2; }
+
+.xl-table input[type="number"]::-webkit-outer-spin-button,
+.xl-table input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.xl-table input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+.xl-table tfoot td { height: 38px; background: var(--so-l); font-weight: 700; }
+.xl-table tfoot .xl-addrow td { height: auto; padding: 6px 10px; background: #fff; }
+.xl-add { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border: 1px dashed var(--so-d, #0f766e);
+  border-radius: 6px; background: #fff; color: var(--so-d, #0f766e); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.xl-add:hover { background: var(--so-l, #e6f4f1); }
+.xl-table .tlabel { padding-right: 14px; color: var(--so-d); letter-spacing: 1px; text-align: right; }
+.xl-table .big { color: var(--so-d); font-size: 16px; }
+
+/* Remarks */
+.xl-remarks {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+}
+
+.xl-remarks .xl-lbl { align-items: flex-start; padding-top: 9px; }
+
+/* Sheet tabs */
+.xl-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 10px;
+  border-top: 1px solid var(--g);
+  background: var(--hd);
+}
+
+.xl-tab {
+  padding: 8px 18px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: #475569;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.xl-tab:hover { background: #e4e8ea; }
+.xl-tab.on { border-bottom-color: var(--so-gold); background: #fff; color: var(--so-d); font-weight: 700; }
+
+@media (max-width: 700px) {
+  .xl-tip { display: none; }
+}
+
+/* Printing: hide the toolbars and gridline helpers */
+@media print {
+  .xl-titlebar, .xl-ribbon, .xl-fx, .xl-tabs, .xl-letters { display: none !important; }
+  .xl-file { border: 0; box-shadow: none; }
+  .xl-sheet { min-width: 0; }
+  .xl-table tr.blank, .xl-addrow { display: none !important; }
+}
+
+/* =========================================
+   DASHBOARD TABLES: BACKGROUND IMAGE
+   ========================================= */
+body.dashboard .tw {
+  background:
+    linear-gradient(rgba(0, 20, 60, 0.6), rgba(0, 20, 60, 0.6)),
+    url("BACKGROUND.png") center / cover no-repeat;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+body.dashboard .tw table {
+  background: transparent;
+}
+
+body.dashboard .tw th {
+  background: rgba(0, 0, 0, 0.4);
+  color: #ffd877;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+body.dashboard .tw td {
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+body.dashboard .tw tbody tr:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+body.dashboard .tw .mono {
+  color: #cfe3ff;
+}
+
+body.dashboard .tw .empty {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* Serial No. column: in-stock units (from Inventory) of the brand / unit typed in the description */
+.xl-table .serial { width: 100%; height: 100%; min-height: 34px; padding: 0 6px; border: 0; background: transparent; font: inherit; font-size: 12.5px; cursor: pointer; }
+.xl-table .serial:disabled { cursor: default; color: transparent; }
+.xl-table .serial:focus { outline: 2px solid var(--so-gold, #d5a52a); outline-offset: -2px; }
+/* No stock for the unit in the description: the description cell turns red */
+.xl-table td.desc-cell.nostock,
+.xl-table tbody tr:hover td.desc-cell.nostock { background: #fde2e1; box-shadow: inset 4px 0 0 #dc2626; }
+.xl-table td.desc-cell.nostock input { color: #b42318; font-weight: 700; }
+.xl-table td.desc-cell.nostock + td .serial { color: #b42318; font-weight: 700; }
+@media print { .xl-table td.desc-cell.nostock { background: none; box-shadow: none; } .xl-table .serial { -webkit-appearance: none; appearance: none; } }
+/* The Serial No. column needs room: keep Description at least ~300px wide (the sheet scrolls sideways on small screens) */
+.xl-sheet { min-width: 1180px; }
+@media print { .xl-sheet { min-width: 0; } .xl-table col:nth-child(4) { width: 150px !important; } }
+/* Serial No. still to pick (aircon unit rows): a yellow hint; red after Submit if still empty */
+.xl-table .serial.need { background: #fffbea; box-shadow: inset 0 0 0 1px #f3d27a; }
+.xl-table .serial.missing { background: #fdeceb; box-shadow: inset 0 0 0 2px #dc2626; }
+.xl-table .serial optgroup { color: #0f766e; font-style: normal; font-weight: 700; }
+.xl-table .serial option { color: #16252b; font-weight: 400; }
+/* Serial No. is a box you can type in (suggestions: the in-stock serials of the model) */
+.xl-table input.serial { width: 100%; height: 100%; min-height: 34px; padding: 0 8px; border: 0; background: transparent; font: inherit; font-size: 12.5px; letter-spacing: .3px; }
+.xl-table input.serial::placeholder { color: #a3b1b8; }
+.xl-table input.serial:disabled { background: transparent; }
+.xl-table input.serial:disabled::placeholder { color: transparent; }
+/* A typed serial that isn't an in-stock unit of this model: kept, but it won't be stocked out */
+.xl-table input.serial.unknown { background: #fff4e5; box-shadow: inset 0 0 0 2px #f59e0b; color: #92400e; font-weight: 700; }
+/* Serial No. box: a small arrow shows it has a list */
+.xl-table input.serial:not(:disabled) {
+  padding-right: 26px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0h10L5 6z' fill='%2364767d'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 9px center;
+  cursor: text;
+}
+/* Serial No. suggestions (same look as the Description price suggestions) */
+.serial-suggest {
+  position: absolute; z-index: 60; max-height: 280px; overflow-y: auto; padding: 4px;
+  border: 1px solid var(--line, #dbe3e7); border-radius: 10px; background: #fff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, .18); font-family: system-ui, "Segoe UI", sans-serif;
+}
+.serial-suggest .ss-head { padding: 6px 10px 4px; color: #0f766e; font-size: 11px; font-weight: 800; letter-spacing: .4px; text-transform: uppercase; }
+.serial-suggest button {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; width: 100%; padding: 8px 10px;
+  border: 0; border-radius: 6px; background: none; color: #16252b; font: inherit; text-align: left; cursor: pointer;
+}
+.serial-suggest button b { font-size: 13px; letter-spacing: .3px; font-variant-numeric: tabular-nums; }
+.serial-suggest button em { padding: 1px 8px; border-radius: 99px; background: #e8f0fe; color: #1d4ed8; font-size: 11px; font-style: normal; font-weight: 700; }
+.serial-suggest button small { grid-column: 1 / -1; overflow: hidden; color: #64767d; font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
+.serial-suggest button:hover, .serial-suggest button.on { background: #e3f3f0; }
+@media print { .serial-suggest { display: none !important; } }
+
+/* Job order stock status badge (jostock.js) next to the mode label */
+.xl-stock { margin-left: 10px; }
+
+/* Each aircon unit row: RED = no stock for this unit, GREEN = it has stock (serial picked, or a unit waiting for it) */
+.xl-table tbody tr.stk-red > td:not(.x) { background: #fdeceb; }
+.xl-table tbody tr.stk-green > td:not(.x) { background: #e8f7ee; }
+.xl-table tbody tr.stk-red > td.n { box-shadow: inset 5px 0 0 #dc2626; }
+.xl-table tbody tr.stk-green > td.n { box-shadow: inset 5px 0 0 #16a34a; }
+.xl-table tbody tr.stk-red input, .xl-table tbody tr.stk-green input { background: transparent; }
+.xl-table tbody tr.stk-red:hover > td:not(.x) { background: #fbdedc; }
+.xl-table tbody tr.stk-green:hover > td:not(.x) { background: #d9f1e2; }
+.xl-table tbody tr.stk-green.stk-open input.serial { color: #15803d; }
+@media print { .xl-table tbody tr.stk-red > td, .xl-table tbody tr.stk-green > td { background: none !important; box-shadow: none !important; } }

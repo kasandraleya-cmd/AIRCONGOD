@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · My Profile</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="leave.css?v=23">
+  <link rel="stylesheet" href="dashboard.css?v=15">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+</head>
+<body class="app dashboard">
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) location.href = "index.html";
+    // MY PROFILE: everyone (their own information, profile picture and warnings).
+    else if (!Roles.me().profilePage) { document.documentElement.style.visibility = "hidden"; location.replace("dashboard.html"); }
+  </script>
+
+  <aside class="side">
+    <div class="side-brand"><img src="AIRCON.png" alt="Logo"><span>AIRCON G.O.D</span></div>
+    <nav aria-label="Main menu"></nav>
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <main class="content">
+    <div class="db-head">
+      <div>
+        <h1>My Profile</h1>
+        <p>Your details, profile picture and warnings.</p>
+      </div>
+    </div>
+
+    <!-- My information (with the profile picture), My warnings, and for the office / supervisors their payslip and leave (leave.js mountEmployee) -->
+    <div id="myPanel"></div>
+
+    <script src="payslip.js?v=7"></script>
+    <script src="incentive-teams.js?v=2"></script>
+    <script src="attendance.js?v=22"></script>
+    <script src="timeclock-lib.js?v=2"></script>
+    <script src="daterange.js?v=3"></script>
+    <script src="leave.js?v=25"></script>
+    <script>
+      // Admin / Office, HR / Manager, Owner, Supervisors, Developer (roles.js profileFull): My information, My payslip,
+      // Day off & leave and My warnings. Everyone else: My information and My warnings (the rest is on their Dashboard).
+      const myPanel = document.getElementById("myPanel");
+      if (!Roles.me().profileFull) myPanel.dataset.infoOnly = "1";
+      Leave.mountEmployee(myPanel);
+    </script>
+  </main>
+
+  <script>
+    function logout() { sessionStorage.clear(); window.location.href = "index.html"; }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+</body>
+</html>

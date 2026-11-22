@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Weekly Schedule</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="inventory.css">
+  <link rel="stylesheet" href="schedule.css?v=4">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+</head>
+<body class="app">
+
+  <!-- SECURITY GUARD -->
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) window.location.href = "index.html";
+  </script>
+
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="side-brand">
+      <img src="AIRCON.png" alt="Logo">
+      <span>AIRCON G.O.D</span>
+    </div>
+
+    <nav aria-label="Main menu"><!-- filled in by sidebar.js --></nav>
+
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="content inv">
+
+    <div class="inv-header">
+      <div>
+        <h1>Weekly Schedule</h1>
+        <p>Weekly installation, cleaning, check-up and survey schedule.</p>
+      </div>
+      <div class="sc-nav">
+        <button type="button" class="inv-btn light" id="prevBtn" title="Previous week"><i class="fas fa-chevron-left"></i></button>
+        <button type="button" class="inv-btn light" id="todayBtn">This week</button>
+        <button type="button" class="inv-btn light" id="nextBtn" title="Next week"><i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+
+    <div class="sc-wrap">
+      <table class="sc-sheet">
+        <thead>
+          <tr><th colspan="7" class="sc-title" id="title">WEEKLY SCHEDULE</th></tr>
+          <tr id="days"></tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <p class="sc-legend">
+      <span><b class="ok">✓</b> Done</span>
+      <span><b class="red">(CANCEL)</b> / <b class="red">(RESCHEDULE)</b> in red</span>
+      <span><i class="sc-swatch extra"></i> Extra slot beyond the 4 clients</span>
+    </p>
+  </main>
+
+  <!-- BOOK / EDIT A SLOT -->
+  <div class="inv-modal" id="modal" hidden>
+    <div class="inv-box" role="dialog" aria-labelledby="mTitle">
+      <div class="inv-box-head">
+        <h3 id="mTitle">Book slot</h3>
+        <button type="button" class="inv-x" id="mClose" aria-label="Close">&times;</button>
+      </div>
+      <p class="sc-slot" id="mSlot"></p>
+
+      <form id="slotForm" autocomplete="off">
+        <div class="inv-grid">
+          <div class="wide"><label>Client name</label><input name="client" placeholder="e.g. Kasandra Leya" required></div>
+          <div class="wide job-wrap"><label for="scheduleJobInput">UNIT/SERVICES</label><input id="scheduleJobInput" name="job" placeholder="Type a brand or service to see Price List names" aria-autocomplete="list" aria-controls="jobSuggest" aria-expanded="false"><div class="job-suggest" id="jobSuggest" role="listbox" hidden></div></div>
+          <div><label>Location</label><input name="location" placeholder="e.g. Las Piñas"></div>
+          <div><label>Team / technician</label><input name="team" list="teams" placeholder="e.g. Noel"></div>
+          <div><label>Status</label>
+            <select name="status">
+              <option value="">Booked</option>
+              <option value="done">Done</option>
+              <option value="tentative">Tentative</option>
+              <option value="reschedule">Reschedule</option>
+              <option value="cancel">Cancel</option>
+            </select>
+          </div>
+          <div><label>Payment</label>
+            <select name="paid"><option value="">Not paid yet</option><option value="paid">Paid</option></select>
+          </div>
+          <div class="wide"><label>Note</label><input name="note" placeholder="e.g. straight charge, after lunch 1 pm, w/ cleaning"></div>
+        </div>
+        <datalist id="teams"></datalist>
+
+        <div class="inv-box-actions">
+          <button type="button" class="inv-btn light sc-clear" id="mDelete">Clear slot</button>
+          <button type="button" class="inv-btn light" id="mCancel">Cancel</button>
+          <button type="submit" class="inv-btn teal" id="mSave">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = "index.html";
+    }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+  <script src="handoff.js?v=2"></script>
+  <script src="schedule-sync.js?v=1"></script>
+  <script src="pricelist.js?v=4"></script>
+  <script src="pricepicker.js?v=4"></script>
+
+  <script>
+    const SCHEDULE_KEY = "aircon_schedule";   // { "2026-10-26|mi|0": { client, job, location, team, status, paid, note } }
+    const STAFF_KEY = "aircon_staff";
+
+    // The four blocks of each day; each has 4 client slots plus extra (orange) slots
+    const SECTIONS = [
+      { id: "mi", label: "MORNING SLOTS 10-11AM ( INSTALLATION 4 CLIENTS )", extra: 3 },
+      { id: "mc", label: "MORNING SLOTS 10-11AM ( CLEANING/CHECK-UP/SURVEY 4 CLIENTS )", extra: 2 },
+      { id: "ni", label: "NOON SLOTS 1-2PM ( INSTALLATION 4 CLIENTS )", extra: 3 },
+      { id: "nc", label: "NOON SLOTS 1-2PM ( CLEANING/CHECK-UP/SURVEY 4 CLIENTS )", extra: 2 },
+      { id: "ph", label: "PAHABOL", extra: 0 },   // late additions to the day
+    ];
+    const SLOTS = 4;
+    const DAY_NAMES = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
+
+    const $ = (s) => document.querySelector(s);
+    const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const load = () => JSON.parse(localStorage.getItem(SCHEDULE_KEY) || "{}");
+    const store = (data) => localStorage.setItem(SCHEDULE_KEY, JSON.stringify(data));
+    const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+    const form = $("#slotForm");
+    const modal = $("#modal");
+    let editKey = null;
+
+    // Offer AC models from the Price List and the service names used by Daily Schedule.
+    // The field remains editable for anything outside these common choices.
+    const SCHEDULE_SERVICES = [
+      "CHECK UP", "SURVEY", "CLEANING ST", "CLEANING WT", "PROJECT", "CONTINUATION PROJECT", "REPAIR", "BACK JOB",
+      "INSTALLATION ONLY", "CLADDING ONLY", "RELOCATION", "PIPING", "CHIPPING WORKS", "REPROCESS & FREON", "RESCHEDULE",
+      "CHARGING FREON", "LEAKTEST & CLEANING", "DELIVER", "CHARGING FREON CLEANING CONDENSER ONLY", "TRANSACT CREADIT CARD",
+      "CONTINUATION", "CHIPPING & ELEC", "STYRO & SEALANT", "RELOC./ DISMANTLE/ CLEANING", "PULL DOWN CLEANING",
+      "CLEANING ST & WT", "RE-INSTALL", "CHECK-UP/CLEANING", "REPLACEMENT", "PULLDOWN & REGULAR CLEANING", "CLEANING FM",
+      "CLEANING ST & WT /DISMANTLE", "RE-DRAIN PVC", "SURVEY | LATAG PIPING", "START UP", "SITE VISIT",
+    ];
+    const scheduleNames = [...new Set([
+      ...PricePicker.items.filter((item) => item.unit === "UNIT").map((item) => item.name),
+      ...SCHEDULE_SERVICES,
+    ])];
+    const jobInput = document.getElementById("scheduleJobInput");
+    const jobSuggest = document.getElementById("jobSuggest");
+    let jobMatches = [];
+    let jobIndex = -1;
+    const hideJobSuggestions = () => {
+      jobSuggest.hidden = true;
+      jobInput.setAttribute("aria-expanded", "false");
+      jobInput.removeAttribute("aria-activedescendant");
+    };
+    function positionJobSuggestions() {
+      const rect = jobInput.getBoundingClientRect();
+      const width = Math.min(rect.width, window.innerWidth - 16);
+      const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+      const below = window.innerHeight - rect.bottom - 8;
+      const above = rect.top - 8;
+      const placeBelow = below >= 150 || below >= above;
+      const available = Math.max(80, Math.min(280, placeBelow ? below : above));
+      jobSuggest.style.left = `${left}px`;
+      jobSuggest.style.width = `${width}px`;
+      jobSuggest.style.maxHeight = `${available}px`;
+      jobSuggest.style.top = placeBelow ? `${rect.bottom + 4}px` : "auto";
+      jobSuggest.style.bottom = placeBelow ? "auto" : `${Math.max(8, window.innerHeight - rect.top + 4)}px`;
+    }
+    function updateJobSuggestions() {
+      const words = jobInput.value.trim().toUpperCase().split(/\s+/).filter(Boolean);
+      if (!words.length) { hideJobSuggestions(); return; }
+      jobMatches = scheduleNames.filter((name) => words.every((word) => name.toUpperCase().includes(word))).slice(0, 40);
+      jobIndex = -1;
+      if (!jobMatches.length) { hideJobSuggestions(); return; }
+      jobSuggest.innerHTML = jobMatches.map((name, index) =>
+        `<button type="button" role="option" id="jobOption${index}" data-index="${index}"><span class="name">${esc(name)}</span></button>`
+      ).join("");
+      jobSuggest.hidden = false;
+      jobInput.setAttribute("aria-expanded", "true");
+      positionJobSuggestions();
+    }
+    function chooseJob(index) {
+      if (!jobMatches[index]) return;
+      jobInput.value = jobMatches[index];
+      hideJobSuggestions();
+      jobInput.focus();
+    }
+    function highlightJob(index) {
+      jobIndex = (index + jobMatches.length) % jobMatches.length;
+      [...jobSuggest.children].forEach((button, i) => {
+        button.classList.toggle("on", i === jobIndex);
+        button.setAttribute("aria-selected", String(i === jobIndex));
+      });
+      jobInput.setAttribute("aria-activedescendant", `jobOption${jobIndex}`);
+      jobSuggest.children[jobIndex]?.scrollIntoView({ block: "nearest" });
+    }
+    jobInput.addEventListener("input", updateJobSuggestions);
+    jobInput.addEventListener("focus", updateJobSuggestions);
+    jobInput.addEventListener("keydown", (event) => {
+      if (jobSuggest.hidden) return;
+      if (event.key === "ArrowDown") { event.preventDefault(); event.stopPropagation(); highlightJob(jobIndex + 1); }
+      else if (event.key === "ArrowUp") { event.preventDefault(); event.stopPropagation(); highlightJob(jobIndex < 0 ? jobMatches.length - 1 : jobIndex - 1); }
+      else if (event.key === "Enter" && jobIndex >= 0) { event.preventDefault(); event.stopPropagation(); chooseJob(jobIndex); }
+      else if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); hideJobSuggestions(); }
+    }, true);
+    jobSuggest.addEventListener("mousedown", (event) => {
+      const button = event.target.closest("button[data-index]");
+      if (!button) return;
+      event.preventDefault();
+      chooseJob(Number(button.dataset.index));
+    });
+    jobInput.addEventListener("blur", () => setTimeout(hideJobSuggestions, 120));
+    window.addEventListener("resize", () => { if (!jobSuggest.hidden) positionJobSuggestions(); });
+    document.addEventListener("scroll", () => { if (!jobSuggest.hidden) positionJobSuggestions(); }, true);
+    modal.addEventListener("click", (event) => {
+      if (!event.target.closest(".job-wrap")) hideJobSuggestions();
+    });
+
+    // Monday of the week being shown
+    function mondayOf(date) {
+      const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+      return d;
+    }
+    // schedule.html?date=2026-11-20 opens on that week (Customer Records links here after booking)
+    const linkDate = (new URLSearchParams(location.search).get("date") || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    let monday = mondayOf(linkDate ? new Date(+linkDate[1], linkDate[2] - 1, +linkDate[3]) : new Date());
+
+    const weekDays = () => DAY_NAMES.map((_, i) => {
+      const d = new Date(monday);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+
+    // ---------- One booking as a line, like the paper schedule ----------
+    function line(e) {
+      const status = { cancel: "CANCEL", reschedule: "RESCHEDULE" }[e.status];
+      const parts = [e.client, e.job, e.location].filter(Boolean).map(esc).join(" - ");
+      return `${e.status === "done" ? '<b class="ok">✓</b>' : ""}${parts}`
+        + (e.team ? ` (${esc(e.team)})` : "")
+        + (e.status === "tentative" ? " - TENTATIVE" : "")
+        + (status ? ` <b class="red">(${status})</b>` : "")
+        + (e.paid ? ' <b class="red">(PAID)</b>' : "")
+        + (e.note ? ` <small>${esc(e.note)}</small>` : "")
+        + (/^https:\/\/www\.google\.com\/maps\?q=-?\d+(\.\d+)?,-?\d+(\.\d+)?$/.test(String(e.pin || ""))
+          ? ` <a class="sc-pin" href="${e.pin}" target="_blank" rel="noopener" title="Open the customer's exact location pin in Google Maps"><i class="fas fa-map-marker-alt"></i> PIN</a>` : "");
+    }
+
+    // ---------- Draw the week ----------
+    function render() {
+      const days = weekDays();
+      const data = load();
+      const fmt = (d, o) => d.toLocaleDateString("en-US", o);
+      const first = days[0], last = days[days.length - 1];
+      $("#title").textContent = "WEEKLY SCHEDULE " + fmt(first, { month: "long" }).toUpperCase() + " " + first.getDate() + "–"
+        + (first.getMonth() === last.getMonth() ? "" : fmt(last, { month: "long" }).toUpperCase() + " ") + last.getDate() + ", " + last.getFullYear();
+
+      const today = iso(new Date());
+      $("#days").innerHTML = days.map((d, i) => `
+        <th class="sc-day d${i}${iso(d) === today ? " today" : ""}">${DAY_NAMES[i]}<small>${fmt(d, { month: "long", day: "numeric", year: "numeric" })}</small></th>`).join("");
+
+      let html = "";
+      SECTIONS.forEach((sec) => {
+        html += `<tr class="sc-band">${days.map(() => `<td>${sec.label}</td>`).join("")}</tr>`;
+        // Show the 4 slots, the usual extra rows, and more if a day has extra bookings
+        const used = days.map((d) => Object.keys(data).filter((k) => k.startsWith(iso(d) + "|" + sec.id + "|")).map((k) => +k.split("|")[2]));
+        const rowsNeeded = Math.max(SLOTS + sec.extra, ...used.flat().map((n) => n + 2));
+        for (let slot = 0; slot < rowsNeeded; slot++) {
+          html += `<tr class="${slot >= SLOTS && sec.extra ? "sc-extra" : ""}">${days.map((d, i) => {
+            const key = `${iso(d)}|${sec.id}|${slot}`;
+            const e = data[key];
+            return `<td class="sc-cell d${i}${e ? "" : " empty"}${e && e.status === "cancel" ? " cancelled" : ""}" data-key="${key}">${e ? line(e) : ""}</td>`;
+          }).join("")}</tr>`;
+        }
+      });
+      $("#rows").innerHTML = html;
+    }
+
+    // ---------- Book / edit popup ----------
+    function openSlot(key) {
+      editKey = key;
+      const [date, secId, slot] = key.split("|");
+      const sec = SECTIONS.find((s) => s.id === secId);
+      const e = load()[key];
+      form.reset();
+      if (e) Object.keys(e).forEach((k) => { if (form[k]) form[k].value = e[k]; });
+      $("#mTitle").textContent = e ? "Edit booking" : "Book slot";
+      $("#mDelete").hidden = !e;
+      const day = new Date(date + "T00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+      $("#mSlot").textContent = `${day} · ${sec.label.replace(/\s+/g, " ")} · slot ${+slot + 1}${+slot >= SLOTS ? " (extra)" : ""}`;
+
+      // Team suggestions: staff names plus teams already used
+      const teams = new Set([
+        ...JSON.parse(localStorage.getItem(STAFF_KEY) || "[]").map((s) => s.name),
+        ...Object.values(load()).map((x) => x.team),
+      ].filter(Boolean));
+      $("#teams").innerHTML = [...teams].map((t) => `<option value="${esc(t)}">`).join("");
+
+      modal.hidden = false;
+      form.client.focus();
+    }
+    const closeModal = () => (modal.hidden = true);
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const entry = Object.fromEntries(new FormData(form));
+      Object.keys(entry).forEach((k) => (entry[k] = String(entry[k]).trim()));
+      const data = load();
+      const before = data[editKey];
+      data[editKey] = entry;
+      store(data);
+      // Cancel here → that customer's Daily Schedule rows that day too (and back), schedule-sync.js
+      const wasCancel = !!(before && before.status === "cancel"), isCancel = entry.status === "cancel";
+      if (wasCancel !== isCancel && typeof ScheduleSync !== "undefined") ScheduleSync.fromWeekly(editKey.split("|")[0], entry.client, isCancel);
+      closeModal();
+      render();
+    });
+
+    $("#mDelete").onclick = () => {
+      if (!confirm("Clear this slot?")) return;
+      const data = load();
+      delete data[editKey];
+      store(data);
+      closeModal();
+      render();
+    };
+
+    $("#rows").addEventListener("click", (e) => {
+      if (e.target.closest("a.sc-pin")) return;   // the map pin opens Google Maps, not the editor
+      const cell = e.target.closest("[data-key]");
+      if (cell) openSlot(cell.dataset.key);
+    });
+
+    // ---------- Week buttons ----------
+    const moveWeek = (n) => { monday.setDate(monday.getDate() + 7 * n); render(); };
+    $("#prevBtn").onclick = () => moveWeek(-1);
+    $("#nextBtn").onclick = () => moveWeek(1);
+    $("#todayBtn").onclick = () => { monday = mondayOf(new Date()); render(); };
+
+    $("#mClose").onclick = closeModal;
+    $("#mCancel").onclick = closeModal;
+    modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+    // Refresh when another tab changes the schedule
+    window.addEventListener("storage", (e) => { if (e.key === SCHEDULE_KEY) render(); });
+
+    // ---------- From Customer Records: book the customer in a slot ----------
+    // A bar shows who is being booked; clicking an empty slot opens it with their details filled in
+    CustomerHandoff.take("weekly").then((c) => {
+      if (!c) return;
+      let pending = true;
+      const bar = CustomerHandoff.banner(c, "Click an empty slot to fill in their name and unit automatically.");
+      bar.onCancel = () => (pending = false);
+      $("#rows").addEventListener("click", (e) => {
+        const cell = e.target.closest("[data-key]");
+        if (!pending || !cell || load()[cell.dataset.key]) return;   // only empty slots
+        form.client.value = c.name;
+        form.job.value = c.unit || "";
+      });
+      form.addEventListener("submit", () => {
+        if (!pending || form.client.value.trim() !== c.name) return;
+        pending = false;
+        bar.done("Booked. You can click another slot to book someone else as usual.");
+      });
+    });
+
+    render();
+  </script>
+</body>
+</html>

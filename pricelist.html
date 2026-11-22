@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Price List</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="pricelist.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+</head>
+<body class="app">
+
+  <!-- SECURITY GUARD -->
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) {
+      window.location.href = "index.html";
+    } else if (sessionStorage.getItem("aircon_role") !== "Developer") {
+      window.location.replace("dashboard.html");   // Price List page is for Developers only
+    }
+  </script>
+
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="side-brand">
+      <img src="AIRCON.png" alt="Logo">
+      <span>AIRCON G.O.D</span>
+    </div>
+
+    <nav aria-label="Main menu"><!-- filled in by sidebar.js --></nav>
+
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="content">
+
+    <div class="page-header">
+      <div>
+        <h1>Price List</h1>
+        <p class="subtitle">SRP of aircon units, materials and services.</p>
+      </div>
+      <div class="pl-tools">
+        <div class="pl-search">
+          <i class="fas fa-search"></i>
+          <input type="text" id="search" placeholder="Search unit or material...">
+        </div>
+        <button type="button" id="editPrices" class="pl-action"><i class="fas fa-pen"></i> Edit prices</button>
+        <button type="button" id="savePrices" class="pl-action pl-save" hidden><i class="fas fa-cloud-upload-alt"></i> Save changes</button>
+        <button type="button" id="cancelPrices" class="pl-action" hidden>Cancel</button>
+      </div>
+    </div>
+
+    <div class="pl-wrap">
+      <table class="pl-sheet">
+        <thead>
+          <tr>
+            <th class="pl-name">UNIT/MATERIAL</th>
+            <th class="pl-qty">QTY</th>
+            <th class="pl-srp">SRP</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <script>
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = "index.html";
+    }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+  <script src="pricelist.js?v=4"></script>
+
+  <script>
+    const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const money = (n) => Number(n).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const isDeveloper = () => String(sessionStorage.getItem("aircon_role") || "").trim().toLowerCase() === "developer";
+    let editing = false;
+    let originalPrices = null;
+
+    function setEditing(value) {
+      editing = value;
+      document.getElementById("editPrices").hidden = value || !isDeveloper();
+      document.getElementById("savePrices").hidden = !value;
+      document.getElementById("cancelPrices").hidden = !value;
+      render();
+    }
+
+    function render() {
+      const q = document.getElementById("search").value.trim().toLowerCase();
+      let rowIndex = 0;
+      const html = PRICE_SHEET.flatMap((section) =>
+        section.rows
+          .map((row) => ({ row, index: rowIndex++ }))
+          .filter(({ row: [name] }) => !q || name.toLowerCase().includes(q))
+          .map(({ row: [name, qty, srp], index }) => `
+            <tr class="pl-${section.color}">
+              <td class="pl-name">${editing ? `<input class="pl-cell pl-text" aria-label="Item name" data-row="${index}" data-field="0" value="${esc(name)}">` : esc(name)}</td>
+              <td class="pl-qty">${editing ? `<input class="pl-cell pl-qty-input" aria-label="Quantity" data-row="${index}" data-field="1" value="${esc(qty)}">` : esc(qty)}</td>
+              <td class="pl-srp">${editing ? `<input class="pl-cell pl-price-input" aria-label="SRP" inputmode="decimal" data-row="${index}" data-field="2" value="${esc(srp)}">` : money(srp)}</td>
+            </tr>`)
+      ).join("");
+      document.getElementById("rows").innerHTML =
+        html || `<tr><td colspan="3" class="pl-empty">Nothing matches your search.</td></tr>`;
+    }
+
+    function setRowValue(input) {
+      let i = Number(input.dataset.row);
+      for (const section of PRICE_SHEET) {
+        if (i < section.rows.length) {
+          const field = Number(input.dataset.field);
+          section.rows[i][field] = field === 2 ? Number(input.value.replace(/,/g, "")) : input.value;
+          return;
+        }
+        i -= section.rows.length;
+      }
+    }
+
+    document.getElementById("editPrices").hidden = !isDeveloper();
+    document.getElementById("editPrices").addEventListener("click", () => {
+      if (!isDeveloper()) return;
+      originalPrices = JSON.stringify(PRICE_SHEET);
+      setEditing(true);
+    });
+    document.getElementById("rows").addEventListener("input", (event) => {
+      if (event.target.matches(".pl-cell")) setRowValue(event.target);
+    });
+    document.getElementById("savePrices").addEventListener("click", async () => {
+      if (!isDeveloper() || !editing) return;
+      const prices = PRICE_SHEET.flatMap((section) => section.rows);
+      if (prices.some(([, , price]) => !Number.isFinite(price) || price < 0)) {
+        alert("Enter a valid price of 0 or more for every item.");
+        return;
+      }
+      await (window.cloudReady || Promise.resolve());
+      localStorage.setItem("aircon_prices", JSON.stringify(PRICE_SHEET));
+      const error = typeof window.cloudSaveNow === "function" ? await window.cloudSaveNow("aircon_prices") : "Online sync is unavailable.";
+      if (error) {
+        alert("Prices were saved on this device, but not online: " + error + "\nPlease try Save changes again when connected.");
+        return;
+      }
+      originalPrices = null;
+      setEditing(false);
+    });
+    document.getElementById("cancelPrices").addEventListener("click", () => {
+      if (originalPrices) PRICE_SHEET.splice(0, PRICE_SHEET.length, ...JSON.parse(originalPrices));
+      originalPrices = null;
+      setEditing(false);
+    });
+    document.getElementById("search").addEventListener("input", render);
+    render();
+  </script>
+</body>
+</html>

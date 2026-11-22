@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Audit Log</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="dashboard.css?v=15">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+  <style>
+    /* Audit Log page only: everything starts with al- */
+
+    /* ---------- Filters ---------- */
+    .al-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+    .al-filters label { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--db-mut); }
+    .al-filters input, .al-filters select { height: 38px; padding: 0 12px; border: 1px solid var(--db-line); border-radius: 10px; background: #fff; color: var(--db-ink); font: inherit; font-size: 13.5px; min-width: 130px; }
+    .al-filters input:focus, .al-filters select:focus { outline: 2px solid var(--gold); outline-offset: 1px; border-color: var(--gold); }
+    .al-filters #alSearch { min-width: 240px; }
+    .al-actions { display: flex; gap: 8px; margin-left: auto; }
+    .al-btn { height: 38px; padding: 0 14px; border: 1px solid var(--db-line); border-radius: 10px; background: #fff; color: var(--navy); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .al-btn:hover { border-color: var(--navy); }
+    .al-btn.pri { background: linear-gradient(135deg, var(--navy), var(--navy-2)); border-color: var(--navy); color: #fff; }
+    .al-btn.pri i { color: var(--gold); }
+    .al-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .al-btn.al-tog { display: none; }
+    .al-quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+    .al-quick button { border: 1px solid var(--db-line); background: #fff; color: var(--db-ink); border-radius: 99px; padding: 6px 14px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+    .al-quick button:hover { border-color: var(--navy); }
+    .al-quick button.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+    /* ---------- Summary cards ---------- */
+    .al-kpis { margin-bottom: 16px; }
+    .al-kpis .db-kpi { cursor: default; }
+    .al-kpis .db-kpi:hover { transform: none; box-shadow: 0 1px 2px rgba(0, 0, 0, .03); }
+
+    /* ---------- Timeline, grouped by day ---------- */
+    .al-day { margin-bottom: 18px; }
+    .al-day h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; font-size: 12.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--navy); }
+    .al-day h3::after { content: ""; flex: 1; height: 1px; background: var(--db-line); }
+    .al-day h3 span { padding: 2px 9px; border-radius: 99px; background: var(--gray-bg); color: var(--db-mut); font-size: 11px; letter-spacing: 0; text-transform: none; }
+    .al-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--db-line); border-radius: 14px; background: #fff; overflow: hidden; }
+    .al-ev { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--db-line); }
+    .al-ev:last-child { border-bottom: 0; }
+    .al-ev:hover { background: #fafbfc; }
+    .al-av { position: relative; display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: var(--c, var(--navy)); color: #fff; font-size: 16px; font-weight: 800; }
+    .al-av i { position: absolute; right: -3px; bottom: -3px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #fff; background: var(--gray-bg); color: var(--db-ink); font-size: 9px; }
+    .al-av i.login { background: var(--gold); color: #fff; }
+    .al-av i.view { background: var(--info); color: #fff; }
+    .al-av i.create { background: var(--good); color: #fff; }
+    .al-av i.update, .al-av i.restore { background: var(--warn); color: #fff; }
+    .al-av i.delete { background: var(--bad); color: #fff; }
+    .al-line { margin: 0; font-size: 14px; line-height: 1.45; color: var(--db-ink); word-break: break-word; }
+    .al-line b { color: var(--navy); }
+    .al-verb { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 12px; font-weight: 700; }
+    .al-verb.login { background: var(--gold-soft); color: #8a6512; }
+    .al-verb.view { background: var(--info-bg); color: var(--info); }
+    .al-verb.create { background: var(--good-bg); color: var(--good); }
+    .al-verb.update, .al-verb.restore { background: var(--warn-bg); color: var(--warn); }
+    .al-verb.delete { background: var(--bad-bg); color: var(--bad); }
+    .al-meta { display: block; margin-top: 2px; color: var(--db-mut); font-size: 12px; }
+    .al-rec { font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: var(--db-mut); background: var(--gray-bg); padding: 1px 6px; border-radius: 6px; word-break: break-all; }
+    .al-time { text-align: right; white-space: nowrap; color: var(--db-mut); font-size: 12.5px; font-weight: 600; }
+    .al-more { display: flex; align-items: center; gap: 2px; white-space: nowrap; margin: 4px 0 0 auto; border: 0; background: none; color: var(--navy); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; padding: 3px 6px; border-radius: 6px; }
+    .al-more:hover { background: var(--gray-bg); }
+    .al-more i { margin-left: 3px; font-size: 10px; transition: transform .15s; }
+    .al-more[aria-expanded="true"] i { transform: rotate(180deg); }
+    .al-detail { grid-column: 2 / -1; margin: 6px 0 2px; padding: 12px 14px; border: 1px solid var(--db-line); border-left: 3px solid var(--gold); border-radius: 10px; background: #fafbfc; }
+    .al-chg { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; margin: 0 0 6px; font-size: 13px; }
+    .al-chg:last-child { margin-bottom: 0; }
+    .al-chg b { min-width: 120px; }
+    .al-chg s { text-decoration: none; background: var(--bad-bg); color: var(--bad); padding: 1px 6px; border-radius: 4px; word-break: break-word; }
+    .al-chg ins { text-decoration: none; background: var(--good-bg); color: var(--good); padding: 1px 6px; border-radius: 4px; word-break: break-word; }
+    .al-detail pre { margin: 0; white-space: pre-wrap; word-break: break-word; max-height: 360px; overflow: auto; font-size: 12.5px; color: var(--db-mut); }
+    .al-pager { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; color: var(--db-mut); font-size: 13px; }
+    .al-pager span:last-child { display: flex; gap: 8px; }
+    .al-empty { padding: 48px 10px; text-align: center; color: var(--db-mut); border: 1px dashed var(--db-line); border-radius: 14px; background: #fff; }
+    .al-empty i { display: block; margin-bottom: 8px; font-size: 26px; color: var(--navy); opacity: .5; }
+    .al-err { color: var(--bad); font-size: 13px; font-weight: 600; margin: 10px 0 0; min-height: 1em; }
+    .al-denied { text-align: center; padding: 48px 16px; color: var(--db-mut); }
+    .al-denied i { font-size: 28px; color: var(--navy); margin-bottom: 10px; }
+
+    /* ---------- Phones ---------- */
+    @media (max-width: 640px) {
+      .al-kpis, .db-kpis.al-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .al-filters { gap: 10px; }
+      .al-filters label, .al-filters input, .al-filters select, .al-filters #alSearch { width: 100%; min-width: 0; }
+      .al-filters:not(.open) label:not(.al-s) { display: none; }   /* only the search until "Filters" is tapped */
+      .al-actions { margin-left: 0; width: 100%; }
+      .al-actions .al-btn { flex: 1; justify-content: center; }
+      .al-btn.al-tog { display: inline-flex; }
+      .al-filters:not(.open) #alApply { display: none; }
+      .al-quick { flex-wrap: nowrap; overflow-x: auto; margin-right: -18px; padding-right: 18px; scrollbar-width: none; }
+      .al-quick button { flex: none; }
+      .al-ev { grid-template-columns: 38px minmax(0, 1fr); padding: 12px; }
+      .al-av { width: 38px; height: 38px; font-size: 15px; }
+      .al-time { grid-column: 2; grid-row: 2; text-align: left; font-size: 12px; }
+      .al-more { margin: 2px 0 0; grid-column: 2; justify-self: start; }
+      .al-detail { grid-column: 1 / -1; }
+      .al-chg b { min-width: 0; width: 100%; }
+    }
+  </style>
+</head>
+<body class="app dashboard">
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) location.href = "index.html";
+    // AUDIT LOG: Owner / Head Supervisor and Developer only (sidebar.js hides the link for the rest;
+    // the database decides for real with is_audit_viewer)
+    else if (!Roles.me().seesSales) { document.documentElement.style.visibility = "hidden"; location.replace("dashboard.html"); }
+  </script>
+
+  <aside class="side">
+    <div class="side-brand"><img src="AIRCON.png" alt="Logo"><span>AIRCON G.O.D</span></div>
+    <nav aria-label="Main menu"></nav>
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <main class="content">
+    <div class="db-head">
+      <div>
+        <h1>Audit Log</h1>
+        <p>Who signed in, which pages they opened, and every record added, changed or deleted.</p>
+      </div>
+    </div>
+
+    <section class="db-card" id="alDenied" hidden>
+      <div class="al-denied"><i class="fas fa-lock"></i><p id="alDeniedText">Only Owners and Developers can view the audit log.</p></div>
+    </section>
+
+    <div id="alApp" hidden>
+      <!-- Today at a glance -->
+      <section class="db-kpis al-kpis" aria-label="Today at a glance">
+        <div class="db-kpi" style="--accent:#d5a52a;--accent-bg:#fff6dc">
+          <div class="db-kpi-top"><span class="db-kpi-ico"><i class="fas fa-right-to-bracket"></i></span></div>
+          <b id="alSLogin">–</b><small>Logins today</small>
+        </div>
+        <div class="db-kpi" style="--accent:#1d4ed8;--accent-bg:#e8efff">
+          <div class="db-kpi-top"><span class="db-kpi-ico"><i class="fas fa-eye"></i></span></div>
+          <b id="alSView">–</b><small>Pages opened today</small>
+        </div>
+        <div class="db-kpi" style="--accent:#b45309;--accent-bg:#fff4e0">
+          <div class="db-kpi-top"><span class="db-kpi-ico"><i class="fas fa-pen"></i></span></div>
+          <b id="alSChange">–</b><small>Records changed today</small>
+        </div>
+        <div class="db-kpi" style="--accent:#15803d;--accent-bg:#e8f7ee">
+          <div class="db-kpi-top"><span class="db-kpi-ico"><i class="fas fa-users"></i></span></div>
+          <b id="alSPeople">–</b><small>People active today</small>
+        </div>
+      </section>
+
+      <section class="db-card" style="margin-bottom:18px">
+        <div class="al-filters" id="alFilters">
+          <label class="al-s">Search <input id="alSearch" placeholder="Person, page or record…" autocomplete="off"></label>
+          <label>Action
+            <select id="alAction">
+              <option value="">All actions</option>
+              <option value="login">Login</option>
+              <option value="view">Page view</option>
+              <option value="create">Create</option>
+              <option value="update">Update</option>
+              <option value="delete">Delete</option>
+              <option value="restore">Restore</option>
+            </select>
+          </label>
+          <label>Where
+            <select id="alTable"><option value="">Everywhere</option></select>
+          </label>
+          <label>From <input id="alFrom" type="date"></label>
+          <label>To <input id="alTo" type="date"></label>
+          <div class="al-actions">
+            <button type="button" class="al-btn al-tog" id="alTog" aria-expanded="false"><i class="fas fa-sliders"></i> Filters</button>
+            <button type="button" class="al-btn pri" id="alApply"><i class="fas fa-filter"></i> Apply</button>
+            <button type="button" class="al-btn" id="alCsv"><i class="fas fa-download"></i> CSV</button>
+          </div>
+        </div>
+        <div class="al-quick" id="alQuick" role="group" aria-label="Quick filters">
+          <button type="button" data-q="" class="on">Everything</button>
+          <button type="button" data-q="login">Logins</button>
+          <button type="button" data-q="view">Page views</button>
+          <button type="button" data-q="changes">Record changes</button>
+          <button type="button" data-q="today">Today</button>
+        </div>
+      </section>
+
+      <div id="alFeed"></div>
+      <div class="al-empty" id="alEmpty" hidden><i class="fas fa-clipboard-list"></i>No entries match these filters.</div>
+      <div class="al-pager">
+        <span id="alCount"></span>
+        <span>
+          <button type="button" class="al-btn" id="alPrev"><i class="fas fa-chevron-left"></i> Previous</button>
+          <button type="button" class="al-btn" id="alNext">Next <i class="fas fa-chevron-right"></i></button>
+        </span>
+      </div>
+      <p class="al-err" id="alErr" role="alert"></p>
+    </div>
+  </main>
+
+  <script>
+    function logout() { sessionStorage.clear(); window.location.href = "index.html"; }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+  <script>
+  (function auditLog() {
+    const SIZE = 50;
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const TABLES = {
+      page: "Website pages", auth: "Logins",
+      job_orders: "Job orders", cash_vouchers: "Cash vouchers", stock_units: "Stock units", stock_items: "Stock items",
+      serial_numbers: "Serial numbers", daily_schedule: "Daily schedule", weekly_schedule: "Weekly schedule",
+      cleaning_requests: "Cleaning requests", survey_requests: "Survey requests", app_data: "Staff & shared lists",
+    };
+    $("alTable").insertAdjacentHTML("beforeend", Object.entries(TABLES).map(([v, n]) => `<option value="${v}">${esc(n)}</option>`).join(""));
+
+    // Page file → its name in the sidebar (e.g. "dashboard.html" → "Dashboard")
+    const PAGES = { "index.html": "Login page", "auditlog.html": "Audit Log" };
+    document.querySelectorAll(".side nav button").forEach((b) => {
+      const m = (b.getAttribute("onclick") || "").match(/'([^']+\.html)'/);
+      const file = m ? m[1] : (b.classList.contains("on") ? location.pathname.split("/").pop() : "");
+      if (file) PAGES[file.toLowerCase()] = b.title || b.textContent.trim();
+    });
+    const pageName = (f) => PAGES[String(f || "").toLowerCase()] || f;
+
+    let page = 0, rows = [], total = 0, quick = "";
+    const db = () => window.cloud;
+
+    function query(count) {
+      let q = db().from("audit_log").select("*", count ? { count: "exact" } : undefined)
+        .order("at", { ascending: false }).order("id", { ascending: false });
+      const action = $("alAction").value;
+      if (action) q = q.eq("action", action);
+      else if (quick === "changes") q = q.not("action", "in", "(login,view)");
+      if ($("alTable").value) q = q.eq("table_name", $("alTable").value);
+      if ($("alFrom").value) q = q.gte("at", new Date($("alFrom").value + "T00:00:00").toISOString());
+      if ($("alTo").value) q = q.lte("at", new Date($("alTo").value + "T23:59:59.999").toISOString());
+      const s = $("alSearch").value.trim().replace(/[,()%*\\]/g, "");
+      if (s) q = q.or(`actor.ilike.%${s}%,record_id.ilike.%${s}%`);
+      return q;
+    }
+
+    // ---------- Today at a glance (not affected by the filters) ----------
+    async function stats() {
+      const start = new Date(); start.setHours(0, 0, 0, 0);
+      const since = start.toISOString();
+      const count = (extra) => extra(db().from("audit_log").select("id", { count: "exact", head: true }).gte("at", since));
+      const [lg, vw, ch, who] = await Promise.all([
+        count((q) => q.eq("action", "login")),
+        count((q) => q.eq("action", "view")),
+        count((q) => q.not("action", "in", "(login,view)")),
+        db().from("audit_log").select("actor").gte("at", since).limit(5000),
+      ]);
+      $("alSLogin").textContent = lg.error ? "–" : (lg.count || 0).toLocaleString();
+      $("alSView").textContent = vw.error ? "–" : (vw.count || 0).toLocaleString();
+      $("alSChange").textContent = ch.error ? "–" : (ch.count || 0).toLocaleString();
+      $("alSPeople").textContent = who.error ? "–" : new Set((who.data || []).map((r) => r.actor).filter(Boolean)).size.toLocaleString();
+    }
+
+    // ---------- Timeline ----------
+    const AV = ["#0b2a63", "#7c3aed", "#0f766e", "#b45309", "#be185d", "#1d4ed8", "#15803d", "#9a3412"];
+    const colorOf = (name) => { let h = 0; for (const c of String(name || "?")) h = (h * 31 + c.charCodeAt(0)) >>> 0; return AV[h % AV.length]; };
+    const ICON = { login: "fa-right-to-bracket", view: "fa-eye", create: "fa-plus", update: "fa-pen", delete: "fa-trash", restore: "fa-rotate-left" };
+    const VERB = { login: "signed in", view: "opened", create: "added", update: "changed", delete: "deleted", restore: "restored" };
+    const dayKey = (d) => d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
+    function dayTitle(d) {
+      const now = new Date(), y = new Date(now); y.setDate(now.getDate() - 1);
+      if (dayKey(d) === dayKey(now)) return "Today";
+      if (dayKey(d) === dayKey(y)) return "Yesterday";
+      return d.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric", year: d.getFullYear() === now.getFullYear() ? undefined : "numeric" });
+    }
+    const hasMore = (r) => r.details && !["login", "view"].includes(r.action);
+    function sentence(r) {
+      const who = `<b>${esc(r.actor || "Someone")}</b>`;
+      const verb = `<span class="al-verb ${esc(r.action)}">${esc(VERB[r.action] || r.action)}</span>`;
+      if (r.action === "login") return `${who} ${verb}`;
+      if (r.table_name === "page") return `${who} ${verb} <b>${esc(pageName(r.record_id))}</b>`;
+      const where = TABLES[r.table_name] || r.table_name || "";
+      return `${who} ${verb} <span class="al-rec">${esc(r.record_id)}</span>${where ? ` in ${esc(where)}` : ""}`;
+    }
+    function entry(r, i) {
+      const d = new Date(r.at);
+      const meta = r.action === "view" && r.table_name === "page" ? esc(r.record_id)
+        : r.action === "login" ? "Logged in to the website" : "";
+      return `<li class="al-ev" data-i="${i}">
+        <span class="al-av" style="--c:${colorOf(r.actor)}">${esc(String(r.actor || "?").trim().charAt(0).toUpperCase() || "?")}<i class="fas ${ICON[r.action] || "fa-circle"} ${esc(r.action)}"></i></span>
+        <div><p class="al-line">${sentence(r)}</p>${meta ? `<small class="al-meta">${meta}</small>` : ""}</div>
+        <div><span class="al-time" title="${esc(d.toLocaleString())}">${esc(d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }))}</span>
+          ${hasMore(r) ? `<button type="button" class="al-more" data-i="${i}" aria-expanded="false">Details <i class="fas fa-chevron-down"></i></button>` : ""}</div>
+      </li>`;
+    }
+    function draw() {
+      const groups = [];
+      rows.forEach((r, i) => {
+        const d = new Date(r.at), k = dayKey(d);
+        let g = groups[groups.length - 1];
+        if (!g || g.k !== k) groups.push((g = { k, d, items: [] }));
+        g.items.push([r, i]);
+      });
+      $("alFeed").innerHTML = groups.map((g) => `<section class="al-day">
+        <h3>${esc(dayTitle(g.d))} <span>${g.items.length} entr${g.items.length === 1 ? "y" : "ies"}</span></h3>
+        <ul class="al-list">${g.items.map(([r, i]) => entry(r, i)).join("")}</ul>
+      </section>`).join("");
+    }
+
+    async function load() {
+      $("alErr").textContent = "";
+      const { data, error, count } = await query(true).range(page * SIZE, page * SIZE + SIZE - 1);
+      if (error) { $("alErr").textContent = "Couldn't load the log: " + error.message; return; }
+      rows = data || []; total = count || 0;
+      draw();
+      $("alEmpty").hidden = rows.length > 0;
+      const from = total ? page * SIZE + 1 : 0;
+      $("alCount").textContent = `Showing ${from}–${page * SIZE + rows.length} of ${total} entries`;
+      $("alPrev").disabled = page === 0;
+      $("alNext").disabled = (page + 1) * SIZE >= total;
+    }
+
+    // Details: what changed (before → after); for a new or deleted record, its fields
+    const show = (v) => esc(v === undefined ? "empty" : JSON.stringify(v));
+    const isObj = (v) => v && typeof v === "object" && !Array.isArray(v);
+    function details(r) {
+      const d = r.details || {}, bf = d.before, af = d.after;
+      if (isObj(bf) && isObj(af)) {
+        const keys = [...new Set([...Object.keys(bf), ...Object.keys(af)])].filter((k) => JSON.stringify(bf[k]) !== JSON.stringify(af[k]));
+        if (!keys.length) return `<p style="margin:0;color:var(--db-mut)">Saved with no visible changes.</p>`;
+        return keys.map((k) => `<div class="al-chg"><b>${esc(k)}</b> <s>${show(bf[k])}</s> → <ins>${show(af[k])}</ins></div>`).join("");
+      }
+      const one = isObj(af) ? af : isObj(bf) ? bf : null;
+      if (one) {
+        const cls = isObj(af) ? "ins" : "s";
+        return Object.keys(one).map((k) => `<div class="al-chg"><b>${esc(k)}</b> <${cls}>${show(one[k])}</${cls}></div>`).join("");
+      }
+      return `<pre>${esc(JSON.stringify(d, null, 2))}</pre>`;
+    }
+    $("alFeed").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-i]"); if (!b) return;
+      const li = b.closest("li"), open = li.querySelector(".al-detail");
+      if (open) { open.remove(); b.setAttribute("aria-expanded", "false"); return; }
+      li.insertAdjacentHTML("beforeend", `<div class="al-detail">${details(rows[b.dataset.i])}</div>`);
+      b.setAttribute("aria-expanded", "true");
+    });
+
+    const apply = () => { page = 0; load(); stats(); };
+    $("alApply").onclick = apply;
+    $("alSearch").addEventListener("keydown", (e) => { if (e.key === "Enter") apply(); });
+    ["alAction", "alTable", "alFrom", "alTo"].forEach((id) => $(id).addEventListener("change", () => {
+      quick = ""; document.querySelectorAll("#alQuick button").forEach((x) => x.classList.remove("on"));
+      apply();
+    }));
+    $("alPrev").onclick = () => { page--; load(); };
+    $("alNext").onclick = () => { page++; load(); };
+    $("alTog").onclick = () => { const o = $("alFilters").classList.toggle("open"); $("alTog").setAttribute("aria-expanded", o); };
+
+    // Quick filters
+    const today = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+    $("alQuick").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-q]"); if (!b) return;
+      quick = b.dataset.q;
+      document.querySelectorAll("#alQuick button").forEach((x) => x.classList.toggle("on", x === b));
+      $("alAction").value = quick === "login" || quick === "view" ? quick : "";
+      $("alTable").value = "";
+      $("alFrom").value = $("alTo").value = quick === "today" ? today() : "";
+      if (!quick) $("alSearch").value = "";
+      apply();
+    });
+
+    $("alCsv").onclick = async () => {
+      $("alCsv").disabled = true;
+      let all = [];
+      for (let p = 0; p < 10; p++) {
+        const { data, error } = await query(false).range(p * 1000, p * 1000 + 999);
+        if (error) { $("alErr").textContent = "Export failed: " + error.message; break; }
+        all = all.concat(data || []);
+        if (!data || data.length < 1000) break;
+      }
+      const cell = (v) => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+      const csv = "When,Who,Action,Where,Record,Details\n" + all.map((r) =>
+        [r.at, r.actor, r.action, TABLES[r.table_name] || r.table_name, r.record_id, r.details ? JSON.stringify(r.details) : ""].map(cell).join(",")).join("\n");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv" }));
+      a.download = "audit-log-" + today() + ".csv";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      $("alCsv").disabled = false;
+    };
+
+    // Start once the database login (cloud.js) is ready; the database decides who may see the log
+    (window.cloudReady || Promise.resolve()).then(async () => {
+      if (!db()) { $("alDeniedText").textContent = "Can't reach the online database. Check the internet and refresh."; $("alDenied").hidden = false; return; }
+      const { data: ok, error } = await db().rpc("is_audit_viewer");
+      if (error || ok !== true) {
+        if (error) $("alDeniedText").textContent = "Couldn't check access: " + error.message;
+        $("alDenied").hidden = false;
+        return;
+      }
+      $("alApp").hidden = false;
+      load();
+      stats();
+    });
+  })();
+  </script>
+</body>
+</html>

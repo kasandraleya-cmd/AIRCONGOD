@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRCON G.O.D · Payroll</title>
+    <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+    <link rel="icon" type="image/png" href="favicon-32.png?v=2" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="inventory.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="loading.js"></script>
+  <script src="roles.js?v=11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="cloud.js?v=16"></script>
+  <style>
+    .pr { --navy: #071d49; --navy-2: #0b2a63; --gold: #d5a52a; --gold-2: #f4d477; --gold-soft: #fff6dc; }
+    .pr-bar { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-bottom: 16px; padding: 14px 16px; border: 1px solid var(--line);
+      border-radius: 14px; background: #fff; }
+    .pr-bar label { display: grid; gap: 5px; color: var(--mut); font-size: 12px; font-weight: 700; }
+    .pr-bar input, .pr-bar select { height: 40px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font: inherit; font-size: 14px; }
+    .pr-bar .grow { flex: 1; }
+    .pr-status { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 99px; font-size: 12.5px; font-weight: 700; }
+    .pr-status.draft { color: #b45309; background: #fff4e0; }
+    .pr-status.final { color: #15803d; background: #e8f7ee; }
+    .pr-status.new { color: var(--mut); background: #eef2f4; }
+    .pr-dirty { color: #b45309; font-size: 12.5px; font-weight: 700; }
+    .inv-btn.navy { border-color: var(--navy); background: linear-gradient(135deg, var(--navy), var(--navy-2)); color: #fff; }
+    .inv-btn.navy i { color: var(--gold-2); }
+    .inv-btn:disabled { opacity: .5; cursor: default; transform: none; box-shadow: none; }
+
+    .pr-note { margin: 0 0 14px; padding: 12px 14px; border: 1px solid #f1e2b5; border-left: 4px solid var(--gold); border-radius: 0 10px 10px 0;
+      background: var(--gold-soft); color: #5c4a14; font-size: 13px; line-height: 1.5; }
+    .pr-note.bad { border-color: #f1c7c3; border-left-color: #b42318; background: #fdeceb; color: #7a1d14; }
+
+    .pr .inv-table td, .pr .inv-table th { padding: 9px 10px; }
+    .pr .inv-table th.num, .pr .inv-table td.num { text-align: right; }
+    .pr .inv-table th.grp { background: #eef2f4; }
+    .pr-in { width: 78px; height: 34px; padding: 0 8px; border: 1px solid var(--line); border-radius: 7px; background: #fff; font: inherit; font-size: 13px; text-align: right; }
+    .pr-in:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(213, 165, 42, .2); }
+    .pr-in:disabled { background: #f4f7f8; color: var(--ink); }
+    .pr-who b { display: block; }
+    .pr-who small { display: block; color: var(--mut); font-size: 11.5px; }
+    .pr-leave { display: inline-block; margin-top: 3px; padding: 1px 7px; border-radius: 99px; background: #e8efff; color: #1d4ed8; font-size: 11px; font-weight: 700; }
+    .pr-unit { display: block; color: var(--mut); font-size: 11px; }
+    .pr-net { color: var(--navy); font-weight: 800; }
+    .pr-norate { color: #b42318; font-size: 12px; font-weight: 700; }
+    .pr .inv-table tfoot td { padding: 12px 10px; border-top: 2px solid var(--navy); background: #f8fafc; font-weight: 800; }
+
+    /* Payslip */
+    .pr-modal { position: fixed; inset: 0; z-index: 9500; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(15, 23, 42, .55); }
+    .pr-modal[hidden] { display: none; }
+    .pr-modal-box { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow: auto; border-radius: 14px; background: #fff; box-shadow: 0 12px 40px rgba(0, 0, 0, .3); }
+    .pr-modal-actions { position: sticky; bottom: 0; display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); background: #fff; }
+    .slip { padding: 22px 24px; color: #111; font-size: 13px; }
+    .slip-head { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 3px solid var(--gold, #d5a52a); }
+    .slip-head i.logo { width: 46px; height: 46px; border-radius: 10px; background: #fff url("AIRCON.png") 52% 14% / 182% no-repeat; border: 1px solid #d5a52a; }
+    .slip-head b { display: block; color: #071d49; font-size: 17px; }
+    .slip-head small { color: #64767d; }
+    .slip h2 { margin: 14px 0 2px; color: #071d49; font-size: 15px; letter-spacing: .5px; }
+    .slip .who { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; margin: 10px 0 14px; }
+    .slip .who span { color: #64767d; }
+    .slip table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+    .slip th { padding: 6px 0; border-bottom: 1px solid #dfe5e8; color: #071d49; font-size: 12px; text-align: left; text-transform: uppercase; letter-spacing: .4px; }
+    .slip td { padding: 5px 0; border-bottom: 1px dashed #edf1f3; }
+    .slip td:last-child, .slip th:last-child { text-align: right; }
+    .slip .tot td { border-bottom: 0; font-weight: 800; }
+    .slip .netbox { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding: 12px 14px; border-radius: 10px; background: #071d49; color: #fff; }
+    .slip .netbox b { color: #f4d477; font-size: 20px; }
+    .slip .sign { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 34px; }
+    .slip .sign div { padding-top: 6px; border-top: 1px solid #111; font-size: 12px; text-align: center; }
+    .slip .remark { margin-top: 8px; color: #64767d; font-size: 12px; }
+    #printArea { display: none; }
+
+    /* Teams & incentive (saved in the online database, key "aircon_teams") */
+    .tm { margin-top: 22px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+    .tm-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .tm-head h3 { margin: 0; color: var(--navy); font-size: 16px; }
+    .tm-head .grow { flex: 1; }
+    .tm-rule { margin: 8px 0 14px; color: var(--mut); font-size: 12.5px; line-height: 1.55; }
+    .tm-rule input[type=number] { width: 52px; height: 28px; padding: 0 6px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+    .tm-once { display: inline-flex !important; align-items: center; gap: 6px; margin: 6px 0 0; color: var(--ink); font-weight: 700; }
+    .tm-once input { width: 16px !important; height: 16px !important; margin: 0; }
+    .tm-head .inv-btn { white-space: nowrap; }
+    .tm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+    .tm-team { padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #f8fafc; }
+    .tm-team-top { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .tm-team-top input { flex: 1; height: 34px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; font-weight: 800; color: var(--navy); }
+    .tm-row { display: grid; grid-template-columns: 1fr 86px 30px; gap: 6px; align-items: center; margin-bottom: 6px; }
+    .tm-row select, .tm-row input { height: 34px; padding: 0 8px; border: 1px solid var(--line); border-radius: 7px; background: #fff; font: inherit; font-size: 13px; min-width: 0; }
+    .tm-row input { text-align: right; }
+    .tm-x { height: 30px; border: 0; border-radius: 7px; background: none; color: #94a3b8; cursor: pointer; }
+    .tm-x:hover { background: #fdeceb; color: #b42318; }
+    .tm-total { display: flex; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); font-weight: 800; color: var(--navy); }
+    .tm-add { margin-top: 4px; padding: 6px 10px; border: 1px dashed #94a3b8; border-radius: 8px; background: #fff; font: inherit; font-size: 12.5px; cursor: pointer; }
+    .tm-msg { font-size: 12.5px; font-weight: 700; }
+    .tm-msg.good { color: #15803d; } .tm-msg.bad { color: #b42318; }
+    .tm[data-locked] input, .tm[data-locked] select { pointer-events: none; background: #f4f7f8; }
+
+    @media print {
+      @page { size: A5; margin: 8mm; }
+      body.app > *:not(#printArea) { display: none !important; }
+      #printArea { display: block !important; }
+      #printArea .slip { page-break-after: always; break-after: page; padding: 0; }
+      #printArea .slip:last-child { page-break-after: auto; break-after: auto; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+    @media screen and (max-width: 800px) {
+      .pr-bar { padding: 12px; }
+      .pr-bar .grow { display: none; }
+      .pr-bar > * { flex: 1 1 140px; }
+      .pr-in { width: 110px; height: 40px; font-size: 15px; }
+    }
+  </style>
+</head>
+<body class="app">
+
+  <script>
+    if (!sessionStorage.getItem("aircon_user")) window.location.href = "index.html";
+  </script>
+
+  <aside class="side">
+    <div class="side-brand">
+      <img src="AIRCON.png" alt="Logo">
+      <span>AIRCON G.O.D</span>
+    </div>
+    <nav aria-label="Main menu"><!-- filled in by sidebar.js --></nav>
+    <button class="out" onclick="logout()">Logout</button>
+  </aside>
+
+  <main class="content inv pr">
+    <div class="inv-header">
+      <div>
+        <h1>Payroll</h1>
+        <p>Compute pay per pay period and print payslips.</p>
+      </div>
+    </div>
+
+    <div class="pr-bar">
+      <label>Pay week <small style="font-weight:600">(Mon–Sun, payday Sunday)</small>
+        <span style="display:flex;gap:6px">
+          <button type="button" class="inv-btn light" id="weekPrev" title="Previous week" style="padding:0 12px"><i class="fas fa-chevron-left"></i></button>
+          <select id="week" style="min-width:260px"></select>
+          <button type="button" class="inv-btn light" id="weekNext" title="Next week" style="padding:0 12px"><i class="fas fa-chevron-right"></i></button>
+        </span>
+      </label>
+      <span class="pr-status new" id="status"><i class="far fa-file"></i> Not saved yet</span>
+      <span class="pr-dirty" id="dirty" hidden><i class="fas fa-circle" style="font-size:7px"></i> Unsaved changes</span>
+      <span class="grow"></span>
+      <button type="button" class="inv-btn light" id="csvBtn"><i class="fas fa-file-csv"></i> Export</button>
+      <button type="button" class="inv-btn light" id="printAllBtn"><i class="fas fa-print"></i> Print payslips</button>
+      <button type="button" class="inv-btn light" id="saveBtn"><i class="fas fa-save"></i> Save draft</button>
+      <button type="button" class="inv-btn navy" id="finalBtn"><i class="fas fa-lock"></i> Finalize</button>
+    </div>
+
+    <div id="notes"></div>
+
+    <div class="inv-stats">
+      <div class="inv-stat"><i class="fas fa-users"></i><div><b id="sCount">0</b><span>Staff paid</span></div></div>
+      <div class="inv-stat red"><i class="fas fa-minus-circle"></i><div><b id="sDed">₱0</b><span>Total deductions</span></div></div>
+      <div class="inv-stat green"><i class="fas fa-money-bill-wave"></i><div><b id="sNet">₱0</b><span>Total net pay</span></div></div>
+    </div>
+
+    <div class="inv-table-wrap">
+      <table class="inv-table">
+        <thead>
+          <tr>
+            <th>Staff</th>
+            <th class="num">Rate</th>
+            <th class="num">Days / jobs</th>
+            <th class="num">OT hours</th>
+            <th class="num">Allowance</th>
+            <th class="num" title="₱100 per day worked for installers, drivers and warehouse staff">Meal allowance</th>
+            <th class="num" title="Bonus or incentive for this pay period">Incentive</th>
+            <th class="num">Gross pay</th>
+            <th class="num grp" title="₱2 per minute late, from the Time Clock (IC card)">Late</th>
+            <th class="num grp">SSS</th>
+            <th class="num grp">PhilHealth</th>
+            <th class="num grp">Pag-IBIG</th>
+            <th class="num grp">Cash advance</th>
+            <th class="num grp">Other</th>
+            <th class="num">Net pay</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+        <tfoot id="foot"></tfoot>
+      </table>
+    </div>
+    <p class="pr-help" style="margin:10px 2px 0;color:var(--mut);font-size:12.5px;line-height:1.6">
+      <b>How pay is worked out:</b> Daily rate × days worked · Per job rate × jobs done · Pay is weekly: Monday to Sunday, paid on that Sunday ·
+      Monthly rate × 12 ÷ 52 for a week, minus absent days at monthly rate ÷ 26 ·
+      Overtime = hours × (daily rate ÷ 8) × 1.25 · Deductions are typed in as amounts.
+      Rates come from the <a href="staff.html">Staff</a> page and are saved with each period, so later rate changes don't change past payroll.
+    </p>
+
+    <!-- TEAMS & INCENTIVE: saved in the online database (key "aircon_teams") -->
+    <section class="tm" id="teams">
+      <div class="tm-head">
+        <h3><i class="fas fa-people-group"></i> Teams &amp; incentive</h3>
+        <span class="grow"></span>
+        <span class="tm-msg" id="tmMsg"></span>
+        <button type="button" class="inv-btn light" id="tmAddTeam"><i class="fas fa-plus"></i> Add team</button>
+        <button type="button" class="inv-btn navy" id="tmSave"><i class="fas fa-save"></i> Save teams</button>
+      </div>
+      <p class="tm-rule">
+        Each day, when a team reaches its <input type="number" id="tmStart" min="1" step="1"> DONE <b>unit</b> installed on the
+        <a href="dailysched.html">Daily Schedule</a>, every member on the crew gets their share below.
+        Counted <b>per unit, not per client</b> (each row's QTY): one client with 2 units = 2 units.
+        A member not on the crew that day (absent) gets nothing, and their share isn't given to anyone: each member present gets only their own share.<br>
+        <label class="tm-once"><input type="checkbox" id="tmOnce"> Pay once per day</label>
+        <span>(unticked: paid again for every unit after that)</span>
+      </p>
+      <div class="tm-grid" id="tmGrid"></div>
+    </section>
+  </main>
+
+  <!-- One payslip on screen -->
+  <div class="pr-modal" id="slipModal" hidden>
+    <div class="pr-modal-box" role="dialog" aria-modal="true" aria-label="Payslip">
+      <div id="slipView"></div>
+      <div class="pr-modal-actions">
+        <button type="button" class="inv-btn light" id="slipClose">Close</button>
+        <button type="button" class="inv-btn navy" id="slipPrint"><i class="fas fa-print"></i> Print</button>
+      </div>
+    </div>
+  </div>
+  <div id="printArea"></div>
+
+  <script>
+    function logout() { sessionStorage.clear(); window.location.href = "index.html"; }
+  </script>
+  <script src="sidebar.js?v=20"></script>
+  <script src="user.js?v=39"></script>
+  <script src="chat.js?v=10"></script>
+  <script src="incentive-teams.js?v=2"></script>
+  <script src="attendance.js?v=22"></script>
+  <script src="timeclock-lib.js?v=2"></script>
+
+  <script>
+    // ---------- Who may use this page: Developer, Owner, Human Resources ----------
+    if (!Roles.me().staffAndPay) location.replace("dashboard.html");   // roles.js
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const r2 = (n) => Math.round((+n || 0) * 100) / 100;
+    const peso = (n) => "₱" + r2(n).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const num = (v) => Math.max(0, parseFloat(v) || 0);
+    const load = (key, empty) => { try { return JSON.parse(localStorage.getItem(key)) || empty; } catch (e) { return empty; } };
+
+    const OT_RATE = 1.25;          // overtime pays 125% of the hourly rate
+    const HOURS_PER_DAY = 8;
+    const WORKDAYS_PER_MONTH = 26; // monthly rate ÷ 26 = one day (for absences and overtime)
+    const MEAL_PER_DAY = 100;      // meal allowance per day PRESENT, for EVERY employee except the Owner and the Developer
+    const mealEligible = (position) => !/owner|developer/i.test(String(position || ""));
+    const FIELDS = ["days", "ot", "allow", "mdays", "inc", "late", "sss", "ph", "pi", "ca", "other"];
+    const DEDUCTIONS = [["sss", "SSS"], ["ph", "PhilHealth"], ["pi", "Pag-IBIG"], ["ca", "Cash advance"], ["other", "Other deductions"]];
+
+    // ---------- Pay period: one WEEK, Monday to Sunday, paid on that Sunday ----------
+    // Saved as "wk-2026-11-16" (the Monday). Older half-month periods ("2026-11-1", "2026-11-2", "2026-11-M")
+    // are still listed at the bottom so they can be opened.
+    const now = new Date();
+    const dayStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+    const mondayOf = (d) => addDays(d, -((d.getDay() + 6) % 7));
+    const fmtShort = (d) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    function weekOption(mon) {
+      const sun = addDays(mon, 6);
+      return `<option value="wk-${dayStr(mon)}">Payday Sun ${fmtShort(sun)} · ${fmtShort(mon)} – ${fmtShort(sun)}, ${sun.getFullYear()}</option>`;
+    }
+    (function fillWeeks() {
+      const thisMon = mondayOf(now);
+      let html = "";
+      for (let i = 4; i >= -52; i--) html += weekOption(addDays(thisMon, i * 7));   // 4 weeks ahead … a year back
+      // Older half-month periods (before weekly pay): last 6 months
+      html += '<optgroup label="Older half-month periods">';
+      for (let i = 0; i < 6; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1), ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        const mon = d.toLocaleDateString("en-US", { month: "short" });
+        html += `<option value="${ym}-2">${mon} 16 – end, ${d.getFullYear()}</option><option value="${ym}-1">${mon} 1 – 15, ${d.getFullYear()}</option>`;
+      }
+      $("week").innerHTML = html + "</optgroup>";
+      $("week").value = "wk-" + dayStr(thisMon);
+    })();
+    function period() {
+      const v = $("week").value;
+      if (v.startsWith("wk-")) {
+        const [y, m, d] = v.slice(3).split("-").map(Number);
+        const from = new Date(y, m - 1, d), to = addDays(from, 6);
+        return { key: v, half: "W", from, to, label: `${fmtShort(from)} – ${fmtShort(to)}, ${to.getFullYear()} (payday Sun ${fmtShort(to)})` };
+      }
+      // An older half-month period
+      const [y, m, half] = v.split("-");
+      const last = new Date(+y, +m, 0).getDate();
+      const from = new Date(+y, m - 1, half === "2" ? 16 : 1), to = new Date(+y, m - 1, half === "1" ? 15 : last);
+      return { key: v, half, from, to, label: `${fmtShort(from)} – ${fmtShort(to)}, ${y}` };
+    }
+
+    // ---------- Staff and their saved numbers ----------
+    let rows = {};         // staffId → { days, ot, allow, sss, ph, pi, ca, other, snap: {name, position, code, rate, basis} }
+    let status = null;     // null (not saved), "Draft", "Final"
+    let dirty = false;
+    let tableReady = true;
+
+    // Rates come from the protected table "staff_pay" (supabase/staff_pay.sql); before it is set up,
+    // from the staff record as before
+    let PAY = null;
+    async function loadPay() {
+      if (!window.cloud) return;
+      const { data, error } = await window.cloud.from("staff_pay").select("staff_id,rate,basis");
+      if (!error) PAY = Object.fromEntries((data || []).map((p) => [String(p.staff_id), p]));
+    }
+    const snapOf = (s) => {
+      const p = PAY ? PAY[String(s.id)] || {} : s;
+      return { name: s.name, position: s.position || "", code: s.code || "", rate: +p.rate || 0, basis: p.basis || "daily" };
+    };
+
+    function staffForPeriod() {
+      const staff = load("aircon_staff", []).filter((s) => s && s.name && (s.status || "Active") !== "Inactive");
+      const ids = new Set(staff.map((s) => String(s.id)));
+      // Everyone active now, plus anyone already in this period's saved payroll
+      const list = staff.map((s) => ({ id: String(s.id), snap: rows[s.id] && status ? rows[s.id].snap : snapOf(s) }));
+      Object.entries(rows).forEach(([id, r]) => { if (!ids.has(id) && r.snap) list.push({ id, snap: r.snap }); });
+      return list.sort((a, b) => a.snap.name.localeCompare(b.snap.name));
+    }
+
+    function pay(id, snap) {
+      const r = rows[id] || {};
+      const v = (f) => num(r[f]);
+      const rate = snap.rate, basis = String(snap.basis).toLowerCase();
+      let basic = 0, daily = 0;
+      if (basis === "monthly") {
+        daily = rate / WORKDAYS_PER_MONTH;
+        const ph = period().half;   // a week: monthly × 12 ÷ 52; half-month: ÷ 2; whole month: all
+        basic = Math.max(0, (ph === "M" ? rate : ph === "W" ? rate * 12 / 52 : rate / 2) - v("days") * daily);
+      } else if (basis === "per job") {
+        basic = rate * v("days");
+      } else {
+        daily = rate;
+        basic = rate * v("days");
+      }
+      const otPay = v("ot") * (daily / HOURS_PER_DAY) * OT_RATE;
+      // Meal allowance: ₱100 × days present. Days present come from attendance (Daily Schedule);
+      // HR can type a different number in "Meal days" (e.g. warehouse staff who aren't on a crew).
+      // A finalized period keeps the amount it was saved with, so old payslips never change.
+      let mealDays = 0, meal = 0;
+      if (status === "Final") { meal = v("meal"); mealDays = v("mealDays"); }
+      else if (mealEligible(snap.position)) {
+        mealDays = mealDaysTyped(r) ? v("mdays") : presentDays(id);
+        meal = mealDays * MEAL_PER_DAY;
+      }
+      // Incentive: the TEAM incentive from the Daily Schedule (incentive-teams.js: from the 2nd DONE UNIT
+      // installed that day, counted per unit not per client; an absent member's share is split among those present). HR can type a
+      // different amount. A finalized period keeps the amount it was saved with.
+      let inc = 0, incDays = 0;
+      const auto = teamInc(id);
+      if (status === "Final") { inc = r.incentive != null && r.incentive !== "" ? v("incentive") : v("inc"); incDays = v("incDays"); }
+      else if (incTyped(r)) { inc = v("inc"); incDays = auto.days; }
+      else { inc = auto.amount; incDays = auto.days; }
+      const gross = basic + otPay + v("allow") + meal + inc;
+      // Late: minutes late on the Time Clock (IC card, counted after 8:10 AM) × ₱2 (timeclock-lib.js). HR can type a
+      // different amount. A finalized period keeps the amount it was saved with.
+      let late = 0, lateMin = 0;
+      const lateAuto = lateFor(id);
+      if (status === "Final") { late = r.lateAmt != null && r.lateAmt !== "" ? v("lateAmt") : v("late"); lateMin = v("lateMin"); }
+      else if (lateTyped(r)) { late = v("late"); lateMin = lateAuto.lateMin; }
+      else { late = lateAuto.deduction; lateMin = lateAuto.lateMin; }
+      const ded = DEDUCTIONS.reduce((s, [f]) => s + v(f), 0) + late;
+      return { basic: r2(basic), otPay: r2(otPay), allow: r2(v("allow")), meal: r2(meal), mealDays, inc: r2(inc), incDays, incAuto: r2(auto.amount),
+        late: r2(late), lateMin, lateAuto: r2(lateAuto.deduction),
+        gross: r2(gross), ded: r2(ded), net: r2(gross - ded), basis, rate };
+    }
+
+    // ---------- Days present (attendance from the Daily Schedule, attendance.js) ----------
+    const mealDaysTyped = (r) => r.mdays != null && String(r.mdays).trim() !== "";
+    const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    let ATT = null;   // { key, tally, team } for the period on screen; cleared when the schedule or period changes
+    function attNow() {
+      const p = period();
+      if (!ATT || ATT.key !== p.key) ATT = { key: p.key, tally: Attendance.tally(ymd(p.from), ymd(p.to)),
+        team: Attendance.teamIncentives ? Attendance.teamIncentives(ymd(p.from), ymd(p.to), load("aircon_staff", [])) : {} };
+      return ATT;
+    }
+    function presentDays(id) {
+      if (typeof Attendance === "undefined") return 0;
+      const p = period();
+      const s = load("aircon_staff", []).find((x) => x && String(x.id) === String(id));
+      return s ? Attendance.forStaff(s, ymd(p.from), ymd(p.to), attNow().tally).days : 0;
+    }
+    // Late deduction from the Time Clock taps of the period on screen: { lateMin, deduction }
+    const lateTyped = (r) => r.late != null && String(r.late).trim() !== "";
+    let TAPS = null;   // { key, byStaff, error } for the period on screen
+    async function loadTaps() {
+      if (typeof TimeClock === "undefined") return;
+      const p = period(), key = p.key;
+      const res = await TimeClock.load(ymd(p.from), ymd(p.to));
+      if (period().key !== key) return;   // the period changed while loading
+      TAPS = { key, byStaff: res.taps ? TimeClock.days(res.taps) : {}, error: res.error, missing: res.missing };
+      render();
+    }
+    function lateFor(id) {
+      if (typeof TimeClock === "undefined" || !TAPS || TAPS.key !== period().key) return { lateMin: 0, deduction: 0 };
+      return TimeClock.summary(TAPS.byStaff[String(id)] || {});
+    }
+
+    // Team incentive for the period: { amount, days }
+    const incTyped = (r) => r.inc != null && String(r.inc).trim() !== "";
+    function teamInc(id) {
+      if (typeof Attendance === "undefined") return { amount: 0, days: 0 };
+      return attNow().team[String(id)] || { amount: 0, days: 0 };
+    }
+
+    // Approved leave days that fall inside the period (from Day off & leave)
+    function leaveDays(id) {
+      const p = period();
+      return load("aircon_leave", []).filter((l) => String(l.staffId) === String(id) && l.status === "Approved" && l.type !== "Cash advance").reduce((sum, l) => {
+        const a = new Date(Math.max(new Date(l.from + "T00:00"), p.from)), b = new Date(Math.min(new Date((l.to || l.from) + "T00:00"), p.to));
+        return sum + (b >= a ? Math.round((b - a) / 864e5) + 1 : 0);
+      }, 0);
+    }
+
+    // Approved cash advances (vale, sent from the Dashboard) needed inside the period: a reminder to type in Cash advance
+    function cashAdvance(id) {
+      const p = period();
+      return load("aircon_leave", []).filter((l) => String(l.staffId) === String(id) && l.status === "Approved" && l.type === "Cash advance"
+        && new Date(l.from + "T00:00") >= p.from && new Date(l.from + "T00:00") <= p.to).reduce((sum, l) => sum + (+l.amount || 0), 0);
+    }
+
+    // ---------- Draw ----------
+    const mealCell = (p) => `${p.mealDays} day${p.mealDays === 1 ? "" : "s"} · <b>${peso(p.meal)}</b>`;
+    const lateCell = (p) => (p.lateMin ? `${p.lateMin} min · ` : "") + `<b>${peso(p.late)}</b>`;
+    const incCell = (p) => (p.incDays ? `${p.incDays} day${p.incDays === 1 ? "" : "s"} · ` : "") + `<b>${peso(p.inc)}</b>`;
+    function render() {
+      const locked = status === "Final";
+      const list = staffForPeriod();
+      let tGross = 0, tDed = 0, tNet = 0, count = 0;
+      $("rows").innerHTML = list.length ? list.map(({ id, snap }) => {
+        const r = rows[id] || {};
+        const p = pay(id, snap);
+        if (p.gross || p.ded) { tGross += p.gross; tDed += p.ded; tNet += p.net; count++; }
+        const unit = p.basis === "monthly" ? "absent days" : p.basis === "per job" ? "jobs" : "days";
+        const lv = leaveDays(id);
+        const input = (f, extra = "") => `<input class="pr-in" type="number" inputmode="decimal" min="0" step="any" data-id="${esc(id)}" data-f="${f}" value="${esc(r[f] ?? "")}" placeholder="0"${locked ? " disabled" : ""}${extra}>`;
+        return `<tr>
+          <td class="pr-who"><b>${esc(snap.name)}</b><small>${esc([snap.position, snap.code].filter(Boolean).join(" · "))}</small>
+            ${lv ? `<span class="pr-leave"><i class="fas fa-plane-departure"></i> ${lv} leave day${lv > 1 ? "s" : ""}</span>` : ""}
+            ${(() => { const ca = cashAdvance(id); return ca ? `<span class="pr-leave" title="Approved cash advance (vale) this period: type it in the Cash advance column"><i class="fas fa-hand-holding-usd"></i> ${peso(ca)} vale approved</span>` : ""; })()}</td>
+          <td class="num">${p.rate ? `${peso(p.rate)}<span class="pr-unit">/ ${esc(p.basis)}</span>` : '<span class="pr-norate">No rate set</span>'}</td>
+          <td class="num">${input("days")}<span class="pr-unit">${unit}</span></td>
+          <td class="num">${input("ot", p.basis === "per job" ? ' title="Per-job staff: add overtime as Allowance"' : "")}</td>
+          <td class="num">${input("allow")}</td>
+          <td class="num">${mealEligible(snap.position) || p.meal
+            ? `${locked ? "" : input("mdays", ` placeholder="${p.mealDays}" title="Days present from attendance: ${p.mealDays}. Type a number to change it."`).replace(' placeholder="0"', "")}<span class="pr-unit" data-meal="${esc(id)}">${mealCell(p)}</span>`
+            : '<span class="pr-unit">—</span>'}</td>
+          <td class="num">${locked ? "" : input("inc", ` placeholder="${p.incAuto}" title="Team incentive from the Daily Schedule: ${peso(p.incAuto)} (${p.incDays} day(s)). Type an amount to change it."`).replace(' placeholder="0"', "")}<span class="pr-unit" data-inc="${esc(id)}">${incCell(p)}</span></td>
+          <td class="num"><b>${peso(p.gross)}</b></td>
+          <td class="num">${locked ? "" : input("late", ` placeholder="${p.lateAuto}" title="Late on the Time Clock: ${p.lateMin} min × ₱2 = ${peso(p.lateAuto)}. Type an amount to change it."`).replace(' placeholder="0"', "")}<span class="pr-unit" data-late="${esc(id)}">${lateCell(p)}</span></td>
+          ${DEDUCTIONS.map(([f]) => `<td class="num">${input(f)}</td>`).join("")}
+          <td class="num pr-net" data-net="${esc(id)}">${peso(p.net)}</td>
+          <td class="num"><button type="button" class="inv-btn light" data-slip="${esc(id)}" style="padding:7px 10px"><i class="fas fa-file-invoice"></i> Payslip</button></td>
+        </tr>`;
+      }).join("") : `<tr><td colspan="16" class="inv-empty"><i class="fas fa-user-friends"></i><br>No staff yet. Add staff and their rates on the <a href="staff.html">Staff</a> page.</td></tr>`;
+      $("foot").innerHTML = list.length ? `<tr><td colspan="7">Totals</td><td class="num">${peso(tGross)}</td><td colspan="6" class="num">${peso(tDed)}</td><td class="num pr-net">${peso(tNet)}</td><td></td></tr>` : "";
+      $("sCount").textContent = count;
+      $("sDed").textContent = peso(tDed);
+      $("sNet").textContent = peso(tNet);
+
+      const st = $("status");
+      st.className = "pr-status " + (status === "Final" ? "final" : status === "Draft" ? "draft" : "new");
+      st.innerHTML = status === "Final" ? '<i class="fas fa-lock"></i> Finalized' : status === "Draft" ? '<i class="fas fa-pen"></i> Draft' : '<i class="far fa-file"></i> Not saved yet';
+      $("dirty").hidden = !dirty;
+      $("saveBtn").disabled = locked || !tableReady;
+      $("finalBtn").disabled = !tableReady;
+      $("finalBtn").innerHTML = locked ? '<i class="fas fa-lock-open"></i> Reopen' : '<i class="fas fa-lock"></i> Finalize';
+    }
+
+    // Typing a number: recalculate that row and the totals (without redrawing the box being typed in)
+    $("rows").addEventListener("input", (e) => {
+      const el = e.target.closest(".pr-in");
+      if (!el) return;
+      const id = el.dataset.id;
+      const snap = staffForPeriod().find((x) => x.id === id).snap;
+      rows[id] = { ...(rows[id] || {}), snap: (rows[id] && rows[id].snap) || snap, [el.dataset.f]: el.value };
+      dirty = true;
+      const tr = el.closest("tr"), p = pay(id, rows[id].snap);
+      tr.querySelector("td:nth-child(8) b").textContent = peso(p.gross);
+      const mc = tr.querySelector("[data-meal]");
+      if (mc) mc.innerHTML = mealCell(p);
+      const ic = tr.querySelector("[data-inc]");
+      if (ic) ic.innerHTML = incCell(p);
+      const lc = tr.querySelector("[data-late]");
+      if (lc) lc.innerHTML = lateCell(p);
+      tr.querySelector("[data-net]").textContent = peso(p.net);
+      let g = 0, d = 0, n = 0, c = 0;
+      staffForPeriod().forEach(({ id: i, snap: s }) => { const q = pay(i, s); if (q.gross || q.ded) { g += q.gross; d += q.ded; n += q.net; c++; } });
+      $("foot").querySelectorAll("td.num")[0].textContent = peso(g);
+      $("foot").querySelectorAll("td.num")[1].textContent = peso(d);
+      $("foot").querySelectorAll("td.num")[2].textContent = peso(n);
+      $("sCount").textContent = c; $("sDed").textContent = peso(d); $("sNet").textContent = peso(n);
+      $("dirty").hidden = false;
+    });
+
+    // ---------- Load / save (table "payroll_periods", see supabase/payroll.sql) ----------
+    function note(html, bad) { $("notes").innerHTML = html ? `<p class="pr-note${bad ? " bad" : ""}">${html}</p>` : ""; }
+
+    async function loadPeriod() {
+      if (dirty && !confirm("You have unsaved changes for the previous period. Leave them?")) return false;
+      rows = {}; status = null; dirty = false;
+      loadTaps();   // the Time Clock taps of this period (Late deduction)
+      if (!window.cloud) { tableReady = false; note("The online database isn't connected, so payroll can't be saved. Check the internet and refresh.", true); return render(); }
+      const { data, error } = await window.cloud.from("payroll_periods").select("data,status,updated_at,updated_by").eq("period", period().key).maybeSingle();
+      if (error) {
+        tableReady = !/schema cache|does not exist|PGRST205/i.test(error.message + error.code);
+        note(tableReady ? "Couldn't load this period: " + esc(error.message)
+          : "Payroll isn't set up in the database yet. Run <b>supabase/payroll.sql</b> in Supabase (SQL Editor → New query → Run).", true);
+        return render();
+      }
+      tableReady = true;
+      if (data) {
+        rows = (data.data && data.data.rows) || {};
+        status = data.status;
+        note(`Last saved ${new Date(data.updated_at).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" })}${data.updated_by ? " by " + esc(data.updated_by.split("@")[0]) : ""}.` +
+          (status === "Final" ? " This period is <b>finalized</b> and locked. Click <b>Reopen</b> to change it." : ""));
+      } else note("");
+      render();
+    }
+
+    function snapshotAll() {
+      const out = {};
+      staffForPeriod().forEach(({ id, snap }) => {
+        const r = rows[id] || {};
+        if (FIELDS.some((f) => num(r[f])) || r.snap) {
+          const s = r.snap || snap;
+          const p = pay(id, s);
+          // saved, so My Payslips shows the same amounts
+          out[id] = { ...r, snap: s, meal: p.meal, mealDays: p.mealDays, incentive: p.inc, incDays: p.incDays, lateAmt: p.late, lateMin: p.lateMin };
+        }
+      });
+      return out;
+    }
+
+    async function save(newStatus) {
+      const p = period();
+      const payload = { period: p.key, status: newStatus, data: { rows: snapshotAll(), label: p.label, from: p.from.toISOString().slice(0, 10), to: p.to.toISOString().slice(0, 10) } };
+      const { error } = await window.cloud.from("payroll_periods").upsert(payload);
+      if (error) { alert("Payroll was NOT saved: " + error.message); return false; }
+      rows = payload.data.rows; status = newStatus; dirty = false;
+      note(`Saved just now.` + (status === "Final" ? " This period is <b>finalized</b> and locked." : ""));
+      render();
+      return true;
+    }
+
+    $("saveBtn").onclick = async () => { if (await save("Draft")) notify("Payroll draft saved.", "good"); };
+    $("finalBtn").onclick = async () => {
+      if (status === "Final") {
+        if (!confirm("Reopen this payroll period so it can be changed?")) return;
+        const { error } = await window.cloud.from("payroll_periods").update({ status: "Draft" }).eq("period", period().key);
+        if (error) return alert("Not reopened: " + error.message);
+        status = "Draft"; note("Reopened. It can be changed again."); render();
+        return;
+      }
+      if (!confirm(`Finalize payroll for ${period().label}?\n\nIt will be locked so the numbers can't change by mistake. You can reopen it later if needed.`)) return;
+      if (await save("Final")) notify("Payroll finalized.", "good");
+    };
+    $("week").addEventListener("change", loadPeriod);
+    // ◀ ▶ move one week (only between the weekly periods)
+    function stepWeek(n) {
+      const sel = $("week"), opts = [...sel.options].filter((o) => o.value.startsWith("wk-"));
+      const i = opts.findIndex((o) => o.value === sel.value);
+      const next = opts[i < 0 ? 0 : i - n];   // the list is newest first
+      if (next) { const before = sel.value; sel.value = next.value; if (before !== sel.value) loadPeriod().then((ok) => { if (ok === false) sel.value = before; }); }
+    }
+    $("weekPrev").onclick = () => stepWeek(-1);
+    $("weekNext").onclick = () => stepWeek(1);
+    window.addEventListener("beforeunload", (e) => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+
+    // ---------- Payslips ----------
+    function slipHtml(id, snap) {
+      const p = pay(id, snap), r = rows[id] || {}, per = period();
+      const line = (label, v) => v ? `<tr><td>${label}</td><td>${peso(v)}</td></tr>` : "";
+      const qty = p.basis === "monthly" ? (num(r.days) ? `${num(r.days)} absent day(s)` : (per.half === "M" ? "whole month" : per.half === "W" ? "week" : "half month"))
+        : `${num(r.days)} ${p.basis === "per job" ? "job(s)" : "day(s)"}`;
+      return `<div class="slip">
+        <div class="slip-head"><i class="logo"></i><div><b>AIRCON G.O.D</b><small>028 Real St. Brgy Zapote Las Piñas City</small></div></div>
+        <h2>PAYSLIP</h2><div style="color:#64767d">Pay period: <b style="color:#111">${esc(per.label)}</b>${status === "Final" ? "" : " · <i>draft</i>"}</div>
+        <div class="who"><div><span>Name</span><br><b>${esc(snap.name)}</b></div><div><span>Staff ID</span><br><b>${esc(snap.code || "—")}</b></div>
+          <div><span>Position</span><br><b>${esc(snap.position || "—")}</b></div><div><span>Rate</span><br><b>${peso(p.rate)} / ${esc(p.basis)}</b></div></div>
+        <table><tr><th>Earnings</th><th>Amount</th></tr>
+          <tr><td>Basic pay <small style="color:#64767d">(${esc(qty)})</small></td><td>${peso(p.basic)}</td></tr>
+          ${line(`Overtime <small style="color:#64767d">(${num(r.ot)} hr)</small>`, p.otPay)}${line("Allowance", p.allow)}${line(`Meal allowance <small style="color:#64767d">(${p.mealDays} day(s) present)</small>`, p.meal)}${line(`Incentive${p.incDays ? ` <small style="color:#64767d">(team incentive, ${p.incDays} day(s))</small>` : ""}`, p.inc)}
+          <tr class="tot"><td>Gross pay</td><td>${peso(p.gross)}</td></tr></table>
+        <table><tr><th>Deductions</th><th>Amount</th></tr>
+          ${line(`Late <small style="color:#64767d">(${p.lateMin} min × ₱${typeof TimeClock !== "undefined" ? TimeClock.PER_MINUTE : 2})</small>`, p.late)}
+          ${DEDUCTIONS.map(([f, label]) => line(label, num(r[f]))).join("") || ""}
+          ${p.ded ? "" : '<tr><td colspan="2" style="color:#64767d">None</td></tr>'}
+          <tr class="tot"><td>Total deductions</td><td>${peso(p.ded)}</td></tr></table>
+        <div class="netbox"><span>NET PAY</span><b>${peso(p.net)}</b></div>
+        <div class="sign"><div>Prepared by</div><div>Received by (signature &amp; date)</div></div>
+      </div>`;
+    }
+
+    const modal = $("slipModal");
+    let slipFor = null;
+    $("rows").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-slip]");
+      if (!b) return;
+      const item = staffForPeriod().find((x) => x.id === b.dataset.slip);
+      slipFor = item;
+      $("slipView").innerHTML = slipHtml(item.id, rows[item.id] && rows[item.id].snap || item.snap);
+      modal.hidden = false;
+      $("slipClose").focus();
+    });
+    $("slipClose").onclick = () => (modal.hidden = true);
+    modal.addEventListener("click", (e) => { if (e.target === modal) modal.hidden = true; });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") modal.hidden = true; });
+    $("slipPrint").onclick = () => { $("printArea").innerHTML = $("slipView").innerHTML; window.print(); };
+    $("printAllBtn").onclick = () => {
+      const list = staffForPeriod().filter(({ id, snap }) => { const p = pay(id, snap); return p.gross || p.ded; });
+      if (!list.length) return alert("Nothing to print yet. Type in the days worked first.");
+      $("printArea").innerHTML = list.map(({ id, snap }) => slipHtml(id, rows[id] && rows[id].snap || snap)).join("");
+      window.print();
+    };
+
+    // ---------- Export to a spreadsheet (CSV) ----------
+    $("csvBtn").onclick = () => {
+      const per = period();
+      const head = ["Name", "Staff ID", "Position", "Rate", "Basis", "Days/Jobs (absent for monthly)", "OT hours", "Basic", "Overtime", "Allowance", "Meal allowance", "Incentive", "Gross",
+        "Late (min)", "Late", "SSS", "PhilHealth", "Pag-IBIG", "Cash advance", "Other", "Total deductions", "Net pay"];
+      const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+      const lines = staffForPeriod().map(({ id, snap }) => {
+        const r = rows[id] || {}, p = pay(id, rows[id] && rows[id].snap || snap);
+        return [snap.name, snap.code, snap.position, p.rate, p.basis, num(r.days), num(r.ot), p.basic, p.otPay, p.allow, p.meal, p.inc, p.gross,
+          p.lateMin, p.late, ...DEDUCTIONS.map(([f]) => num(r[f])), p.ded, p.net].map(q).join(",");
+      });
+      const blob = new Blob(["﻿" + [head.map(q).join(","), ...lines].join("\r\n")], { type: "text/csv" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `payroll-${per.key}.csv`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    };
+
+    // ---------- Teams & incentive (saved online under "aircon_teams"; supabase/team_incentives.sql) ----------
+    // Each member is linked to their Staff record (staffId), so a renamed nickname still matches.
+    const tmNorm = (t) => String(t || "").trim().toUpperCase().replace(/\s+/g, " ");
+    const tmStaff = () => load("aircon_staff", []).filter((s) => s && s.name && (s.status || "Active") !== "Inactive")
+      .sort((a, b) => a.name.localeCompare(b.name));
+    let TEAMS = null, tmDirty = false;
+    function tmLoad() {
+      const cfg = (typeof Attendance !== "undefined" && Attendance.incentiveTeams) ? Attendance.incentiveTeams() : (window.INCENTIVE_TEAMS || { teams: [] });
+      const staff = load("aircon_staff", []).filter(Boolean);
+      TEAMS = {
+        startAtBatch: +cfg.startAtBatch || 2,
+        onePerDay: cfg.onePerDay !== false,
+        teams: (cfg.teams || []).map((t) => ({
+          team: t.team || "",
+          members: (t.members || []).map((m) => {
+            const aliases = [m.name, ...(m.also || [])].map(tmNorm);
+            const s = (m.staffId != null && m.staffId !== "" && staff.find((x) => String(x.id) === String(m.staffId)))
+              || staff.find((x) => tmNorm(x.name) === tmNorm(m.name))
+              || staff.find((x) => [x.nickname, x.name, x.username].map(tmNorm).some((n) => n && aliases.includes(n)));
+            return { staffId: s ? String(s.id) : "", name: s ? s.name : m.name || "", share: +m.share || 0, role: m.role || (s && s.position) || "", also: m.also || [] };
+          }),
+        })),
+      };
+      tmDirty = false;
+    }
+    const tmTotal = (t) => t.members.reduce((x, m) => x + (+m.share || 0), 0);
+    function tmMsg(text, good) { $("tmMsg").className = "tm-msg " + (good ? "good" : "bad"); $("tmMsg").textContent = text || ""; }
+    function tmRender() {
+      $("tmStart").value = TEAMS.startAtBatch;
+      $("tmOnce").checked = TEAMS.onePerDay;
+      const staff = tmStaff();
+      $("tmGrid").innerHTML = TEAMS.teams.map((t, ti) => `
+        <div class="tm-team">
+          <div class="tm-team-top">
+            <input data-tname="${ti}" value="${esc(t.team)}" placeholder="Team name">
+            <button type="button" class="tm-x" data-tdel="${ti}" title="Delete this team"><i class="fas fa-trash"></i></button>
+          </div>
+          ${t.members.map((m, mi) => `
+            <div class="tm-row">
+              <select data-mstaff="${ti}:${mi}">
+                <option value="">— Pick a staff member —</option>
+                ${!m.staffId && m.name ? `<option value="" selected>${esc(m.name)} (not on the Staff list)</option>` : ""}
+                ${staff.map((s) => `<option value="${esc(s.id)}"${String(s.id) === m.staffId ? " selected" : ""}>${esc(s.name)}${s.position ? " · " + esc(s.position) : ""}</option>`).join("")}
+              </select>
+              <input type="number" min="0" step="any" data-mshare="${ti}:${mi}" value="${esc(m.share)}" title="Share (₱)">
+              <button type="button" class="tm-x" data-mdel="${ti}:${mi}" title="Remove from team"><i class="fas fa-times"></i></button>
+            </div>`).join("")}
+          <button type="button" class="tm-add" data-madd="${ti}"><i class="fas fa-user-plus"></i> Add member</button>
+          <div class="tm-total"><span>Team incentive per day</span><span data-ttotal="${ti}">${peso(tmTotal(t))}</span></div>
+        </div>`).join("") || '<p style="color:var(--mut);margin:0">No teams yet. Click <b>Add team</b>.</p>';
+    }
+    function tmChanged() { tmDirty = true; tmMsg("Not saved yet", false); }
+    $("teams").addEventListener("input", (e) => {
+      const el = e.target;
+      if (el.dataset.tname !== undefined) { TEAMS.teams[+el.dataset.tname].team = el.value; tmChanged(); }
+      if (el.dataset.mshare !== undefined) {
+        const [ti, mi] = el.dataset.mshare.split(":").map(Number);
+        TEAMS.teams[ti].members[mi].share = num(el.value);
+        $("teams").querySelector(`[data-ttotal="${ti}"]`).textContent = peso(tmTotal(TEAMS.teams[ti]));
+        tmChanged();
+      }
+      if (el.id === "tmStart") { TEAMS.startAtBatch = Math.max(1, parseInt(el.value, 10) || 2); tmChanged(); }
+    });
+    $("teams").addEventListener("change", (e) => {
+      const el = e.target;
+      if (el.id === "tmOnce") { TEAMS.onePerDay = el.checked; tmChanged(); }
+      if (el.dataset.mstaff !== undefined) {
+        const [ti, mi] = el.dataset.mstaff.split(":").map(Number);
+        const s = load("aircon_staff", []).find((x) => x && String(x.id) === el.value);
+        Object.assign(TEAMS.teams[ti].members[mi], s ? { staffId: String(s.id), name: s.name, role: s.position || "", also: [s.nickname].filter(Boolean) } : { staffId: "", name: "" });
+        tmChanged();
+      }
+    });
+    $("teams").addEventListener("click", (e) => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      if (b.dataset.madd !== undefined) TEAMS.teams[+b.dataset.madd].members.push({ staffId: "", name: "", share: 0, role: "", also: [] });
+      else if (b.dataset.mdel !== undefined) { const [ti, mi] = b.dataset.mdel.split(":").map(Number); TEAMS.teams[ti].members.splice(mi, 1); }
+      else if (b.dataset.tdel !== undefined) {
+        const t = TEAMS.teams[+b.dataset.tdel];
+        if (!confirm(`Delete ${t.team || "this team"}? (Click Save teams to make it final.)`)) return;
+        TEAMS.teams.splice(+b.dataset.tdel, 1);
+      } else return;
+      tmChanged();
+      tmRender();
+    });
+    $("tmAddTeam").onclick = () => { TEAMS.teams.push({ team: "Team " + (TEAMS.teams.length + 1), members: [] }); tmChanged(); tmRender(); };
+    $("tmSave").onclick = async () => {
+      // Checks: every team has a name; every member is picked; nobody is in two teams
+      const seen = {};
+      for (const t of TEAMS.teams) {
+        if (!t.team.trim()) return tmMsg("Give every team a name.", false);
+        for (const m of t.members) {
+          if (!m.staffId && !m.name) return tmMsg(`Pick a staff member for every row in ${t.team}.`, false);
+          const k = m.staffId || tmNorm(m.name);
+          if (seen[k]) return tmMsg(`${m.name} is in both ${seen[k]} and ${t.team}.`, false);
+          seen[k] = t.team;
+        }
+      }
+      const value = {
+        startAtBatch: TEAMS.startAtBatch, onePerDay: TEAMS.onePerDay,
+        teams: TEAMS.teams.map((t) => ({ team: t.team.trim(), members: t.members.map((m) => ({
+          staffId: m.staffId || null, name: m.name, also: m.also || [], role: m.role || "", share: +m.share || 0 })) })),
+        updatedAt: new Date().toISOString(),
+      };
+      $("tmSave").disabled = true;
+      localStorage.setItem("aircon_teams", JSON.stringify(value));
+      const err = window.cloudSaveNow ? await window.cloudSaveNow("aircon_teams") : null;
+      $("tmSave").disabled = false;
+      tmDirty = false;
+      ATT = null;
+      render();   // the Incentive column follows the new teams
+      if (err) tmMsg("Saved on this device only. NOT saved online: " + err, false);
+      else { tmMsg("Teams saved.", true); if (typeof notify === "function") notify("Teams saved.", "good"); }
+    };
+
+    // Staff list changed on another device: redraw (keeps what was typed)
+    window.addEventListener("storage", (e) => {
+      if (e.key === "aircon_daily") { ATT = null; render(); }   // Daily Schedule changed: recount days present
+      if (e.key === "aircon_staff" || e.key === "aircon_leave") { ATT = null; render(); if (!tmDirty) { tmLoad(); tmRender(); } }
+      if (e.key === "aircon_teams") { ATT = null; render(); if (!tmDirty) { tmLoad(); tmRender(); tmMsg("Updated from another device.", true); } }
+    });
+
+    render();
+    tmLoad(); tmRender();
+    (window.cloudReady || Promise.resolve()).then(() => { if (!tmDirty) { tmLoad(); tmRender(); } }).then(loadPay).then(loadPeriod);
+  </script>
+</body>
+</html>
